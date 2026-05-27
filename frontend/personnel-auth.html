@@ -14,20 +14,20 @@
         <img src="assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo">
         <h1 class="color-maroon fw-700 text-sm mt-1">PERSONNEL PORTAL</h1>
         
-        <div class="auth-toggle mt-4">
-            <button id="showLogin" class="active">Sign In</button>
-            <button id="showSignup">Sign Up</button>
+        <div class="auth-toggle mt-4" role="tablist">
+            <button id="showLogin" class="active" role="tab" aria-selected="true">Sign In</button>
+            <button id="showSignup" role="tab" aria-selected="false">Sign Up</button>
         </div>
 
         <!-- Login Form -->
-        <form id="loginForm" class="mt-4">
+        <form id="loginForm" class="mt-4" aria-label="Personnel Sign-In Form">
             <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" name="email" class="form-control" placeholder="kabayongbundat@pup.edu.ph" required>
+                <label class="form-label" for="login-email">Email Address</label>
+                <input type="email" id="login-email" name="email" class="form-control" placeholder="personnel@pup.edu.ph" required aria-required="true">
             </div>
             <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                <label class="form-label" for="login-password">Password</label>
+                <input type="password" id="login-password" name="password" class="form-control" placeholder="••••••••" required aria-required="true">
             </div>
             <button type="submit" class="btn btn-primary w-full mt-2">
                 Sign In
@@ -35,18 +35,18 @@
         </form>
 
         <!-- Signup Form (Initially Hidden) -->
-        <form id="signupForm" class="mt-4 hidden">
+        <form id="signupForm" class="mt-4 hidden" aria-label="Personnel Registration Form">
             <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" name="fullname" class="form-control" placeholder="Kabayong Bundat" required>
+                <label class="form-label" for="signup-name">Full Name</label>
+                <input type="text" id="signup-name" name="fullname" class="form-control" placeholder="Juan Dela Cruz" required aria-required="true">
             </div>
             <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" name="email" class="form-control" placeholder="kabayongbundat@pup.edu.ph" required>
+                <label class="form-label" for="signup-email">Email Address</label>
+                <input type="email" id="signup-email" name="email" class="form-control" placeholder="personnel@pup.edu.ph" required aria-required="true">
             </div>
             <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                <label class="form-label" for="signup-password">Password</label>
+                <input type="password" id="signup-password" name="password" class="form-control" placeholder="••••••••" required aria-required="true">
             </div>
             <button type="submit" class="btn btn-gold w-full mt-2">
                 Create Account
@@ -58,6 +58,7 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
 </body>
 </html>
