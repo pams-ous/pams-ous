@@ -13,6 +13,7 @@ npx nodemon login.js
 (NOTE: login.js is the starting nodejs file, where the server for socket.io is made, and where it connects to port of the process environment or port 3000, along with the rest of the created PAMS APIs)
 */
 
+require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
 const http = require('http');
 const argon2 = require('argon2');
 const mysql = require('mysql2/promise');
@@ -24,17 +25,17 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "http://127.0.0.1:5500",
+        origin: process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5500",
         methods: ["GET", "POST"]
     }
 });
 
 const db = mysql.createPool({
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'hillsazucena#17',
-    database: 'people'
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || 3306),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'hillsazucena#17',
+    database: process.env.DB_NAME || 'people'
 });
 
 async function handle_login(socket, data) {
@@ -58,10 +59,10 @@ async function handle_login(socket, data) {
             const {getEmployeeDetails} = require("./dbChecks");
             const result = await getEmployeeDetails(db, data.email);
             const [firstName, middleName, lastName, suffix] = [result?.first_name, result?.middle_name, result?.last_name, result?.suffix];
-            const empName = firstName.concat(" ", middleName, " ", lastName, " ", suffix);
+            const empName = [firstName, middleName, lastName, suffix].filter(Boolean).join(" ");
 
             socket.emit('login_backendLog', {
-                success: validPw, 
+                success: validPw,
                 rawData: `Email: ${email}\nValid: ${validPw}\n`,
                 empName: empName,
                 email: email
@@ -69,7 +70,7 @@ async function handle_login(socket, data) {
             console.log(`validPw`);
         } else {
             socket.emit('login_backendLog', {
-                success: false, 
+                success: false,
                 rawData: `Account not found!`
             });
         }
@@ -91,11 +92,15 @@ io.on('connection', (socket) => {
 const {searchAPI} = require("./userSearch");
 const {regiUserAPI} = require("./registration");
 const {manageAccountAPI} = require("./manage");
+const {otpAPI} = require("./otp");
+const {passwordResetAPI} = require("./passwordReset");
 const { stringify } = require('querystring');
 
 searchAPI(io, db);
 regiUserAPI(io, db);
 manageAccountAPI(io, db);
+otpAPI(io, db);
+passwordResetAPI(io, db);
 
-const PORT = process.env.port || 3000;
+const PORT = process.env.PORT || process.env.port || 3000;
 server.listen(PORT, () => console.log(`Server connected at port ${PORT}`));
