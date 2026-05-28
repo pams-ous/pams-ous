@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users & Groups – PUP OUS - PAMS</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo-star">
+                <img src="../assets/pup_ous_seal.webp" alt="PUP OUS Seal">
+            </div>
+            <div>
+                <div class="brand-name">PUP OUS</div>
+                <div class="brand-sub">Accomplishment System</div>
+            </div>
+        </div>
+
+        <nav class="nav-group">
+            <div class="nav-label">Main</div>
+            <a href="dashboard.html" class="nav-item">
+                <i class="fa-solid fa-table-columns"></i> Dashboard
+            </a>
+            <a href="task-board.html" class="nav-item">
+                <i class="fa-solid fa-table-list"></i> Task Board
+            </a>
+            <a href="my-tasks.html" class="nav-item">
+                <i class="fa-solid fa-clipboard-list"></i> My Tasks
+            </a>
+        </nav>
+
+        <nav class="nav-group" data-admin-only>
+            <div class="nav-label">Management</div>
+            <a href="reports.html" class="nav-item">
+                <i class="fa-solid fa-chart-bar"></i> Reports
+            </a>
+            <a href="users-groups.html" class="nav-item active">
+                <i class="fa-solid fa-users"></i> Users & Groups
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">?</div>
+                <div>
+                    <div class="user-name">—</div>
+                    <div class="user-role">—</div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="PAMS.logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="alert-banner hidden" id="alertBanner">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="alertText"></span> <a href="my-tasks.html">View Tasks</a>
+        </div>
+
+        <div class="page-header ph-32 pt-3">
+            <div class="header-left">
+                <h1>Users & Groups</h1>
+                <p>Manage system users, access roles, and organizational groups</p>
+            </div>
+            <div class="header-right">
+                <span class="header-date" id="headerDate"></span>
+                <div class="notif-wrap">
+                    <button class="bell-btn" title="Notifications">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notif-dot"></span>
+                    </button>
+                    <div class="notif-popover">
+                        <div class="notif-header">Notifications</div>
+                        <div class="notif-body"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content ph-32">
+            <div class="panels">
+
+                <!-- Users Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fa-solid fa-user-gear"></i> System Users</div>
+                        <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')">
+                            <i class="fa-solid fa-user-plus"></i> Add User
+                        </button>
+                    </div>
+                    <div class="table-wrap ph-24" style="padding-bottom: 1.5rem;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Personnel</th>
+                                    <th>Email</th>
+                                    <th>Access Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Groups Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fa-solid fa-layer-group"></i> Groups</div>
+                        <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')">
+                            <i class="fa-solid fa-plus"></i> Add Group
+                        </button>
+                    </div>
+                    <div class="table-wrap ph-24" style="padding-bottom: 1.5rem;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Group Name</th>
+                                    <th class="text-center">Members</th>
+                                    <th>Leader</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groupsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- ADD USER MODAL -->
+    <div class="modal-backdrop" id="addUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Add New User</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('addUserModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Employee Code</label>
+                    <input type="text" id="newUserCode" class="form-control" placeholder="e.g. EMP-202X-011">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="newUserName" class="form-control" placeholder="e.g. Juan Dela Cruz">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" id="newUserEmail" class="form-control" placeholder="e.g. juan.delacruz@pup.edu.ph">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Account Role</label>
+                        <select id="newUserRole" class="form-control">
+                            <option value="MEMBER">Personnel (Encoder)</option>
+                            <option value="ADMIN">System Administrator</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Designation</label>
+                        <select id="newUserDesignation" class="form-control">
+                            <option value="">Loading…</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('addUserModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.addUser()">Create User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESET PASSWORD MODAL -->
+    <div class="modal-backdrop" id="resetPassModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Reset Password</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('resetPassModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm color-gray mb-3">
+                    Resetting password for <strong id="resetPassUserName" class="color-maroon"></strong>.
+                </p>
+                <input type="hidden" id="resetPassUserId">
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="resetPassValue" class="form-control" placeholder="Min. 6 characters">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('resetPassModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.confirmResetPassword()">Update Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD GROUP MODAL -->
+    <div class="modal-backdrop" id="addGroupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Create New Group</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('addGroupModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Group Name *</label>
+                    <input type="text" id="newGroupName" class="form-control" placeholder="e.g. Student Records">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" id="newGroupDesc" class="form-control" placeholder="Function of this group">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Group Leader</label>
+                    <select id="newGroupLeader" class="form-control"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('addGroupModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.addGroup()">Create Group</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT GROUP MODAL -->
+    <div class="modal-backdrop" id="editGroupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Group</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('editGroupModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editGroupId">
+                <div class="form-group">
+                    <label class="form-label">Group Name</label>
+                    <input type="text" id="editGroupName" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" id="editGroupDesc" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Group Leader</label>
+                    <select id="editGroupLeader" class="form-control"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('editGroupModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.saveGroupEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration and API Logic -->
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/layout.js"></script>
+    <script src="../js/users-groups.js"></script>
+</body>
+</html>

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personnel Portal – PUP OUS</title>
+    <title>Personnel Portal – PUP OUS - PAMS</title>
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
 </head>
+
 <body class="login-container">
     <div class="login-box">
         <a href="index.html" class="color-maroon text-xs fw-600 d-block mb-4 back-link">
@@ -13,7 +16,7 @@
         </a>
         <img src="../assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo">
         <h1 class="color-maroon fw-700 text-sm mt-1">PERSONNEL PORTAL</h1>
-        
+
         <div class="auth-toggle mt-4" role="tablist">
             <button id="showLogin" class="active" role="tab" aria-selected="true">Sign In</button>
             <button id="showSignup" role="tab" aria-selected="false">Sign Up</button>
@@ -23,13 +26,16 @@
         <form id="loginForm" class="mt-4" aria-label="Personnel Sign-In Form">
             <div class="form-group">
                 <label class="form-label" for="login-email">Email Address</label>
-                <input type="email" id="login-email" name="email" class="form-control" placeholder="personnel@pup.edu.ph" required aria-required="true">
+                <input type="email" id="login-email" name="email" class="form-control"
+                    placeholder="personnel@pup.edu.ph" required aria-required="true">
             </div>
             <div class="form-group">
                 <label class="form-label" for="login-password">Password</label>
                 <div class="password-field-wrap">
-                    <input type="password" id="login-password" name="password" class="form-control" placeholder="••••••••" required aria-required="true">
-                    <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('login-password', this)" aria-label="Toggle password visibility">
+                    <input type="password" id="login-password" name="password" class="form-control"
+                        placeholder="••••••••" required aria-required="true">
+                    <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('login-password', this)"
+                        aria-label="Toggle password visibility">
                         <i class="fa-regular fa-eye-slash"></i>
                     </button>
                 </div>
@@ -46,17 +52,20 @@
         <form id="signupForm" class="mt-4 hidden" aria-label="Personnel Registration Form">
             <div class="form-group">
                 <label class="form-label" for="signup-emp-code">Employee Code</label>
-                <input type="text" id="signup-emp-code" name="employeeCode" class="form-control" placeholder="PUP-202X-XXXX" autocomplete="off">
+                <input type="text" id="signup-emp-code" name="employeeCode" class="form-control"
+                    placeholder="PUP-202X-XXXX" autocomplete="off">
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="signup-last-name">Last Name *</label>
-                    <input type="text" id="signup-last-name" name="lastName" class="form-control" placeholder="Dela Cruz" required aria-required="true">
+                    <input type="text" id="signup-last-name" name="lastName" class="form-control"
+                        placeholder="Dela Cruz" required aria-required="true">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="signup-first-name">First Name *</label>
-                    <input type="text" id="signup-first-name" name="firstName" class="form-control" placeholder="Juan" required aria-required="true">
+                    <input type="text" id="signup-first-name" name="firstName" class="form-control" placeholder="Juan"
+                        required aria-required="true">
                 </div>
             </div>
 
@@ -73,12 +82,14 @@
 
             <div class="form-group">
                 <label class="form-label" for="signup-email">Email Address *</label>
-                <input type="email" id="signup-email" name="email" class="form-control" placeholder="personnel@pup.edu.ph" required aria-required="true">
+                <input type="email" id="signup-email" name="email" class="form-control"
+                    placeholder="personnel@pup.edu.ph" required aria-required="true">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="signup-designation">Designation *</label>
-                <select id="signup-designation" name="designationIds" class="form-control" required aria-required="true">
+                <select id="signup-designation" name="designationIds" class="form-control" required
+                    aria-required="true">
                     <option value="">Loading designations...</option>
                 </select>
             </div>
@@ -86,8 +97,11 @@
             <div class="form-group">
                 <label class="form-label" for="signup-password">Password *</label>
                 <div class="password-field-wrap">
-                    <input type="password" id="signup-password" name="password" class="form-control" placeholder="••••••••" required aria-required="true">
-                    <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('signup-password', this)" aria-label="Toggle password visibility">
+                    <input type="password" id="signup-password" name="password" class="form-control"
+                        placeholder="••••••••" required aria-required="true">
+                    <button type="button" class="pass-toggle"
+                        onclick="togglePasswordVisibility('signup-password', this)"
+                        aria-label="Toggle password visibility">
                         <i class="fa-regular fa-eye-slash"></i>
                     </button>
                 </div>
@@ -96,8 +110,11 @@
             <div class="form-group">
                 <label class="form-label" for="signup-confirm-password">Confirm Password *</label>
                 <div class="password-field-wrap">
-                    <input type="password" id="signup-confirm-password" name="confirmPassword" class="form-control" placeholder="••••••••" required aria-required="true">
-                    <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('signup-confirm-password', this)" aria-label="Toggle password visibility">
+                    <input type="password" id="signup-confirm-password" name="confirmPassword" class="form-control"
+                        placeholder="••••••••" required aria-required="true">
+                    <button type="button" class="pass-toggle"
+                        onclick="togglePasswordVisibility('signup-confirm-password', this)"
+                        aria-label="Toggle password visibility">
                         <i class="fa-regular fa-eye-slash"></i>
                     </button>
                 </div>
@@ -106,7 +123,7 @@
             <p class="text-xs color-gray mb-3 text-left">
                 * Required fields. New accounts are created with Personnel access.
             </p>
-            
+
             <button type="submit" class="btn btn-gold w-full mt-2">
                 Create Account
             </button>
@@ -120,4 +137,5 @@
     <script src="../js/config.js"></script>
     <script src="../js/auth.js"></script>
 </body>
+
 </html>

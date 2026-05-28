@@ -1051,17 +1051,40 @@ body.sidebar-open .main { margin-left: var(--sb-w-expanded); }
 .task-table td:last-child { text-align: center; }
 
 .task-name { font-weight: 600; color: var(--text); }
-.task-overdue td { background: #fff5f5; }
+.task-overdue td { background: #fee2e2 !important; }
 .overdue-tag {
-  background: var(--red-bg);
-  color: var(--red-text);
+  background: #dc2626;
+  color: #fff;
   font-size: 9px;
   font-weight: 800;
   padding: 1px 6px;
   border-radius: 4px;
   margin-left: 8px;
-  border: 1px solid var(--red-border);
+  border: 1px solid #b91c1c;
 }
+
+/* Alert Banner */
+.alert-banner {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 12px 32px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #fecaca;
+  z-index: 1000;
+}
+.alert-banner i { font-size: 16px; }
+.alert-banner a { 
+  color: inherit; 
+  font-weight: 800; 
+  cursor: pointer; 
+  text-decoration: underline; 
+  margin-left: 4px;
+}
+.alert-banner.hidden { display: none !important; }
 
 /* Detail Grids (View Modal) */
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; margin-bottom: 1.5rem; }
@@ -1084,19 +1107,217 @@ body.sidebar-open .main { margin-left: var(--sb-w-expanded); }
 .confirm-body p { color: var(--gray-700); font-size: 14.5px; line-height: 1.6; }
 .confirm-body strong { color: var(--text); font-weight: 700; }
 
-/* Alert Banner */
-.alert-banner {
-  background: var(--red-bg);
-  color: var(--red-text);
-  padding: 10px 32px;
-  font-size: 13px;
-  font-weight: 500;
+/* ─── COMPONENTS: REPORTS ────────────────────────── */
+
+.report-layout {
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.history-panel {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+}
+
+.report-card {
+  border: 1.5px solid var(--gray-100);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.report-card:hover { border-color: var(--maroon); }
+.report-card.active { border-color: var(--maroon); box-shadow: 0 0 0 1px var(--maroon); background: var(--off-white); }
+.report-card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: 5px;
+}
+.report-card-title i { color: var(--maroon); font-size: 13px; }
+.report-card-meta { font-size: 11.5px; color: var(--gray-500); line-height: 1.5; }
+
+.preview-panel {
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+}
+.preview-header {
+  background: var(--maroon);
+  color: var(--white);
+  padding: 24px 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.preview-logo {
+  width: 56px; height: 54px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: var(--white);
+  padding: 2px;
+}
+.preview-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.preview-org    { font-size: 10px; font-weight: 600; letter-spacing: 0.8px; opacity: 0.8; margin-bottom: 4px; text-transform: uppercase; }
+.preview-title  { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.preview-period { font-size: 12.5px; opacity: 0.75; margin-top: 6px; }
+.preview-body   { padding: 26px 30px; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.preview-body .stat-card {
+  display: block;
+  border: 1.5px solid var(--gray-100);
+  border-radius: 9px;
+  padding: 20px 16px;
+  text-align: center;
+  box-shadow: none;
+}
+.preview-body .stat-card .stat-num { font-size: 34px; font-weight: 700; }
+.preview-body .stat-num.c-gray  { color: var(--gray-700); }
+.preview-body .stat-num.c-green { color: #16a34a; }
+.preview-body .stat-num.c-blue  { color: #2563eb; }
+.preview-body .stat-label { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; margin-top: 4px; }
+
+.section-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--maroon);
+  margin-bottom: 14px;
+  border-bottom: 1.5px solid var(--gray-100);
+  padding-bottom: 8px;
+}
+.chart-wrap { max-width: 500px; height: 240px; margin-top: 2rem; }
+
+/* ─── Searchable employee picker (Reports → Individual scope) ─── */
+.user-search { display: flex; flex-direction: column; gap: 8px; position: relative; }
+.user-search-results {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  display: none;
+}
+.user-search-results.open { display: block; }
+
+.user-search-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--gray-100);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.user-search-item:last-child { border-bottom: none; }
+.user-search-item:hover { background: var(--off-white); }
+
+.user-search-meta { display: flex; flex-direction: column; min-width: 0; }
+.user-search-meta strong { color: var(--text); font-size: 13.5px; font-weight: 600; }
+.user-search-meta .muted { color: var(--gray-500); font-size: 11.5px; }
+
+.user-search-picked {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid var(--red-border);
+  padding: 10px 14px;
+  border: 1.5px solid #86efac;
+  background: #f0fdf4;
+  border-radius: 8px;
+  color: #15803d;
+  font-size: 13.5px;
+  font-weight: 600;
 }
-.alert-banner a { color: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.user-search-picked i { color: #16a34a; }
+
+.link-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--maroon);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ─── COMPONENTS: USERS & GROUPS ───────────────────── */
+
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 480px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 1200px) {
+  .panels { grid-template-columns: 1fr; }
+}
+
+.panels .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.td-name  { font-weight: 600; color: var(--text); line-height: 1.4; }
+.td-email { color: var(--gray-500); font-size: 13px; }
+.group-name { font-weight: 700; font-size: 14px; color: var(--text); }
+.group-sub  { font-size: 12px; color: var(--gray-500); margin-top: 2px; line-height: 1.4; }
+
+.action-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-500);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.action-btn:hover { border-color: var(--maroon); color: var(--maroon); background: var(--off-white); }
+.action-btn.deactivate:hover { border-color: var(--red-text); color: var(--red-text); }
+.action-btn.edit:hover { border-color: var(--blue-text); color: var(--blue-text); background: #eff6ff; }
+.action-btn.delete { color: var(--red-text); }
+.action-btn.delete:hover { border-color: var(--red-text); color: var(--white); background: var(--red-text); }
+
+/* Badge Variants */
+.b-active      { background: var(--green-bg); color: var(--green-text); }
+.b-inactive    { background: #fee2e2; color: var(--red-text); }
+
+@media print {
+  .sidebar, .alert-banner, .page-header, .tb-ribbon, .action-row, .history-panel, .modal-backdrop { display: none !important; }
+  .main { margin-left: 0 !important; width: 100% !important; }
+  .report-layout { display: block; }
+  .preview-panel { box-shadow: none; border: none; }
+  .preview-header { -webkit-print-color-adjust: exact; background-color: var(--maroon) !important; color: #fff !important; }
+}
 
 
 

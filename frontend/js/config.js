@@ -9,7 +9,7 @@ const CONFIG = {
     API_BASE_URL: 'http://127.0.0.1:5500', // Typical local development (e.g., Live Server)
     
     // System Metadata
-    SYSTEM_NAME: 'PUP OUS – PAMS',
+    SYSTEM_NAME: 'PUP OUS - PAMS',
     VERSION: '0.1.0-alpha',
     
     // UI Settings

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal Login – PUP OUS</title>
+    <title>Admin Portal – PUP OUS - PAMS</title>
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
 </head>
+
 <body class="login-container">
     <div class="login-box">
         <a href="index.html" class="color-maroon text-xs fw-600 d-block mb-4 back-link">
@@ -14,17 +17,20 @@
         <img src="../assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo">
         <h1 class="color-maroon fw-700 text-sm mt-1">ADMINISTRATOR ACCESS</h1>
         <p class="color-gray text-xs mb-4">Secure Portal for System Management</p>
-        
+
         <form class="mt-4" id="adminLoginForm" aria-label="Administrator Login Form">
             <div class="form-group">
                 <label class="form-label" for="admin-email">Admin Email</label>
-                <input type="email" id="admin-email" name="email" class="form-control" placeholder="admin@pup.edu.ph" required aria-required="true">
+                <input type="email" id="admin-email" name="email" class="form-control" placeholder="admin@pup.edu.ph"
+                    required aria-required="true">
             </div>
             <div class="form-group">
                 <label class="form-label" for="admin-key">Security Key</label>
                 <div class="password-field-wrap">
-                    <input type="password" id="admin-key" name="password" class="form-control" placeholder="••••••••" required aria-required="true">
-                    <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('admin-key', this)" aria-label="Toggle password visibility">
+                    <input type="password" id="admin-key" name="password" class="form-control" placeholder="••••••••"
+                        required aria-required="true">
+                    <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('admin-key', this)"
+                        aria-label="Toggle password visibility">
                         <i class="fa-regular fa-eye-slash"></i>
                     </button>
                 </div>
@@ -33,11 +39,11 @@
                 <i class="fas fa-lock" aria-hidden="true"></i> Authorize Access
             </button>
         </form>
-        
+
         <div class="mt-3 text-xs">
             <a href="#" class="color-maroon fw-600 no-underline">Forgot your password?</a>
         </div>
-        
+
         <div class="mt-4 text-xs color-gray">
             <i class="fas fa-info-circle"></i> This portal is for pre-provisioned administrative accounts only.
         </div>
@@ -45,4 +51,5 @@
     <script src="../js/config.js"></script>
     <script src="../js/auth.js"></script>
 </body>
+
 </html>

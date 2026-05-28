@@ -1,0 +1,160 @@
+/**
+ * dashboard.js
+ * Purpose: Logic for the main overview dashboard, including statistics and charts.
+ */
+
+(function () {
+    const { apiFetch, requireAuth, fmtHeaderDate, getUser } = PAMS;
+
+    let barChart, donutChart;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!requireAuth()) return;
+        PAMS_UI.init(); 
+
+        const u = getUser();
+        if (u) {
+            const welcomeEl = document.getElementById('welcomeText');
+            if (welcomeEl) welcomeEl.textContent = `Welcome back, ${u.firstName || u.name || ''}`;
+        }
+
+        const dateEl = document.getElementById('headerDate');
+        if (dateEl) dateEl.textContent = fmtHeaderDate();
+
+        try {
+            const stats = await apiFetch('/dashboard/stats');
+            renderStats(stats);
+        } catch (err) {
+            console.error('Failed to load dashboard:', err);
+            
+            if (CONFIG.USE_MOCK_API) {
+                renderStats({
+                    counts: { total: 24, completed: 15, inProgress: 6, overdue: 3 },
+                    byGroup: [
+                        { group: 'Student Records', pending: 2, inProgress: 3, completed: 8, cancelled: 1 },
+                        { group: 'Admission', pending: 1, inProgress: 2, completed: 5, cancelled: 0 },
+                        { group: 'Head Office', pending: 0, inProgress: 1, completed: 2, cancelled: 0 }
+                    ],
+                    priority: { LOW: 10, MEDIUM: 8, HIGH: 4, URGENT: 2 },
+                    recentUpdates: [
+                        { name: 'Juan Dela Cruz', text: 'Completed student record filing', time: new Date() },
+                        { name: 'Maria Santos', text: 'Started admission review', time: new Date(Date.now() - 3600000) }
+                    ],
+                    groupProgress: [
+                        { name: 'Student Records', completed: 8, total: 14 },
+                        { name: 'Admission', completed: 5, total: 8 }
+                    ]
+                });
+            }
+        }
+    });
+
+    function renderStats(s) {
+        // 1. Stat cards
+        document.getElementById('cnt-total').textContent      = s.counts.total;
+        document.getElementById('cnt-completed').textContent  = s.counts.completed;
+        document.getElementById('cnt-inprogress').textContent = s.counts.inProgress;
+        document.getElementById('cnt-overdue').textContent    = s.counts.overdue;
+
+        // 2. Overdue alert
+        if (s.counts.overdue > 0) {
+            const banner = document.getElementById('alertBanner');
+            const alertText = document.getElementById('alertText');
+            if (banner && alertText) {
+                alertText.textContent = `${s.counts.overdue} task${s.counts.overdue > 1 ? 's are' : ' is'} overdue.`;
+                banner.classList.remove('hidden');
+            }
+        }
+
+        // 3. Bar Chart
+        const barCtxEl = document.getElementById('barChart');
+        if (barCtxEl) {
+            const barCtx = barCtxEl.getContext('2d');
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: s.byGroup.map(g => g.group),
+                    datasets: [
+                        { label: 'Pending', data: s.byGroup.map(g => g.pending), backgroundColor: '#f59e0b' },
+                        { label: 'In Progress', data: s.byGroup.map(g => g.inProgress), backgroundColor: '#3b82f6' },
+                        { label: 'Completed', data: s.byGroup.map(g => g.completed), backgroundColor: '#16a34a' },
+                        { label: 'Cancelled', data: s.byGroup.map(g => g.cancelled), backgroundColor: '#9ca3af' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Poppins', size: 11 } } } },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, grid: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+        }
+
+        // 4. Donut Chart
+        const donutCtxEl = document.getElementById('donutChart');
+        if (donutCtxEl) {
+            const donutCtx = donutCtxEl.getContext('2d');
+            donutChart = new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low', 'Medium', 'High', 'Urgent'],
+                    datasets: [{
+                        data: [s.priority.LOW, s.priority.MEDIUM, s.priority.HIGH, s.priority.URGENT],
+                        backgroundColor: ['#9ca3af', '#3b82f6', '#f97316', '#dc2626'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Poppins', size: 11 } } } }
+                }
+            });
+        }
+
+        // 5. Recent accomplishments
+        const accList = document.getElementById('accList');
+        if (accList) {
+            if (s.recentUpdates.length === 0) {
+                accList.innerHTML = '<div class="text-xs color-gray text-center py-4">No recent activity.</div>';
+            } else {
+                accList.innerHTML = s.recentUpdates.map(u => `
+                    <div class="acc-item">
+                        <div class="acc-dot ${/complet/i.test(u.text) ? 'green' : 'blue'}"></div>
+                        <div class="acc-body">
+                            <div class="acc-text"><strong>${u.name}</strong>: ${u.text}</div>
+                            <div class="acc-time"><i class="fa-regular fa-clock"></i> ${new Date(u.time).toLocaleTimeString()}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 6. Group progress
+        const gpList = document.getElementById('gpList');
+        if (gpList) {
+            if (s.groupProgress.length === 0) {
+                gpList.innerHTML = '<div class="text-xs color-gray text-center py-4">No groups assigned.</div>';
+            } else {
+                gpList.innerHTML = s.groupProgress.map(g => {
+                    const pct = g.total > 0 ? Math.round((g.completed / g.total) * 100) : 0;
+                    return `
+                        <div class="gp-item">
+                            <div class="gp-top">
+                                <span class="gp-name" title="${g.name}">${g.name}</span>
+                                <span class="gp-pct">${pct}%</span>
+                            </div>
+                            <div class="gp-track"><div class="gp-fill" style="width:${pct}%"></div></div>
+                            <div class="gp-sub">${g.completed} / ${g.total} tasks completed</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    }
+})();
