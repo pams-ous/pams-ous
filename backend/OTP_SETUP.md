@@ -95,6 +95,54 @@ The admin portal has the same toggle (**Security Key / Email OTP**).
 1. Click **Forgot your password?** → `forgot-password.html`.
 2. Enter the account email → receive code → enter code + new password → submit.
 
+## Testing without Gmail (local-only OTP)
+
+If you want to exercise the OTP flows before rotating the Gmail App Password (or just
+want fast offline testing), flip the delivery mode in `.env`:
+
+```
+OTP_DELIVERY=console
+```
+
+Then `rs` ↵ in the nodemon terminal. With `console` mode:
+
+- **No email is sent.** Gmail credentials are not used.
+- **The plaintext code is printed to the nodemon terminal**, framed in a banner:
+
+  ```
+  ╔══════════════════════════════════════════════════════╗
+  ║  PAMS DEV OTP  (channel=email, purpose=registration) ║
+  ║  To:      jamess.a.magpantay@gmail.com               ║
+  ║  Code:    493210                                     ║
+  ║  Expires: 5 minutes                                  ║
+  ╚══════════════════════════════════════════════════════╝
+  ```
+
+- **The plaintext code is also stored in `otp_codes.payload.__dev_code`** so you can
+  read it from MySQL Workbench / phpMyAdmin. Paste this query to see the latest
+  pending codes:
+
+  ```sql
+  SELECT email,
+         purpose,
+         channel,
+         JSON_UNQUOTE(JSON_EXTRACT(payload, '$.__dev_code')) AS dev_code,
+         expires_at,
+         used_at,
+         attempts
+  FROM   otp_codes
+  WHERE  used_at IS NULL
+    AND  expires_at > NOW()
+  ORDER  BY created_at DESC
+  LIMIT  5;
+  ```
+
+When you're ready to test real email delivery, set `OTP_DELIVERY=email` (or remove
+the line — `email` is the default) and `rs` again.
+
+> ⚠️ Never run `OTP_DELIVERY=console` (or `both`) in production. Plaintext OTP
+> storage defeats the purpose of hashing them.
+
 ## Known limitations / out of scope
 
 - **SMS channel is stubbed.** `backend/UserMngmt_APIs/smsAdapter.js` throws until a

@@ -26,6 +26,30 @@ function codeLength() {
     return Number(process.env.OTP_CODE_LENGTH || 6);
 }
 
+// OTP_DELIVERY controls how the plaintext code is surfaced.
+//   email   (default) — send via Gmail SMTP. No plaintext is ever stored.
+//   console           — DEV ONLY. Skip email; log to nodemon stdout and stash the
+//                       plaintext in otp_codes.payload.__dev_code so you can read
+//                       it from MySQL (Workbench / phpMyAdmin). Never use in prod.
+//   both              — Send the email AND log+store. Useful when verifying that
+//                       email delivery works alongside local testing.
+function deliveryMode() {
+    return (process.env.OTP_DELIVERY || "email").toLowerCase();
+}
+
+function logCodeToConsole({ email, purpose, code, channel }) {
+    const ttl = ttlMinutes();
+    const border = "═".repeat(54);
+    console.log("");
+    console.log(`╔${border}╗`);
+    console.log(`║  PAMS DEV OTP  (channel=${channel}, purpose=${purpose})`.padEnd(55) + "║");
+    console.log(`║  To:      ${email}`.padEnd(55) + "║");
+    console.log(`║  Code:    ${code}`.padEnd(55) + "║");
+    console.log(`║  Expires: ${ttl} minutes`.padEnd(55) + "║");
+    console.log(`╚${border}╝`);
+    console.log("");
+}
+
 async function generateAndSendOtp(db, { email, channel = "email", purpose, payload = null }) {
     if (!email) throw new Error("email is required");
     if (!VALID_PURPOSES.has(purpose)) throw new Error(`invalid purpose: ${purpose}`);
@@ -44,16 +68,32 @@ async function generateAndSendOtp(db, { email, channel = "email", purpose, paylo
     const otpId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + ttlMinutes() * 60 * 1000);
 
+    const mode = deliveryMode();
+    const includesLocal = mode === "console" || mode === "both";
+    const includesEmail = mode === "email" || mode === "both";
+
+    // In local/dev modes, stash plaintext in payload so it's queryable from MySQL.
+    // Production default (`email`) never touches the plaintext after sending.
+    const storedPayload = includesLocal
+        ? { ...(payload || {}), __dev_code: code }
+        : payload;
+
     await db.query(
         `INSERT INTO otp_codes (otp_id, email, code_hash, channel, purpose, payload, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?);`,
-        [otpId, email, codeHash, channel, purpose, payload ? JSON.stringify(payload) : null, expiresAt]
+        [otpId, email, codeHash, channel, purpose, storedPayload ? JSON.stringify(storedPayload) : null, expiresAt]
     );
 
-    if (channel === "email") {
-        await sendOtpEmail(email, code, purpose);
-    } else if (channel === "sms") {
-        await sendOtpSMS(email, code, purpose);
+    if (includesLocal) {
+        logCodeToConsole({ email, purpose, code, channel });
+    }
+
+    if (includesEmail) {
+        if (channel === "email") {
+            await sendOtpEmail(email, code, purpose);
+        } else if (channel === "sms") {
+            await sendOtpSMS(email, code, purpose);
+        }
     }
 
     return { otpId, expiresAt };

@@ -1,11 +1,15 @@
 /**
  * auth.js
  * Purpose: Handles authentication logic for both Admin and Personnel portals.
+ *
+ * NOTE on transport: the original mock layer below uses fetch() to a REST API that
+ * doesn't actually exist on the backend (the backend speaks Socket.IO). It still
+ * works only because CONFIG.USE_MOCK_API = true. The OTP layer (otpClient.js) talks
+ * to the real backend over Socket.IO, so OTP works end-to-end regardless of mock
+ * mode — but the surrounding login/signup mocks remain mocks until the two halves
+ * are unified.
  */
 
-/**
- * Global Helpers
- */
 const togglePasswordVisibility = (inputId, btn) => {
     const input = document.getElementById(inputId);
     const icon = btn.querySelector('i');
@@ -22,43 +26,57 @@ const togglePasswordVisibility = (inputId, btn) => {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 1. UI Toggle Logic
-    const showLoginBtn = document.getElementById('showLogin');
-    const showSignupBtn = document.getElementById('showSignup');
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
+    // 1. UI Toggle Logic — wires a Sign In / Sign Up pair of tabs to the matching forms.
+    const wireSignInSignupTabs = ({ loginBtnId, signupBtnId, loginFormId, signupFormId, onSignup }) => {
+        const loginBtn = document.getElementById(loginBtnId);
+        const signupBtn = document.getElementById(signupBtnId);
+        const loginForm = document.getElementById(loginFormId);
+        const signupForm = document.getElementById(signupFormId);
+        if (!loginBtn || !signupBtn || !loginForm || !signupForm) return null;
 
-    if (showLoginBtn && showSignupBtn) {
-        showLoginBtn.addEventListener('click', () => {
-            showLoginBtn.classList.add('active');
-            showSignupBtn.classList.remove('active');
+        loginBtn.addEventListener('click', () => {
+            loginBtn.classList.add('active');
+            signupBtn.classList.remove('active');
+            loginBtn.setAttribute('aria-selected', 'true');
+            signupBtn.setAttribute('aria-selected', 'false');
             loginForm.classList.remove('hidden');
             signupForm.classList.add('hidden');
         });
-
-        showSignupBtn.addEventListener('click', () => {
-            showSignupBtn.classList.add('active');
-            showLoginBtn.classList.remove('active');
+        signupBtn.addEventListener('click', () => {
+            signupBtn.classList.add('active');
+            loginBtn.classList.remove('active');
+            signupBtn.setAttribute('aria-selected', 'true');
+            loginBtn.setAttribute('aria-selected', 'false');
             signupForm.classList.remove('hidden');
             loginForm.classList.add('hidden');
-            loadDesignations(); // Load options when switching to signup
+            if (typeof onSignup === 'function') onSignup();
         });
-    }
+        return loginBtn;
+    };
 
-    /**
-     * Session Helpers
-     */
+    const showLoginBtn = wireSignInSignupTabs({
+        loginBtnId: 'showLogin',
+        signupBtnId: 'showSignup',
+        loginFormId: 'loginForm',
+        signupFormId: 'signupForm',
+        onSignup: () => loadDesignations()
+    });
+
+    const showAdminLoginBtn = wireSignInSignupTabs({
+        loginBtnId: 'showAdminLogin',
+        signupBtnId: 'showAdminSignup',
+        loginFormId: 'adminLoginForm',
+        signupFormId: 'adminSignupForm'
+    });
+
     const setSession = (token, user) => {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
     };
 
-    /**
-     * Data Fetching
-     */
     const loadDesignations = async () => {
         const sel = document.getElementById('signup-designation');
-        if (!sel || sel.options.length > 1) return; // Already loaded or not on page
+        if (!sel || sel.options.length > 1) return;
 
         const fallback = [
             { id: 4, name: 'Encoder / Administrative Staff' },
@@ -73,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Public endpoint for registration designations
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/designations/public`);
             const data = await response.json();
             if (response.ok && data.length > 0) {
@@ -88,9 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * API Interaction Handler
-     * @param {string} endpoint - The target API route
-     * @param {object} data - The payload
+     * Performs the existing (mock) auth request. The OTP gate sits on top of this
+     * so the mock and the OTP layer can coexist while the backend transport unifies.
      */
     const performAuthRequest = async (endpoint, data) => {
         const url = `${CONFIG.API_BASE_URL}/api/${endpoint}`;
@@ -130,12 +146,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Standardized Form Handler
-     */
+    // Wire the Password / Email-OTP segmented toggle on a login form.
+    const setupMethodToggle = (form) => {
+        const toggle = form.querySelector('.method-toggle');
+        if (!toggle) return;
+
+        const buttons = Array.from(toggle.querySelectorAll('button[data-method]'));
+        const submitLabel = form.querySelector('[data-submit-label]');
+        const submitLabelDefault = submitLabel ? submitLabel.innerHTML : null;
+
+        const applyMode = (mode) => {
+            form.dataset.authMode = mode;
+            buttons.forEach((b) => {
+                const active = b.dataset.method === mode;
+                b.classList.toggle('active', active);
+                b.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+
+            // Show/hide per-method sections — and also flip `required` so hidden
+            // fields don't block submit.
+            form.querySelectorAll('[data-method-only]').forEach((el) => {
+                const visible = el.dataset.methodOnly === mode;
+                el.classList.toggle('hidden', !visible);
+                el.querySelectorAll('input,select,textarea').forEach((inp) => {
+                    if (visible) {
+                        if (inp.dataset.wasRequired === 'true') inp.required = true;
+                    } else {
+                        if (inp.required) {
+                            inp.dataset.wasRequired = 'true';
+                            inp.required = false;
+                        }
+                    }
+                });
+            });
+
+            if (submitLabel) {
+                submitLabel.innerHTML = mode === 'otp'
+                    ? '<i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Send Code'
+                    : submitLabelDefault;
+            }
+        };
+
+        buttons.forEach((b) => {
+            b.addEventListener('click', () => applyMode(b.dataset.method));
+        });
+
+        applyMode(form.dataset.authMode || 'password');
+    };
+
+    // Build a mock session for the OTP path so the existing redirect logic still works.
+    const mockUserFromOtp = (email, empName, type) => {
+        const [firstName, ...rest] = (empName || '').split(' ').filter(Boolean);
+        const lastName = rest.length ? rest[rest.length - 1] : '';
+        const role = type === 'Admin Access' || email.includes('admin') ? 'ADMIN' : 'MEMBER';
+        return {
+            id: 1,
+            email,
+            role,
+            firstName: firstName || 'User',
+            lastName
+        };
+    };
+
+    const SIGNUP_FORM_IDS = new Set(['signupForm', 'adminSignupForm']);
+
     const setupFormHandler = (formId, endpoint, type) => {
         const form = document.getElementById(formId);
         if (!form) return;
+
+        const isSignup = SIGNUP_FORM_IDS.has(formId);
+        if (!isSignup) setupMethodToggle(form);
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -144,9 +224,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = Object.fromEntries(formData.entries());
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
+            const authMode = form.dataset.authMode || 'password';
 
-            // Password matching check for signup
-            if (formId === 'signupForm') {
+            // Signup-side validation
+            if (isSignup) {
                 if (data.password !== data.confirmPassword) {
                     alert('Error: Passwords do not match.');
                     return;
@@ -155,18 +236,65 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Error: Password must be at least 8 characters long.');
                     return;
                 }
-                // Convert designationId to array as expected by the backend
                 if (data.designationIds) {
                     data.designationIds = [Number(data.designationIds)];
                 }
-                // Clean up confirmPassword before sending
-                delete data.confirmPassword;
+            }
+
+            // Login-side: OTP mode needs only email; nothing else can be missing.
+            if (!isSignup && authMode === 'otp') {
+                if (!data.email) {
+                    alert('Please enter your email to receive a code.');
+                    return;
+                }
             }
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             try {
+                // ─── REGISTRATION (OTP REQUIRED) ──────────────────────────────
+                if (isSignup) {
+                    await window.PAMSOtp.runRegistrationOtp({
+                        formData: {
+                            tempEmpCode: data.employeeCode,
+                            firstName: data.firstName,
+                            middleName: data.middleName,
+                            lastName: data.lastName,
+                            suffix: data.suffix,
+                            email: data.email,
+                            tempPassword: data.password,
+                            tempConfPassword: data.confirmPassword
+                        }
+                    });
+                    alert(`${type} successful! You can now sign in.`);
+                    const backToLogin = formId === 'adminSignupForm' ? showAdminLoginBtn : showLoginBtn;
+                    backToLogin && backToLogin.click();
+                    return;
+                }
+
+                // ─── LOGIN: Email OTP mode (passwordless) ─────────────────────
+                if (authMode === 'otp') {
+                    const otpResult = await window.PAMSOtp.runLoginOtp({ email: data.email });
+                    const user = mockUserFromOtp(data.email, otpResult.empName, type);
+
+                    if (type === 'Personnel Sign-In' && user.role === 'ADMIN') {
+                        alert('Administrator detected. Redirecting to the Admin Portal...');
+                        window.location.href = 'admin-login.html';
+                        return;
+                    }
+                    if (type === 'Admin Access' && user.role !== 'ADMIN') {
+                        alert('Access Denied: This portal is for administrators only.');
+                        return;
+                    }
+
+                    setSession('otp-session-token', user);
+                    alert(`${type} successful! Redirecting to dashboard...`);
+                    window.location.href = '../pages/dashboard.html';
+                    return;
+                }
+
+                // ─── LOGIN: Password mode (existing mock path) ────────────────
                 const result = await performAuthRequest(endpoint, data);
 
                 if (type === 'Personnel Sign-In' && result.user?.role === 'ADMIN') {
@@ -174,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = 'admin-login.html';
                     return;
                 }
-
                 if (type === 'Admin Access' && result.user?.role !== 'ADMIN') {
                     alert('Access Denied: This portal is for administrators only.');
                     return;
@@ -184,16 +311,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     setSession(result.token, result.user);
                     alert(`${type} successful! Redirecting to dashboard...`);
                     window.location.href = '../pages/dashboard.html';
-                } else if (result.success || endpoint === 'auth/register') {
-                    alert(`${type} successful! You can now sign in.`);
-                    if (formId === 'signupForm') {
-                        showLoginBtn.click(); // Switch to login tab
-                    }
+                } else if (result.success) {
+                    alert(`${type} successful!`);
                 } else {
                     alert(`Error: ${result.message}`);
                 }
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                if (error && error.message === 'cancelled') {
+                    // User closed the OTP modal — silently abort.
+                } else {
+                    alert(`Error: ${error.message || error}`);
+                }
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
@@ -201,8 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Initialize handlers
     setupFormHandler('adminLoginForm', 'auth/login', 'Admin Access');
+    setupFormHandler('adminSignupForm', 'auth/register', 'Admin Registration');
     setupFormHandler('loginForm', 'auth/login', 'Personnel Sign-In');
     setupFormHandler('signupForm', 'auth/register', 'Personnel Registration');
 });

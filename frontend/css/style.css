@@ -2292,6 +2292,200 @@ body.sidebar-open .main {
   color: var(--red-text);
 }
 
+/* ─── COMPONENT: OTP MODAL ─────────────────────────── */
+
+.otp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 0, 0, .55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: otp-fade-in .18s ease-out;
+}
+
+.otp-backdrop.hidden {
+  display: none;
+}
+
+@keyframes otp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.otp-modal {
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+  width: 100%;
+  max-width: 420px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  text-align: center;
+  position: relative;
+  animation: otp-pop-in .22s cubic-bezier(.2, .8, .25, 1);
+}
+
+@keyframes otp-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.otp-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.otp-modal-close:hover {
+  color: var(--maroon);
+  background: var(--gray-100);
+}
+
+.otp-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--pale-gold);
+  color: var(--maroon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: .85rem;
+}
+
+.otp-modal h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--maroon);
+  margin-bottom: .4rem;
+  letter-spacing: .3px;
+}
+
+.otp-modal .otp-modal-sub {
+  font-size: .82rem;
+  color: var(--gray-500);
+  margin-bottom: 1.25rem;
+  line-height: 1.55;
+}
+
+.otp-modal .otp-modal-sub strong {
+  color: var(--gray-700);
+  font-weight: 600;
+}
+
+.otp-input-row {
+  display: flex;
+  gap: .5rem;
+  justify-content: center;
+  margin-bottom: .85rem;
+}
+
+.otp-input-row input {
+  width: 44px;
+  height: 52px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 10px;
+  background: var(--white);
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--maroon);
+  text-align: center;
+  outline: none;
+  transition: var(--transition);
+}
+
+.otp-input-row input:focus {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(128, 0, 0, .12);
+}
+
+.otp-input-row.is-error input {
+  border-color: var(--red-text);
+  background: var(--red-bg);
+}
+
+.otp-feedback {
+  font-size: .78rem;
+  min-height: 1.1rem;
+  margin-bottom: .8rem;
+  line-height: 1.4;
+}
+
+.otp-feedback.is-error {
+  color: var(--red-text);
+}
+
+.otp-feedback.is-success {
+  color: var(--green-text);
+}
+
+.otp-feedback.is-info {
+  color: var(--gray-500);
+}
+
+.otp-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+
+.otp-modal-actions .btn {
+  justify-content: center;
+}
+
+.otp-resend {
+  font-size: .78rem;
+  color: var(--gray-500);
+  margin-top: .8rem;
+}
+
+.otp-resend button {
+  background: none;
+  border: none;
+  color: var(--maroon);
+  font-weight: 600;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.otp-resend button:disabled {
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
+
+.otp-resend button:not(:disabled):hover {
+  color: var(--gold-hover);
+  text-decoration: underline;
+}
+
+/* Sign-in method segmented control — reuses .auth-toggle base */
+.method-toggle {
+  margin-top: .25rem;
+  margin-bottom: 1.25rem;
+}
+
+.method-toggle button .method-icon {
+  margin-right: .35rem;
+  font-size: .85em;
+}
+
 /* ─── PAGE: TERMS & CONDITIONS ─────────────────────── */
 
 .terms-container {
