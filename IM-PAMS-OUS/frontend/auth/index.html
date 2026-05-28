@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+  IM-PAMS-OUS — Landing / portal picker
+  Adapted from Lumiere's frontend/group-reference/index.html.
+  The original sidebar layout, copy, and seal asset are preserved;
+  only the asset path and link targets were rewired to fit our app.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUP OUS — Personnel Accomplishment Monitoring System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="main-landing">
+
+    <aside class="landing-sidebar">
+        <div class="landing-header">
+            <img src="../assets/pup_ous_seal.webp" alt="PUP OUS Seal" class="landing-seal"
+                 onerror="this.onerror=null;this.src='../assets/pup-ou-logo.png';">
+            <div class="landing-branding">
+                <h1>PUP — Open University System</h1>
+                <p>Personnel Accomplishment Monitoring System</p>
+            </div>
+        </div>
+
+        <p class="portal-tagline">
+            Welcome. Choose how you sign in: the Admin Portal manages users, designations,
+            and reports; the Personnel Portal is for staff logging daily accomplishments.
+        </p>
+
+        <div class="portal-selection">
+            <h2>Select Access Portal</h2>
+
+            <a href="admin-login.html" class="portal-btn portal-btn-admin">
+                <i class="fas fa-user-shield"></i> Admin Portal
+            </a>
+
+            <a href="personnel-auth.html" class="portal-btn portal-btn-personnel">
+                <i class="fas fa-user-tie"></i> Personnel Portal
+            </a>
+        </div>
+
+        <div class="portal-foot">
+            &copy; 2026 PUP OUS — Internal use only.
+        </div>
+    </aside>
+
+    <script>
+        // If the user already has a valid session, skip the landing entirely.
+        try {
+            // api.js stores the JWT under "authToken" — if present, skip the
+            // landing and go straight to the dashboard.
+            const token = localStorage.getItem('authToken');
+            if (token) window.location.replace('../pages/dashboard.html');
+        } catch { /* no-op — no session yet */ }
+    </script>
+</body>
+</html>

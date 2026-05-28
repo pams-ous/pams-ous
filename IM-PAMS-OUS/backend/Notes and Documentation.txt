@@ -1,0 +1,210 @@
+IM-PAMS-OUS  -  Backend Setup & Local-Hosting Notes
+====================================================
+
+Updated: 2026-05-26 (post-meeting refinements)
+
+Quick start (local dev)
+-----------------------
+1. Make sure MySQL is running and the schema is imported:
+       mysql -u root -p < ../database/PAMS_OUS.sql
+   (The schema-additions for the May-26 features — Designations, Permissions,
+   Notifications, OTP expiry — are applied automatically on server boot by
+   backend/lib/migrations.js. You do NOT need to re-run the .sql for those.)
+
+2. Install dependencies (once):
+       npm install
+
+3. Set environment variables (PowerShell syntax shown):
+
+       $env:DB_PASSWORD = "your_mysql_password"
+
+   All env vars (every one is optional and falls back to a sensible default):
+       DB_HOST          (default localhost)
+       DB_PORT          (default 3306)
+       DB_USER          (default root)
+       DB_NAME          (default people)
+       PORT             (default 5000)
+       JWT_SECRET       (CHANGE THIS in production)
+       RESET_SECRET     (CHANGE THIS in production)
+
+       --- SMTP / email OTP (added 2026-05-26) ---
+       SMTP_HOST        e.g. smtp.gmail.com
+       SMTP_PORT        465 (SSL) or 587 (STARTTLS)
+       SMTP_SECURE      "true" for 465, "false" for 587
+       SMTP_USER        sender Gmail address
+       SMTP_PASS        16-char Gmail App Password (NOT the account password)
+       SMTP_FROM        '"PUP OUS PAMS" <pams-ous@yourdomain>'
+
+   If SMTP_HOST/USER/PASS are unset, the server runs in DEV MODE: OTPs are
+   printed to the server console AND echoed back to the client as `devOtp` in
+   the /api/auth/forgot-password response so the flow remains testable.
+
+4. Start the API:
+       npm start                (production)
+       npm run dev              (development - auto-restart on save)
+
+   On boot you should see migration log lines:
+       -> Applying schema migrations...
+         (+) added Employees.otp_expires_at
+         (+) created Designations / Permissions / ...
+         (+) seeded designation: Head / Chief - Admission / ...
+       (+) Migrations applied.
+
+5. Health check:
+       curl http://localhost:5000/api/health
+       -> {"ok":true,"db":"connected"}
+
+6. Open the frontend at frontend/login.html via any static host (Live Server,
+   `npx http-server`, etc.). The frontend points to http://localhost:5000/api
+   by default — see frontend/api.js if you need to change it.
+
+Setting up Gmail SMTP (one-time)
+--------------------------------
+Required because Google blocks plain-password SMTP since 2022.
+
+1. Sign in to Google -> Manage your Google Account -> Security.
+2. Turn on 2-Step Verification (mandatory before App Passwords are unlocked).
+3. Under "How you sign in to Google" -> App passwords.
+4. Choose "Mail" + "Other (PAMS OUS)" -> Generate -> copy the 16-char code.
+5. Set the env vars in the terminal you'll run the server from:
+
+       $env:SMTP_HOST   = "smtp.gmail.com"
+       $env:SMTP_PORT   = "465"
+       $env:SMTP_SECURE = "true"
+       $env:SMTP_USER   = "yourgoogleaddress@gmail.com"
+       $env:SMTP_PASS   = "16charAppPassword"     # spaces optional
+       $env:SMTP_FROM   = '"PUP OUS PAMS" <yourgoogleaddress@gmail.com>'
+
+6. Restart `npm run dev`. The server log will no longer print the SMTP-not-
+   configured warning, and forgot-password requests will deliver real email
+   instead of returning devOtp.
+
+
+Folder layout
+-------------
+backend/
+  server.js                      main Express app
+  db.js                          shared MySQL pool
+  dashboard.js                   /api/dashboard/* aggregates
+  lib/
+    mailer.js                    nodemailer SMTP wrapper + HTML template
+    migrations.js                idempotent schema additions on boot
+  UserMngmt_APIs/
+    auth.js                      /api/auth/* — login, register, OTP, reset
+    users.js                     /api/users CRUD + admin-reset-password
+    designations.js              /api/designations — Discord-style roles
+    notifications.js             /api/notifications + recordNotification()
+    passwordUtil.js              Argon2id hash/verify (via @node-rs/argon2)
+  TaskMgmt_APIs/
+    tasks.js                     /api/tasks CRUD + daily-completed filter
+    taskUpdates.js               /api/task-updates
+    taskGroups.js                /api/groups CRUD + membership
+  ReportMgmt_APIs/
+    reports.js                   /api/reports CRUD + generation
+    reportEntries.js             /api/report-entries
+
+frontend/
+  login.html, dashboard.html, my-tasks.html,
+  task-board.html, reports.html, users-groups.html
+  styles.css                     single shared stylesheet
+  api.js                         shared fetch wrapper + auth + chrome helpers
+  assets/
+    pup-logo.png                 legacy PUP shield
+    pup-ou-logo.png              NEW — PUP Open University System logo
+                                 (drop the meeting-supplied image here)
+
+
+May-26 spec features — quick reference
+--------------------------------------
+* Email OTP            : forgot-password now sends a real email. See SMTP setup.
+* Sidebar overlay      : hamburger toggles `body.sidebar-open`. Sidebar
+                         slides in over the main content with a blurred
+                         backdrop (no more squeeze layout).
+* Notifications        : /api/notifications returns {current, history}.
+                         Empty state: "You're all caught up — no overdue tasks."
+                         History pulled from the new Notifications table.
+* Designations         : full CRUD at /api/designations. Seeded with OUS
+                         org chart: Head, Chief-Admission, Chief-Records,
+                         Encoder/Administrative Staff (default).
+                         Each designation owns N permissions; users may have
+                         M designations; effective perms = union (Discord model).
+* Member rename        : UI shows "Encoder / Administrative Staff" everywhere
+                         the underlying role is MEMBER.
+* Account-create dropdown:
+                         Both the public Create Account form and the admin
+                         Add-User modal now have a Designation dropdown.
+* Admin password reset : POST /api/users/:id/admin-reset-password (gated by
+                         the `reset_passwords` permission). Key icon in the
+                         user row opens the reset modal.
+* Tasks ribbon         : task-board.html now uses MS-Word-style ribbon tabs
+                         (Home / Filters / Sort / View / Admin). Tasks render
+                         as full-width rows with complete details.
+* Daily-reset Completed: /api/tasks?status=COMPLETED defaults to "today
+                         only". Admins can pass `completedSince=all` (UI
+                         checkbox in the ribbon's Admin tab) for full history.
+* Dashboard task table : dashboard shows an All Tasks panel with filter +
+                         admin "since Day 1" toggle.
+* Reports individual   : Reports -> Generate -> Scope=Individual now opens
+                         a searchable employee picker (type to filter).
+
+
+Status-enum quirks (PAMS_OUS schema)
+-------------------------------------
+The DB uses two different spellings — handled in the backend, but worth
+knowing if you query directly:
+
+    Tasks.status                'in progress'   (with SPACE)
+    Task_Updates.status_change  'in_progress'   (with UNDERSCORE)
+
+The frontend uses uppercase ("IN PROGRESS") everywhere and the API
+normalizes to whichever spelling the target table requires.
+
+
+Default seeded admin accounts (from PAMS_OUS.sql)
+-------------------------------------------------
+Two employees are pre-flagged as Admin:
+    millz.quan@company.com           (Quan Millz)
+    m.garcia@company.com             (Maria Garcia)
+
+Their password hashes in the seed are the original Argon2id hashes;
+unless you know the plaintext, register a fresh account from the
+"Create new account" link on the login screen, then promote it via:
+
+    INSERT INTO Admin (employee_id) SELECT employee_id FROM Employees WHERE email='your.email@x.com';
+
+…or use a different admin to reset its password via the new UI.
+
+
+One-week dry-run checklist (May-26 meeting deliverable)
+-------------------------------------------------------
+Before handing the URL to the OUS group:
+
+  [ ] MySQL is reachable on the host machine; `npm run dev` boots cleanly.
+  [ ] Migrations log shows the 5 OUS designations were seeded.
+  [ ] At least one Admin account exists and can log in.
+  [ ] SMTP env vars are set; test forgot-password sends a real email.
+  [ ] PUP OU logo dropped at frontend/assets/pup-ou-logo.png (1024x1024 ok).
+  [ ] Frontend is reachable from each tester's machine
+      (try `npx http-server frontend -p 5500 -c-1 --host 0.0.0.0` then share
+       http://<your-LAN-ip>:5500/login.html).
+  [ ] Backend CORS already allows all origins in dev (server.js).
+  [ ] Each persona's checklist passes:
+        Encoder/Staff:  log in, see Main nav only, view dashboard, my tasks,
+                        ribbon Home tab works, no Management nav, no admin
+                        reset button anywhere.
+        Administrator:  log in, see "Administrator" subtitle, see Management
+                        nav, generate a report (All / Group / Individual),
+                        reset another user's password, toggle the "since
+                        Day 1" admin completed-tasks view, edit designations.
+  [ ] Backup the DB before opening the dry run:
+        mysqldump -u root -p people > pams_predryrun_2026-05-26.sql
+
+
+Production hardening to do BEFORE going beyond dry-run
+------------------------------------------------------
+  [ ] Set JWT_SECRET and RESET_SECRET to long random strings.
+  [ ] Set DB_PASSWORD via env var, never commit it.
+  [ ] Restrict CORS in server.js to your actual host.
+  [ ] Switch SMTP to a transactional provider (SendGrid, Mailgun, etc.)
+      with a verified sender domain instead of Gmail.
+  [ ] Put the API behind HTTPS (Caddy, nginx, or built-in TLS).

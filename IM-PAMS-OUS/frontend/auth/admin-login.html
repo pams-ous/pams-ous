@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!--
+  IM-PAMS-OUS — Admin Portal Login
+  Adapted from Lumiere's frontend/group-reference/admin-login.html.
+  Lumiere's visual design (login-container, login-box, maroon hero
+  background) is preserved verbatim; we added the multi-step
+  forgot-password flow and wired the form to our real REST API
+  via api.js so admin accounts actually authenticate.
+  Non-ADMIN roles are rejected here — they're redirected to the
+  Personnel Portal.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal — PUP OUS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="login-container">
+
+    <div class="login-box">
+
+        <!-- SIGN IN -->
+        <div id="view-login" class="view active">
+            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Portal Selection</a>
+            <img src="../assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo"
+                 onerror="this.onerror=null;this.src='../assets/pup-ou-logo.png';">
+            <h1>ADMINISTRATOR ACCESS</h1>
+            <p class="login-subtitle">Secure portal for system management</p>
+
+            <div id="loginAlert" class="alert alert-error"></div>
+
+            <div class="form-group">
+                <label class="form-label" for="loginEmail">Admin Email</label>
+                <input type="email" id="loginEmail" class="form-control" autocomplete="email" placeholder="admin@pup.edu.ph">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="loginPassword">Security Key</label>
+                <div class="pass-wrap">
+                    <input type="password" id="loginPassword" class="form-control" autocomplete="current-password" placeholder="••••••••">
+                    <button class="pass-toggle" type="button" onclick="togglePass('loginPassword', this)" tabindex="-1">
+                        <i class="fa-regular fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" id="loginBtn" onclick="handleLogin()">
+                <i class="fas fa-lock"></i> Authorize Access
+            </button>
+
+            <div class="link-row"><a onclick="showView('forgot-email')">Forgot your password?</a></div>
+            <p class="info-note">
+                <i class="fas fa-info-circle"></i>
+                This portal is for pre-provisioned administrative accounts only.
+                If you're staff, use the <a href="personnel-auth.html">Personnel Portal</a>.
+            </p>
+        </div>
+
+        <!-- FORGOT — STEP 1: email -->
+        <div id="view-forgot-email" class="view">
+            <a class="back-link" onclick="showView('login')"><i class="fas fa-arrow-left"></i> Back to Sign In</a>
+            <h1>FORGOT PASSWORD</h1>
+            <p class="login-subtitle">Enter your admin email to receive a code</p>
+            <div id="forgotEmailAlert" class="alert alert-error"></div>
+            <div class="form-group">
+                <label class="form-label" for="forgotEmail">Email Address</label>
+                <input type="email" id="forgotEmail" class="form-control" autocomplete="email">
+            </div>
+            <button type="button" class="btn btn-primary" id="forgotEmailBtn" onclick="handleForgotEmail()">Send Code</button>
+        </div>
+
+        <!-- FORGOT — STEP 2: OTP -->
+        <div id="view-forgot-otp" class="view">
+            <a class="back-link" onclick="showView('forgot-email')"><i class="fas fa-arrow-left"></i> Back</a>
+            <h1>ENTER ONE-TIME PASSWORD</h1>
+            <p class="otp-note">A 6-digit code was sent to your email.</p>
+            <div id="forgotOtpAlert" class="alert alert-error"></div>
+            <div class="form-group">
+                <label class="form-label" for="otpInput">One-Time Password</label>
+                <input type="text" id="otpInput" class="form-control" maxlength="6" autocomplete="one-time-code"
+                       style="letter-spacing: 4px; font-size: 1rem; text-align: center;">
+            </div>
+            <button type="button" class="btn btn-primary" id="forgotOtpBtn" onclick="handleVerifyOTP()">Submit OTP</button>
+            <div class="link-row">Didn't receive a code? <a onclick="handleResendOTP()">Resend</a></div>
+        </div>
+
+        <!-- FORGOT — STEP 3: new password -->
+        <div id="view-forgot-newpass" class="view">
+            <h1>SET A NEW PASSWORD</h1>
+            <p class="login-subtitle">Choose a password of at least 8 characters</p>
+            <div id="newPassAlert" class="alert alert-error"></div>
+            <div class="form-group">
+                <label class="form-label" for="newPass">New Password</label>
+                <div class="pass-wrap">
+                    <input type="password" id="newPass" class="form-control" oninput="checkNewPassMatch()">
+                    <button class="pass-toggle" type="button" onclick="togglePass('newPass', this)" tabindex="-1">
+                        <i class="fa-regular fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="confirmNewPass">Confirm Password</label>
+                <div class="pass-wrap">
+                    <input type="password" id="confirmNewPass" class="form-control" oninput="checkNewPassMatch()">
+                    <button class="pass-toggle" type="button" onclick="togglePass('confirmNewPass', this)" tabindex="-1">
+                        <i class="fa-regular fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="newPassMatchErr" class="field-error" style="display:none; margin-bottom:8px;">
+                * Passwords are not matching.
+            </div>
+            <button type="button" class="btn btn-primary" id="newPassBtn" onclick="handleSetNewPassword()">Confirm New Password</button>
+        </div>
+
+        <!-- SUCCESS / FAIL screens -->
+        <div id="view-password-success" class="view">
+            <div class="status-icon success"><i class="fa-regular fa-circle-check"></i></div>
+            <h1>PASSWORD CHANGED</h1>
+            <p class="login-subtitle">You can now sign in with your new password.</p>
+            <button type="button" class="btn btn-primary" onclick="showView('login')">Back to Sign In</button>
+        </div>
+
+        <div id="view-password-fail" class="view">
+            <div class="status-icon fail"><i class="fa-regular fa-circle-xmark"></i></div>
+            <h1>PASSWORD CHANGE FAILED</h1>
+            <p class="login-subtitle">Something went wrong. Try again.</p>
+            <button type="button" class="btn btn-primary" onclick="showView('forgot-email')">Back</button>
+        </div>
+
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const { apiFetch, setToken, setUser } = PAMS;
+
+        let resetEmail = '';
+        let resetToken = '';
+
+        function showView(name) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            const target = document.getElementById(`view-${name}`);
+            if (target) target.classList.add('active');
+        }
+
+        function showAlert(id, msg, type = 'error') {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = msg;
+            el.className = `alert alert-${type} show`;
+        }
+        function clearAlert(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = '';
+            el.className = 'alert';
+        }
+
+        const _btnContent = {};
+        function setLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            if (loading) {
+                _btnContent[btnId] = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div>';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = _btnContent[btnId] || '';
+            }
+        }
+
+        function togglePass(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon  = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-regular fa-eye';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-regular fa-eye-slash';
+            }
+        }
+
+        function checkNewPassMatch() {
+            const match = document.getElementById('newPass').value ===
+                          document.getElementById('confirmNewPass').value;
+            document.getElementById('newPassMatchErr').style.display =
+                (document.getElementById('confirmNewPass').value && !match) ? 'block' : 'none';
+        }
+
+        // ─── LOGIN ───────────────────────────────────────────────────
+        async function handleLogin() {
+            clearAlert('loginAlert');
+            const email    = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            if (!email || !password) {
+                showAlert('loginAlert', 'Please enter both email and password.');
+                return;
+            }
+
+            setLoading('loginBtn', true);
+            try {
+                const data = await apiFetch('/auth/login', 'POST', { email, password });
+                // Reject non-admins at the portal boundary. We still hit the
+                // same backend endpoint as personnel — separate "admin login"
+                // routes would just duplicate logic.
+                if (data.user?.role !== 'ADMIN') {
+                    showAlert('loginAlert', 'This portal is for administrators only. Please use the Personnel Portal.');
+                    setLoading('loginBtn', false);
+                    return;
+                }
+                setToken(data.token);
+                setUser(data.user);
+                window.location.href = '../pages/dashboard.html';
+            } catch (err) {
+                showAlert('loginAlert', err.message || 'Invalid email or password.');
+                setLoading('loginBtn', false);
+            }
+        }
+
+        // ─── FORGOT — STEP 1 ─────────────────────────────────────────
+        async function handleForgotEmail() {
+            clearAlert('forgotEmailAlert');
+            const email = document.getElementById('forgotEmail').value.trim();
+            if (!email) { showAlert('forgotEmailAlert', 'Please enter your email address.'); return; }
+
+            setLoading('forgotEmailBtn', true);
+            try {
+                await apiFetch('/auth/forgot-password', 'POST', { email });
+                resetEmail = email;
+                showAlert('forgotEmailAlert',
+                    'A 6-digit code has been sent to your email. Check your inbox (and spam folder).',
+                    'success');
+                setTimeout(() => showView('forgot-otp'), 1200);
+            } catch (err) {
+                showAlert('forgotEmailAlert', err.message || 'Failed to send email.');
+            }
+            setLoading('forgotEmailBtn', false);
+        }
+
+        // ─── FORGOT — STEP 2 ─────────────────────────────────────────
+        async function handleVerifyOTP() {
+            clearAlert('forgotOtpAlert');
+            const otp = document.getElementById('otpInput').value.trim();
+            if (!otp) { showAlert('forgotOtpAlert', 'Please enter the OTP.'); return; }
+
+            setLoading('forgotOtpBtn', true);
+            try {
+                const data = await apiFetch('/auth/verify-otp', 'POST', { email: resetEmail, otp });
+                resetToken = data.resetToken;
+                showView('forgot-newpass');
+            } catch {
+                showView('password-fail');
+            }
+            setLoading('forgotOtpBtn', false);
+        }
+
+        async function handleResendOTP() {
+            clearAlert('forgotOtpAlert');
+            try {
+                await apiFetch('/auth/forgot-password', 'POST', { email: resetEmail });
+                showAlert('forgotOtpAlert',
+                    'A fresh code has been sent. Please check your email.', 'success');
+            } catch {
+                showAlert('forgotOtpAlert', 'Failed to resend OTP. Try again.');
+            }
+        }
+
+        // ─── FORGOT — STEP 3 ─────────────────────────────────────────
+        async function handleSetNewPassword() {
+            clearAlert('newPassAlert');
+            const pass    = document.getElementById('newPass').value;
+            const confirm = document.getElementById('confirmNewPass').value;
+            if (!pass || !confirm) { showAlert('newPassAlert', 'Please fill in both fields.'); return; }
+            if (pass !== confirm)  { showAlert('newPassAlert', 'Passwords do not match.'); return; }
+            if (pass.length < 8)   { showAlert('newPassAlert', 'Password must be at least 8 characters.'); return; }
+
+            setLoading('newPassBtn', true);
+            try {
+                await apiFetch('/auth/reset-password', 'POST', { resetToken, password: pass });
+                showView('password-success');
+            } catch {
+                showView('password-fail');
+            }
+            setLoading('newPassBtn', false);
+        }
+
+        // Submit-on-Enter wiring per active view
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            const active = document.querySelector('.view.active')?.id;
+            const map = {
+                'view-login'         : handleLogin,
+                'view-forgot-email'  : handleForgotEmail,
+                'view-forgot-otp'    : handleVerifyOTP,
+                'view-forgot-newpass': handleSetNewPassword
+            };
+            map[active]?.();
+        });
+    </script>
+</body>
+</html>
