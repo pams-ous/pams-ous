@@ -1,16 +1,56 @@
 <!DOCTYPE html>
-<!--
-  Root redirect — the real entry point lives at /auth/index.html.
-  This keeps every bookmarked or hard-coded root URL working.
--->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=auth/index.html">
-    <title>PUP OUS — Redirecting…</title>
-    <script>window.location.replace('auth/index.html');</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUP OUS - PAMS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/webp" href="assets/pup_ous_seal.webp">
 </head>
-<body>
-    <p>Loading PUP OUS… <a href="auth/index.html">click here</a> if you aren't redirected.</p>
+
+<body class="main-landing">
+
+    <!-- 1. Sidebar-esque Container: Our main navigation anchor -->
+    <aside class="landing-sidebar">
+        <!-- Brand Identity -->
+        <div class="landing-header">
+            <img src="assets/pup_ous_seal.webp" alt="PUP OUS Seal" class="landing-seal">
+            <div class="landing-branding">
+                <h1>PUP OUS - PAMS</h1>
+                <p>Personnel Accomplishment Monitoring System</p>
+            </div>
+        </div>
+
+        <!-- Description/Context -->
+        <div class="mt-4">
+            <p class="text-sm color-gray">
+                Personnel Accomplishment Monitoring System (PAMS) made for the Polytechnic University of the Philippines - Open University System.
+            </p>
+        </div>
+
+        <!-- Portal Selection -->
+        <div class="portal-selection">
+            <h2 class="text-xs fw-600 color-gray uppercase letter-spacing-1">Select Access Portal</h2>
+
+            <a href="auth/admin-login.html" class="portal-btn portal-btn-admin">
+                <i class="fas fa-user-shield"></i> Admin Portal
+            </a>
+
+            <a href="auth/personnel-auth.html" class="portal-btn portal-btn-personnel">
+                <i class="fas fa-user-tie"></i> Personnel Portal
+            </a>
+        </div>
+
+        <!-- Footer Note -->
+        <div class="mt-4 pt-3 border-top">
+            <p class="text-xs color-gray text-center">
+                &copy; 2026 PUP OUS. Internal Use Only.
+            </p>
+        </div>
+    </aside>
+
+    <!-- Configuration and Global Logic -->
+    <script src="js/config.js"></script>
+    <script src="js/landing.js"></script>
 </body>
 </html>
