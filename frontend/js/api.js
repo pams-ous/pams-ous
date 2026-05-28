@@ -1,6 +1,7 @@
 /**
  * api.js
- * Purpose: Shared API utilities, session management, and UI "chrome" logic (Sidebar, RBAC).
+ * Purpose: Shared API utilities, session management, and Auth Guards.
+ * Strictly logic and data-fetching. No DOM manipulation for Layout/UI Chrome.
  */
 
 window.PAMS = (function () {
@@ -74,123 +75,6 @@ window.PAMS = (function () {
     };
 
     /**
-     * UI: Role-Based Access Control (RBAC)
-     */
-    const applyRBAC = () => {
-        const u = getUser();
-        const isAdmin = !!u && u.role === 'ADMIN';
-
-        document.body.classList.toggle('role-admin', isAdmin);
-        document.body.classList.toggle('role-member', !isAdmin);
-
-        if (!isAdmin) {
-            // Physically remove admin-only elements for security/cleanliness
-            document.querySelectorAll('[data-admin-only]').forEach(el => el.remove());
-            
-            // Redirect if on an admin page
-            const path = location.pathname.split('/').pop().toLowerCase();
-            const adminPages = ['reports.html', 'users-groups.html'];
-            if (adminPages.includes(path)) {
-                window.location.replace(pageUrl('dashboard.html'));
-            }
-        }
-    };
-
-    /**
-     * UI: Sidebar & Navigation
-     */
-    const setupSidebar = () => {
-        const sidebar = document.querySelector('.sidebar');
-        if (!sidebar) return;
-
-        // 1. Inject Toggle Button
-        if (!sidebar.querySelector('.sidebar-toggle')) {
-            const btn = document.createElement('button');
-            btn.className = 'sidebar-toggle';
-            btn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-            btn.onclick = () => {
-                const isOpen = document.body.classList.toggle('sidebar-open');
-                localStorage.setItem('sidebar_open', isOpen ? '1' : '0');
-            };
-            sidebar.appendChild(btn);
-        }
-
-        // 2. Restore State
-        const wasOpen = localStorage.getItem('sidebar_open') === '1';
-        document.body.classList.toggle('sidebar-open', wasOpen);
-
-        // 3. User Card
-        const u = getUser();
-        if (u) {
-            const initials = ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '?';
-            document.querySelectorAll('.user-avatar').forEach(el => el.textContent = initials);
-            document.querySelectorAll('.user-name').forEach(el => el.textContent = `${u.firstName || ''} ${u.lastName || u.name || ''}`.trim());
-            document.querySelectorAll('.user-role').forEach(el => {
-                el.textContent = u.role === 'ADMIN' ? 'Administrator' : 'Personnel';
-            });
-        }
-    };
-
-    /**
-     * UI: Notifications
-     */
-    const setupNotifications = () => {
-        const bell = document.querySelector('.bell-btn');
-        const popover = document.querySelector('.notif-popover');
-        if (!bell || !popover) return;
-
-        bell.onclick = (e) => {
-            e.stopPropagation();
-            popover.classList.toggle('open');
-            if (popover.classList.contains('open')) {
-                loadNotifications();
-            }
-        };
-
-        document.addEventListener('click', (e) => {
-            if (!popover.contains(e.target) && e.target !== bell) {
-                popover.classList.remove('open');
-            }
-        });
-    };
-
-    const loadNotifications = async () => {
-        const body = document.querySelector('.notif-body');
-        if (!body) return;
-
-        body.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#888;">Loading...</div>';
-        
-        try {
-            const data = await apiFetch('/notifications');
-            if (!data.current || data.current.length === 0) {
-                body.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#888;">No new notifications.</div>';
-                return;
-            }
-
-            body.innerHTML = data.current.map(n => `
-                <a href="${pageUrl('my-tasks.html')}" class="notif-item">
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                    <div>
-                        <div style="font-weight:600;">${n.message}</div>
-                        <div style="font-size:10px;color:#888;margin-top:2px;">Due: ${fmtDate(n.dueDate)}</div>
-                    </div>
-                </a>
-            `).join('');
-        } catch (err) {
-            body.innerHTML = '<div style="padding:20px;text-align:center;font-size:11px;color:#dc2626;">Failed to load.</div>';
-        }
-    };
-
-    /**
-     * Global "Chrome" Initialization
-     */
-    const setupChrome = () => {
-        applyRBAC();
-        setupSidebar();
-        setupNotifications();
-    };
-
-    /**
      * Formatting Utilities
      */
     const fmtDate = (iso) => {
@@ -204,7 +88,7 @@ window.PAMS = (function () {
 
     return {
         apiFetch, getToken, setToken, getUser, setUser,
-        requireAuth, logout, setupChrome,
+        requireAuth, logout,
         authUrl, pageUrl, fmtDate, fmtHeaderDate
     };
 })();

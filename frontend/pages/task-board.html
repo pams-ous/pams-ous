@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Board – PUP OUS</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo-star">
+                <img src="../assets/pup_ous_seal.webp" alt="PUP OUS Seal">
+            </div>
+            <div>
+                <div class="brand-name">PUP OUS</div>
+                <div class="brand-sub">Accomplishment System</div>
+            </div>
+        </div>
+
+        <nav class="nav-group">
+            <div class="nav-label">Main</div>
+            <a href="dashboard.html" class="nav-item">
+                <i class="fa-solid fa-table-columns"></i> Dashboard
+            </a>
+            <a href="task-board.html" class="nav-item active">
+                <i class="fa-solid fa-table-list"></i> Task Board
+            </a>
+            <a href="my-tasks.html" class="nav-item">
+                <i class="fa-solid fa-clipboard-list"></i> My Tasks
+            </a>
+        </nav>
+
+        <nav class="nav-group" data-admin-only>
+            <div class="nav-label">Management</div>
+            <a href="reports.html" class="nav-item">
+                <i class="fa-solid fa-chart-bar"></i> Reports
+            </a>
+            <a href="users-groups.html" class="nav-item">
+                <i class="fa-solid fa-users"></i> Users & Groups
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">?</div>
+                <div>
+                    <div class="user-name">—</div>
+                    <div class="user-role">—</div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="PAMS.logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="alert-banner hidden" id="alertBanner">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="alertText"></span> <a href="my-tasks.html">View Tasks</a>
+        </div>
+
+        <div class="page-header ph-32 pt-3">
+            <div class="header-left">
+                <h1>Task Board</h1>
+                <p>Manage and track all tasks</p>
+            </div>
+            <div class="header-right">
+                <span class="header-date" id="headerDate"></span>
+                <div class="notif-wrap">
+                    <button class="bell-btn" title="Notifications">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notif-dot"></span>
+                    </button>
+                    <div class="notif-popover">
+                        <div class="notif-header">Notifications</div>
+                        <div class="notif-body"></div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="openNewTask()">
+                    <i class="fa-solid fa-plus"></i> New Task
+                </button>
+            </div>
+        </div>
+
+        <!-- RIBBON -->
+        <div class="tb-ribbon mh-32 mt-4">
+            <div class="ribbon-tabs" id="ribbonTabs">
+                <button class="ribbon-tab active" data-tab="home">Home</button>
+                <button class="ribbon-tab" data-tab="filters">Filters</button>
+                <button class="ribbon-tab" data-tab="sort">Sort</button>
+                <button class="ribbon-tab" data-tab="view">View</button>
+                <button class="ribbon-tab" data-admin-only data-tab="admin">Admin</button>
+            </div>
+
+            <!-- HOME Panel -->
+            <div class="ribbon-panel active" data-panel="home">
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Status</div>
+                    <div class="status-tabs" id="statusTabs">
+                        <button class="status-tab active" data-status="ALL">All <span class="cnt" data-cnt="ALL">0</span></button>
+                        <button class="status-tab" data-status="PENDING">Pending <span class="cnt" data-cnt="PENDING">0</span></button>
+                        <button class="status-tab" data-status="IN PROGRESS">In Progress <span class="cnt" data-cnt="IN PROGRESS">0</span></button>
+                        <button class="status-tab" data-status="COMPLETED">Completed <span class="cnt" data-cnt="COMPLETED">0</span></button>
+                        <button class="status-tab" data-status="CANCELLED">Cancelled <span class="cnt" data-cnt="CANCELLED">0</span></button>
+                    </div>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Quick search</div>
+                    <input type="search" id="tbSearch" class="ribbon-input" placeholder="Search title or description…">
+                </div>
+            </div>
+
+            <!-- FILTERS Panel -->
+            <div class="ribbon-panel" data-panel="filters">
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Priority</div>
+                    <select class="ribbon-input" id="filterPriority">
+                        <option value="">All Priorities</option>
+                        <option value="URGENT">Urgent</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                    </select>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Group</div>
+                    <select class="ribbon-input" id="filterGroup"><option value="">All Groups</option></select>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Assignee</div>
+                    <select class="ribbon-input" id="filterAssignee"><option value="">All Assignees</option></select>
+                </div>
+                <div class="ribbon-group items-center">
+                    <button class="ribbon-btn ghost" onclick="clearFilters()"><i class="fa-solid fa-xmark"></i> Clear filters</button>
+                </div>
+            </div>
+
+            <!-- SORT Panel -->
+            <div class="ribbon-panel" data-panel="sort">
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Sort by</div>
+                    <select class="ribbon-input" id="sortField">
+                        <option value="due">Due date</option>
+                        <option value="priority">Priority</option>
+                        <option value="created">Created date</option>
+                        <option value="title">Title (A–Z)</option>
+                    </select>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Direction</div>
+                    <select class="ribbon-input" id="sortDir">
+                        <option value="asc">Ascending</option>
+                        <option value="desc">Descending</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- VIEW Panel -->
+            <div class="ribbon-panel" data-panel="view">
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Density</div>
+                    <select class="ribbon-input" id="viewDensity">
+                        <option value="comfortable">Comfortable</option>
+                        <option value="compact">Compact</option>
+                    </select>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Group rows by</div>
+                    <select class="ribbon-input" id="viewGroupBy">
+                        <option value="">None</option>
+                        <option value="status">Status</option>
+                        <option value="priority">Priority</option>
+                        <option value="group">Group</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ADMIN Panel -->
+            <div class="ribbon-panel" data-panel="admin" data-admin-only>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">History</div>
+                    <label class="flex items-center gap-2 text-sm pointer">
+                        <input type="checkbox" id="adminSinceDay1"> Show all completed since Day 1
+                    </label>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Export</div>
+                    <button class="ribbon-btn ghost" onclick="exportVisibleTasks()">
+                        <i class="fa-solid fa-file-csv"></i> Export visible (CSV)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TASK LIST -->
+        <div class="tb-list-wrap">
+            <div class="tb-list-header">
+                <span id="tbResultsLabel">Loading tasks…</span>
+            </div>
+            <div class="tb-rows" id="tbRows"></div>
+        </div>
+    </main>
+
+    <!-- NEW TASK MODAL -->
+    <div class="modal-backdrop" id="newTaskModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">New Task</span>
+                <button class="modal-close" onclick="closeModal('newTaskModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" class="form-control" id="nt-title" placeholder="Enter task title">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="nt-desc" rows="3" placeholder="Enter description"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-control" id="nt-priority">
+                            <option value="">Select priority</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="URGENT">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="nt-due">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assign To</label>
+                    <select class="form-control" id="nt-assignee">
+                        <option value="">Select assignee</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal('newTaskModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW TASK MODAL -->
+    <div class="modal-backdrop" id="viewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="view-title">Task Details</span>
+                <button class="modal-close" onclick="closeModal('viewModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="view-field">
+                    <div class="view-label">Description</div>
+                    <div class="view-val" id="view-desc"></div>
+                </div>
+                <div class="form-row">
+                    <div class="view-field">
+                        <div class="view-label">Status</div>
+                        <div class="view-val" id="view-status"></div>
+                    </div>
+                    <div class="view-field">
+                        <div class="view-label">Priority</div>
+                        <div class="view-val" id="view-priority"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="view-field">
+                        <div class="view-label">Assigned To</div>
+                        <div class="view-val" id="view-assignee"></div>
+                    </div>
+                    <div class="view-field">
+                        <div class="view-label">Due Date</div>
+                        <div class="view-val" id="view-due"></div>
+                    </div>
+                </div>
+                <div class="view-actions">
+                    <button class="act-btn act-edit" onclick="openEditFromView()"><i class="fa-solid fa-pen"></i> Edit</button>
+                    <button class="act-btn act-delete" onclick="openDeleteFromView()"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT TASK MODAL -->
+    <div class="modal-backdrop" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Task</span>
+                <button class="modal-close" onclick="closeModal('editModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" class="form-control" id="edit-title">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="edit-desc" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-control" id="edit-status">
+                            <option value="PENDING">Pending</option>
+                            <option value="IN PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-control" id="edit-priority">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="URGENT">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Assign To</label>
+                        <select class="form-control" id="edit-assignee"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="edit-due">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE MODAL -->
+    <div class="modal-backdrop" id="deleteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header" style="background: var(--red-text);">
+                <span class="modal-title">Delete Task</span>
+                <button class="modal-close" onclick="closeModal('deleteModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:14px; color: var(--text); line-height:1.5;">
+                    Are you sure you want to delete <strong id="delete-name"></strong>? This action cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+                <button class="btn-danger" onclick="doDelete()">Delete Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration and API Logic -->
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/layout.js"></script>
+    <script>
+        const { apiFetch, requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
+
+        let tasks = [];
+        let users = [];
+        let groups = [];
+        let viewingId = null;
+        let activeStatus = 'ALL';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!requireAuth()) return;
+            PAMS_UI.init();
+            document.getElementById('headerDate').textContent = fmtHeaderDate();
+            wireRibbon();
+            await loadAll();
+        });
+
+        function wireRibbon() {
+            document.querySelectorAll('.ribbon-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const name = btn.dataset.tab;
+                    document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.toggle('active', t === btn));
+                    document.querySelectorAll('.ribbon-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+                });
+            });
+
+            document.querySelectorAll('.status-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeStatus = btn.dataset.status;
+                    document.querySelectorAll('.status-tab').forEach(t => t.classList.toggle('active', t === btn));
+                    renderList();
+                });
+            });
+
+            ['filterPriority','filterGroup','filterAssignee','sortField','sortDir','viewDensity','viewGroupBy','adminSinceDay1','tbSearch']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener(el.type === 'search' ? 'input' : 'change', () => {
+                    if (id === 'adminSinceDay1') loadAll();
+                    else renderList();
+                });
+            });
+        }
+
+        async function loadAll() {
+            try {
+                if (CONFIG.USE_MOCK_API) {
+                    tasks = [
+                        { id: 1, title: 'Annual Performance Review', description: 'Review all staff performance for 2026.', priority: 'HIGH', status: 'PENDING', dueDate: '2026-06-15', assignee: { name: 'Juan Dela Cruz', type: 'user', initials: 'JD' }, assignedByName: 'Admin' },
+                        { id: 2, title: 'Database Migration', description: 'Migrate legacy data to new schema.', priority: 'URGENT', status: 'IN PROGRESS', dueDate: '2026-05-20', assignee: { name: 'IT Dept', type: 'group', initials: 'IT' }, assignedByName: 'System' },
+                        { id: 3, title: 'Document Shredding', description: 'Dispose of expired documents.', priority: 'LOW', status: 'COMPLETED', dueDate: '2026-05-10', assignee: { name: 'Maria Santos', type: 'user', initials: 'MS' }, assignedByName: 'Head' }
+                    ];
+                    users = [{ email: 'juan@pup.edu.ph', name: 'Juan Dela Cruz' }, { email: 'maria@pup.edu.ph', name: 'Maria Santos' }];
+                    groups = [{ id: 1, name: 'Student Records' }, { id: 2, name: 'Admission' }];
+                } else {
+                    const sinceDay1 = document.getElementById('adminSinceDay1')?.checked;
+                    const qs = sinceDay1 ? '?completedSince=all' : '';
+                    const [t, u, g] = await Promise.all([
+                        apiFetch('/tasks' + qs),
+                        apiFetch('/users'),
+                        apiFetch('/groups')
+                    ]);
+                    tasks = t.tasks || [];
+                    users = u.users || [];
+                    groups = g.groups || [];
+                }
+                populateAssigneeSelects();
+                buildFilterOptions();
+                renderList();
+                updateOverdueBanner();
+            } catch (err) {
+                console.error('Load failed:', err);
+                document.getElementById('tbRows').innerHTML = `<div class="tb-empty">Failed to load tasks.</div>`;
+            }
+        }
+
+        function populateAssigneeSelects() {
+            const userOpts = users.map(u => `<option value="user:${u.email}">${u.name || u.email}</option>`).join('');
+            const groupOpts = groups.map(g => `<option value="group:${g.id}">${g.name}</option>`).join('');
+            const innerHTML = `<option value="">Select assignee</option><optgroup label="Users">${userOpts}</optgroup><optgroup label="Groups">${groupOpts}</optgroup>`;
+            document.getElementById('nt-assignee').innerHTML = innerHTML;
+            document.getElementById('edit-assignee').innerHTML = innerHTML;
+        }
+
+        function buildFilterOptions() {
+            const groupNames = [...new Set(tasks.filter(t => t.assignee?.type === 'group').map(t => t.assignee.name))].sort();
+            const assignees = [...new Set(tasks.map(t => t.assignee?.name).filter(Boolean))].sort();
+            const gEl = document.getElementById('filterGroup'), gV = gEl.value;
+            const aEl = document.getElementById('filterAssignee'), aV = aEl.value;
+            gEl.innerHTML = '<option value="">All Groups</option>' + groupNames.map(n => `<option value="${n}">${n}</option>`).join('');
+            aEl.innerHTML = '<option value="">All Assignees</option>' + assignees.map(n => `<option value="${n}">${n}</option>`).join('');
+            gEl.value = gV; aEl.value = aV;
+        }
+
+        function updateOverdueBanner() {
+            const today = new Date(new Date().toDateString());
+            const overdue = tasks.filter(t => t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today);
+            const banner = document.getElementById('alertBanner');
+            if (overdue.length > 0) {
+                document.getElementById('alertText').textContent = `${overdue.length} task${overdue.length > 1 ? 's are' : ' is'} overdue.`;
+                banner.classList.remove('hidden');
+            } else { banner.classList.add('hidden'); }
+        }
+
+        function renderList() {
+            const allTotals = { ALL: tasks.length, PENDING: 0, 'IN PROGRESS': 0, COMPLETED: 0, CANCELLED: 0 };
+            tasks.forEach(t => { if (allTotals[t.status] != null) allTotals[t.status]++; });
+            document.querySelectorAll('.status-tab .cnt').forEach(el => el.textContent = allTotals[el.dataset.cnt] ?? 0);
+
+            const list = applyAllFilters();
+            const rows = document.getElementById('tbRows');
+            const density = document.getElementById('viewDensity').value;
+            const groupBy = document.getElementById('viewGroupBy').value;
+
+            rows.className = 'tb-rows ' + (density === 'compact' ? 'is-compact' : '');
+
+            if (list.length === 0) {
+                rows.innerHTML = `<div class="tb-empty">No tasks found.</div>`;
+                document.getElementById('tbResultsLabel').textContent = '0 tasks';
+                return;
+            }
+
+            if (groupBy) {
+                const grouped = list.reduce((acc, t) => {
+                    const k = groupBy === 'status' ? t.status : groupBy === 'priority' ? t.priority : (t.assignee?.type === 'group' ? t.assignee.name : 'No Group');
+                    (acc[k] = acc[k] || []).push(t);
+                    return acc;
+                }, {});
+                rows.innerHTML = Object.entries(grouped).map(([k, items]) => `<div class="tb-group-label">${k} <span class="tb-group-count">${items.length}</span></div>${items.map(buildRow).join('')}`).join('');
+            } else {
+                rows.innerHTML = list.map(buildRow).join('');
+            }
+            document.getElementById('tbResultsLabel').textContent = `${list.length} task${list.length === 1 ? '' : 's'}` + (activeStatus !== 'ALL' ? ` · ${activeStatus}` : '');
+        }
+
+        function applyAllFilters() {
+            const gF = document.getElementById('filterGroup').value;
+            const pF = document.getElementById('filterPriority').value;
+            const aF = document.getElementById('filterAssignee').value;
+            const q = (document.getElementById('tbSearch').value || '').toLowerCase();
+
+            let list = tasks.filter(t => {
+                if (activeStatus !== 'ALL' && t.status !== activeStatus) return false;
+                if (pF && t.priority !== pF) return false;
+                if (gF && !(t.assignee?.type === 'group' && t.assignee.name === gF)) return false;
+                if (aF && t.assignee?.name !== aF) return false;
+                if (q && !(t.title.toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q))) return false;
+                return true;
+            });
+
+            const field = document.getElementById('sortField').value;
+            const dir = document.getElementById('sortDir').value === 'desc' ? -1 : 1;
+            const pRank = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+            list.sort((a, b) => {
+                let av, bv;
+                if (field === 'priority') { av = pRank[a.priority] ?? 9; bv = pRank[b.priority] ?? 9; }
+                else if (field === 'created') { av = new Date(a.createdAt || 0); bv = new Date(b.createdAt || 0); }
+                else if (field === 'title') { av = a.title.toLowerCase(); bv = b.title.toLowerCase(); }
+                else { av = new Date(a.dueDate); bv = new Date(b.dueDate); }
+                return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
+            });
+            return list;
+        }
+
+        function buildRow(t) {
+            const pCls = { URGENT: 'badge-urgent', HIGH: 'badge-urgent', MEDIUM: 'badge-in_progress', LOW: 'badge-pending' }[t.priority] || '';
+            const sCls = 'badge-' + t.status.toLowerCase().replace(' ', '_');
+            const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < new Date(new Date().toDateString());
+
+            return `
+            <div class="tb-row">
+                <div class="tb-row-main" onclick="openView(${t.id})">
+                    <div class="tb-row-top">
+                        <span class="tb-title">${t.title}</span>
+                        <span class="badge ${pCls}">${t.priority}</span>
+                        <span class="badge ${sCls}">${t.status}</span>
+                        ${isOverdue ? '<span class="tb-flag">OVERDUE</span>' : ''}
+                    </div>
+                    <div class="tb-desc">${t.description || ''}</div>
+                    <div class="tb-meta">
+                        <span class="tb-meta-item"><span class="avatar-sm">${t.assignee?.initials || '?'}</span> ${t.assignee?.name || 'Unassigned'}</span>
+                        <span class="tb-meta-item"><i class="fa-regular fa-calendar"></i> Due ${fmtDate(t.dueDate)}</span>
+                        <span class="tb-meta-item"><i class="fa-regular fa-user"></i> By ${t.assignedByName || '—'}</span>
+                    </div>
+                </div>
+                <div class="tb-row-actions">
+                    <button class="ribbon-btn ghost" onclick="openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="ribbon-btn ghost" onclick="openDeleteTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>`;
+        }
+
+        function clearFilters() {
+            ['filterGroup','filterPriority','filterAssignee','tbSearch'].forEach(id => document.getElementById(id).value = '');
+            renderList();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        function openNewTask() {
+            ['nt-title','nt-desc','nt-priority','nt-due','nt-assignee'].forEach(id => document.getElementById(id).value = '');
+            openModal('newTaskModal');
+        }
+
+        async function createTask() {
+            const body = { 
+                title: document.getElementById('nt-title').value,
+                description: document.getElementById('nt-desc').value,
+                priority: document.getElementById('nt-priority').value,
+                dueDate: document.getElementById('nt-due').value,
+                status: 'PENDING'
+            };
+            const aVal = document.getElementById('nt-assignee').value;
+            if (aVal) {
+                const [type, key] = aVal.split(':');
+                if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
+            }
+            if (CONFIG.USE_MOCK_API) {
+                tasks.push({ ...body, id: tasks.length + 1, assignee: { name: 'New Assignee', initials: 'NA' }, assignedByName: 'You' });
+                closeModal('newTaskModal'); renderList(); return;
+            }
+            try { await apiFetch('/tasks', 'POST', body); closeModal('newTaskModal'); await loadAll(); } 
+            catch (err) { alert(err.message); }
+        }
+
+        function openView(id) {
+            const t = tasks.find(x => x.id === id); if (!t) return;
+            viewingId = id;
+            document.getElementById('view-title').textContent = t.title;
+            document.getElementById('view-desc').textContent = t.description || '—';
+            document.getElementById('view-status').textContent = t.status;
+            document.getElementById('view-priority').textContent = t.priority;
+            document.getElementById('view-assignee').textContent = t.assignee?.name || 'Unassigned';
+            document.getElementById('view-due').textContent = fmtDate(t.dueDate);
+            openModal('viewModal');
+        }
+
+        function openEditFromView() { closeModal('viewModal'); openEdit(viewingId); }
+        function openDeleteFromView() { closeModal('viewModal'); openDeleteTask(viewingId); }
+
+        function openEdit(id) {
+            const t = tasks.find(x => x.id === id); if (!t) return;
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-title').value = t.title;
+            document.getElementById('edit-desc').value = t.description || '';
+            document.getElementById('edit-status').value = t.status;
+            document.getElementById('edit-priority').value = t.priority;
+            document.getElementById('edit-due').value = t.dueDate.slice(0,10);
+            openModal('editModal');
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById('edit-id').value;
+            const body = { title: document.getElementById('edit-title').value, status: document.getElementById('edit-status').value };
+            if (CONFIG.USE_MOCK_API) {
+                const t = tasks.find(x => x.id == id); Object.assign(t, body);
+                closeModal('editModal'); renderList(); return;
+            }
+            try { await apiFetch(`/tasks/${id}`, 'PUT', body); closeModal('editModal'); await loadAll(); } 
+            catch (err) { alert(err.message); }
+        }
+
+        function openDeleteTask(id) {
+            viewingId = id;
+            document.getElementById('delete-name').textContent = tasks.find(x => x.id == id)?.title || '';
+            openModal('deleteModal');
+        }
+
+        async function doDelete() {
+            if (CONFIG.USE_MOCK_API) {
+                tasks = tasks.filter(x => x.id != viewingId);
+                closeModal('deleteModal'); renderList(); return;
+            }
+            try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); } 
+            catch (err) { alert(err.message); }
+        }
+
+        function exportVisibleTasks() { alert('Export feature triggered (Mock)'); }
+    </script>
+</body>
+</html>

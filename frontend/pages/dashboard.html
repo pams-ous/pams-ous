@@ -165,14 +165,15 @@
     <!-- Configuration and API Logic -->
     <script src="../js/config.js"></script>
     <script src="../js/api.js"></script>
+    <script src="../js/layout.js"></script>
     <script>
-        const { apiFetch, requireAuth, setupChrome, fmtHeaderDate, getUser } = PAMS;
+        const { apiFetch, requireAuth, fmtHeaderDate, getUser } = PAMS;
 
         let barChart, donutChart;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (!requireAuth()) return;
-            setupChrome();
+            PAMS_UI.init(); // Initialize global UI chrome
 
             const u = getUser();
             if (u) {
@@ -296,9 +297,9 @@
                 gpList.innerHTML = s.groupProgress.map(g => {
                     const pct = g.total > 0 ? Math.round((g.completed / g.total) * 100) : 0;
                     return `
-                        <div>
+                        <div class="gp-item">
                             <div class="gp-top">
-                                <span class="gp-name">${g.name}</span>
+                                <span class="gp-name" title="${g.name}">${g.name}</span>
                                 <span class="gp-pct">${pct}%</span>
                             </div>
                             <div class="gp-track"><div class="gp-fill" style="width:${pct}%"></div></div>
