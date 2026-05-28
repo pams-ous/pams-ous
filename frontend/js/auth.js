@@ -21,7 +21,7 @@ const togglePasswordVisibility = (inputId, btn) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // 1. UI Toggle Logic
     const showLoginBtn = document.getElementById('showLogin');
     const showSignupBtn = document.getElementById('showSignup');
@@ -93,19 +93,19 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {object} data - The payload
      */
     const performAuthRequest = async (endpoint, data) => {
-        const url = `${CONFIG.API_BASE_URL}/api/${endpoint}`; 
-        
+        const url = `${CONFIG.API_BASE_URL}/api/${endpoint}`;
+
         if (CONFIG.USE_MOCK_API) {
             console.info(`[MOCK] Request to: ${url}`, data);
             return new Promise((resolve) => {
-                setTimeout(() => resolve({ 
-                    success: true, 
+                setTimeout(() => resolve({
+                    success: true,
                     message: 'Success (Mock Mode)',
                     token: endpoint === 'auth/login' ? 'mock-jwt-token' : null,
-                    user: endpoint === 'auth/login' ? { 
-                        id: 1, 
-                        email: data.email, 
-                        role: data.email.includes('admin') ? 'ADMIN' : 'MEMBER', 
+                    user: endpoint === 'auth/login' ? {
+                        id: 1,
+                        email: data.email,
+                        role: data.email.includes('admin') ? 'ADMIN' : 'MEMBER',
                         firstName: 'User',
                         lastName: 'Test'
                     } : null
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
             const submitBtn = form.querySelector('button[type="submit"]');
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const result = await performAuthRequest(endpoint, data);
-                
+
                 if (type === 'Personnel Sign-In' && result.user?.role === 'ADMIN') {
                     alert('Administrator detected. Redirecting to the Admin Portal...');
                     window.location.href = 'admin-login.html';

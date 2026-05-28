@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
 
     <!-- SIDEBAR -->
@@ -166,7 +168,8 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title">Generate Report</span>
-                <button class="modal-close" onclick="Reports.closeModal('genModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="Reports.closeModal('genModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <div class="form-row">
@@ -197,7 +200,7 @@
                         <input type="date" id="gen-end" class="form-control">
                     </div>
                 </div>
-                
+
                 <!-- Group Selection -->
                 <div class="form-group" id="gen-group-wrap" style="display:none;">
                     <label class="form-label">Select Group</label>
@@ -208,10 +211,11 @@
                 <div class="form-group" id="gen-user-wrap" style="display:none;">
                     <label class="form-label">Select Employee *</label>
                     <div class="user-search">
-                        <input type="text" id="gen-user-search" class="form-control" autocomplete="off" placeholder="Type name or email…" oninput="Reports.filterUserResults()">
+                        <input type="text" id="gen-user-search" class="form-control" autocomplete="off"
+                            placeholder="Type name or email…" oninput="Reports.filterUserResults()">
                         <input type="hidden" id="gen-user-email">
                         <div class="user-search-results" id="gen-user-results"></div>
-                        
+
                         <div class="user-search-picked" id="gen-user-picked" style="display:none;">
                             <i class="fa-solid fa-user-check"></i>
                             <span id="gen-user-picked-name">—</span>
@@ -235,4 +239,5 @@
     <script src="../js/layout.js"></script>
     <script src="../js/reports.js"></script>
 </body>
+
 </html>

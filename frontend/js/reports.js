@@ -9,15 +9,15 @@
     let reports = [];
     let activeReportId = null;
     let chart;
-    let allUsers = []; 
+    let allUsers = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
         PAMS_UI.init();
-        
+
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
-        
+
         await loadReports();
     });
 
@@ -80,15 +80,15 @@
             }
 
             const { report, tasks, stats } = data;
-            
-            document.getElementById('previewTitle').textContent  = report.title;
+
+            document.getElementById('previewTitle').textContent = report.title;
             document.getElementById('previewPeriod').textContent = `Period: ${report.period} | Scope: ${report.scopeLabel}`;
-            document.getElementById('statTotal').textContent      = stats.total;
-            document.getElementById('statCompleted').textContent  = stats.completed;
+            document.getElementById('statTotal').textContent = stats.total;
+            document.getElementById('statCompleted').textContent = stats.completed;
             document.getElementById('statInProgress').textContent = stats.inProgress;
 
-            const statusMap = { 'COMPLETED':'badge-completed', 'IN PROGRESS':'badge-in_progress', 'PENDING':'badge-pending', 'CANCELLED':'badge-cancelled' };
-            const prioMap   = { 'URGENT':'badge-urgent', 'HIGH':'badge-urgent', 'MEDIUM':'badge-in_progress', 'LOW':'badge-pending' };
+            const statusMap = { 'COMPLETED': 'badge-completed', 'IN PROGRESS': 'badge-in_progress', 'PENDING': 'badge-pending', 'CANCELLED': 'badge-cancelled' };
+            const prioMap = { 'URGENT': 'badge-urgent', 'HIGH': 'badge-urgent', 'MEDIUM': 'badge-in_progress', 'LOW': 'badge-pending' };
 
             const tbody = document.getElementById('taskBody');
             if (tbody) {
@@ -122,15 +122,15 @@
                 type: 'bar',
                 data: {
                     labels: ['Pending', 'In Progress', 'Completed', 'Cancelled'],
-                    datasets: [{ 
-                        data, 
-                        backgroundColor: ['#f59e0b','#3b82f6','#16a34a','#9ca3af'], 
-                        borderRadius: 6, 
-                        borderSkipped: false 
+                    datasets: [{
+                        data,
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#16a34a', '#9ca3af'],
+                        borderRadius: 6,
+                        borderSkipped: false
                     }]
                 },
                 options: {
-                    responsive: true, 
+                    responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
@@ -145,7 +145,7 @@
     /**
      * Modal Management
      */
-    const openModal  = (id) => document.getElementById(id)?.classList.add('open');
+    const openModal = (id) => document.getElementById(id)?.classList.add('open');
     const closeModal = (id) => document.getElementById(id)?.classList.remove('open');
 
     // Export public methods
@@ -154,7 +154,7 @@
             const today = new Date();
             const monday = new Date(today);
             monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-            
+
             const startInput = document.getElementById('gen-start');
             const endInput = document.getElementById('gen-end');
             if (startInput) startInput.value = monday.toISOString().slice(0, 10);
@@ -170,7 +170,7 @@
                     allUsers = u.users || [];
                 }
                 window.Reports.filterUserResults();
-            } catch {}
+            } catch { }
 
             window.Reports.clearPickedUser();
             window.Reports.onScopeChange();
@@ -179,8 +179,8 @@
         closeModal: (id) => closeModal(id),
         onScopeChange: () => {
             const scope = document.getElementById('gen-scope').value;
-            document.getElementById('gen-group-wrap').style.display = scope === 'Group'      ? 'flex' : 'none';
-            document.getElementById('gen-user-wrap').style.display  = scope === 'Individual' ? 'flex' : 'none';
+            document.getElementById('gen-group-wrap').style.display = scope === 'Group' ? 'flex' : 'none';
+            document.getElementById('gen-user-wrap').style.display = scope === 'Individual' ? 'flex' : 'none';
         },
         filterUserResults: () => {
             const q = (document.getElementById('gen-user-search').value || '').trim().toLowerCase();
@@ -194,9 +194,9 @@
 
             const matches = (q
                 ? allUsers.filter(u =>
-                    (u.name  || '').toLowerCase().includes(q) ||
+                    (u.name || '').toLowerCase().includes(q) ||
                     (u.email || '').toLowerCase().includes(q) ||
-                    (u.code  || '').toLowerCase().includes(q))
+                    (u.code || '').toLowerCase().includes(q))
                 : allUsers
             ).slice(0, 8);
 
@@ -217,17 +217,17 @@
         },
         pickUser: (emailEnc, nameEnc) => {
             const email = decodeURIComponent(emailEnc);
-            const name  = decodeURIComponent(nameEnc);
+            const name = decodeURIComponent(nameEnc);
             document.getElementById('gen-user-email').value = email;
             document.getElementById('gen-user-picked-name').textContent = `${name} (${email})`;
             document.getElementById('gen-user-picked').style.display = 'flex';
-            document.getElementById('gen-user-search').style.display  = 'none';
+            document.getElementById('gen-user-search').style.display = 'none';
             document.getElementById('gen-user-results').classList.remove('open');
         },
         clearPickedUser: () => {
             document.getElementById('gen-user-email').value = '';
             document.getElementById('gen-user-picked').style.display = 'none';
-            document.getElementById('gen-user-search').style.display  = '';
+            document.getElementById('gen-user-search').style.display = '';
             document.getElementById('gen-user-search').value = '';
             window.Reports.filterUserResults();
         },
@@ -240,7 +240,7 @@
 
             const me = getUser();
             const body = { reportType: type, scopeType: scope, periodStart: start, periodEnd: end, generatedByEmail: me.email };
-            
+
             if (scope === 'Group') body.scopeGroupId = parseInt(document.getElementById('gen-group').value);
             if (scope === 'Individual') {
                 body.scopeUserEmail = document.getElementById('gen-user-email').value;

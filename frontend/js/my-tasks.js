@@ -12,10 +12,10 @@
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
         PAMS_UI.init();
-        
+
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
-        
+
         await loadTasks();
     });
 
@@ -45,8 +45,8 @@
         if (!tbody) return;
 
         const today = new Date(new Date().toDateString());
-        
-        const overdue = tasks.filter(t => 
+
+        const overdue = tasks.filter(t =>
             t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today
         );
 
@@ -92,7 +92,7 @@
     /**
      * Modal Management
      */
-    const openModal  = (id) => document.getElementById(id)?.classList.add('open');
+    const openModal = (id) => document.getElementById(id)?.classList.add('open');
     const closeModal = (id) => document.getElementById(id)?.classList.remove('open');
 
     // Export public methods for inline handlers
@@ -112,7 +112,7 @@
                 updates = data.updates;
             }
 
-            const logsHtml = updates.length 
+            const logsHtml = updates.length
                 ? updates.map(l => `
                     <div class="log-entry">
                         <span class="log-date">${fmtDate(l.logged_at)}</span>
@@ -142,7 +142,7 @@
             if (id === 'logUpdateModal') {
                 const sel = document.getElementById('log-task-select');
                 if (sel) {
-                    sel.innerHTML = '<option value="">— Choose a task —</option>' + 
+                    sel.innerHTML = '<option value="">— Choose a task —</option>' +
                         tasks.filter(t => t.status !== 'COMPLETED').map(t => `<option value="${t.id}">${t.title}</option>`).join('');
                 }
                 const notes = document.getElementById('log-notes');

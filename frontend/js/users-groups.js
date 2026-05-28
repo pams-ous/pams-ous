@@ -9,17 +9,17 @@
     let users = [];
     let groups = [];
     let designations = [];
-    
+
     // Mock user ID for self-deletion prevention
-    const currentUserId = 1; 
+    const currentUserId = 1;
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
         PAMS_UI.init();
-        
+
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
-        
+
         await loadAll();
     });
 
@@ -50,7 +50,7 @@
                 groups = g.groups || [];
                 designations = d.designations || [];
             }
-            
+
             renderUsers();
             renderGroups();
             populateDesignationSelect('newUserDesignation');
@@ -59,8 +59,8 @@
         }
     }
 
-    function roleLabel(r)   { return r === 'ADMIN' ? 'ADMINISTRATOR' : 'ENCODER / ADMIN. STAFF'; }
-    function roleClass(r)   { return r === 'ADMIN' ? 'badge-admin' : 'badge-pending'; }
+    function roleLabel(r) { return r === 'ADMIN' ? 'ADMINISTRATOR' : 'ENCODER / ADMIN. STAFF'; }
+    function roleClass(r) { return r === 'ADMIN' ? 'badge-admin' : 'badge-pending'; }
     function statusClass(s) { return s === 'Online' ? 'b-active' : 'b-inactive'; }
     function statusLabel(s) { return s === 'Online' ? 'ACTIVE' : 'INACTIVE'; }
 
@@ -127,7 +127,7 @@
 
         const sorted = [...designations].sort((a, b) => a.hierarchyPosition - b.hierarchyPosition);
         sel.innerHTML = sorted.map(d => `<option value="${d.id}" ${selectedId == d.id ? 'selected' : ''}>${d.name}</option>`).join('');
-        
+
         if (!selectedId) {
             const def = sorted.find(d => d.isDefault);
             if (def) sel.value = String(def.id);
@@ -145,7 +145,7 @@
     /**
      * Modal Management
      */
-    const openModal  = (id) => document.getElementById(id)?.classList.add('open');
+    const openModal = (id) => document.getElementById(id)?.classList.add('open');
     const closeModal = (id) => document.getElementById(id)?.classList.remove('open');
 
     // Export public methods
@@ -192,7 +192,7 @@
             const id = document.getElementById('resetPassUserId').value;
             const pass = document.getElementById('resetPassValue').value;
             if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
-            
+
             if (CONFIG.USE_MOCK_API) { alert('Password reset successful (Mock)'); closeModal('resetPassModal'); return; }
             try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); alert('Success!'); } catch (err) { alert(err.message); }
         },

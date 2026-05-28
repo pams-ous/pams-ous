@@ -10,7 +10,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
-        PAMS_UI.init(); 
+        PAMS_UI.init();
 
         const u = getUser();
         if (u) {
@@ -26,7 +26,7 @@
             renderStats(stats);
         } catch (err) {
             console.error('Failed to load dashboard:', err);
-            
+
             if (CONFIG.USE_MOCK_API) {
                 renderStats({
                     counts: { total: 24, completed: 15, inProgress: 6, overdue: 3 },
@@ -51,10 +51,10 @@
 
     function renderStats(s) {
         // 1. Stat cards
-        document.getElementById('cnt-total').textContent      = s.counts.total;
-        document.getElementById('cnt-completed').textContent  = s.counts.completed;
+        document.getElementById('cnt-total').textContent = s.counts.total;
+        document.getElementById('cnt-completed').textContent = s.counts.completed;
         document.getElementById('cnt-inprogress').textContent = s.counts.inProgress;
-        document.getElementById('cnt-overdue').textContent    = s.counts.overdue;
+        document.getElementById('cnt-overdue').textContent = s.counts.overdue;
 
         // 2. Overdue alert
         if (s.counts.overdue > 0) {

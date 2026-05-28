@@ -4,7 +4,7 @@
  */
 
 window.PAMS_UI = (function () {
-    
+
     /**
      * Role-Based Access Control (RBAC) UI Logic
      */
@@ -18,7 +18,7 @@ window.PAMS_UI = (function () {
         if (!isAdmin) {
             // Physically remove admin-only elements
             document.querySelectorAll('[data-admin-only]').forEach(el => el.remove());
-            
+
             // Redirect if on an admin-only page
             const path = location.pathname.split('/').pop().toLowerCase();
             const adminPages = ['reports.html', 'users-groups.html'];
@@ -39,9 +39,9 @@ window.PAMS_UI = (function () {
         document.body.classList.add('no-transition');
         const wasOpen = localStorage.getItem('sidebar_open') === '1';
         document.body.classList.toggle('sidebar-open', wasOpen);
-        
+
         // Force reflow to ensure the state is applied before re-enabling transitions
-        void sidebar.offsetWidth; 
+        void sidebar.offsetWidth;
         document.body.classList.remove('no-transition');
 
         const toggleSidebar = () => {
@@ -53,7 +53,7 @@ window.PAMS_UI = (function () {
         sidebar.onclick = (e) => {
             const interactive = e.target.closest('a, button, input, select');
             if (interactive && !interactive.classList.contains('sidebar-toggle')) {
-                return; 
+                return;
             }
             toggleSidebar();
         };
@@ -98,7 +98,7 @@ window.PAMS_UI = (function () {
         if (!body) return;
 
         body.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#888;">Loading...</div>';
-        
+
         try {
             const data = await PAMS.apiFetch('/notifications');
             if (!data.current || data.current.length === 0) {

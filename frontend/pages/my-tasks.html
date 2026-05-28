@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
 </head>
+
 <body>
 
     <!-- SIDEBAR -->
@@ -95,7 +97,7 @@
                         <i class="fa-solid fa-clipboard-list"></i> Assigned to Me
                     </div>
                 </div>
-                
+
                 <div class="table-wrap ph-24" style="padding-bottom: 2rem;">
                     <table class="task-table">
                         <thead>
@@ -121,7 +123,8 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title">Log Accomplishment</span>
-                <button class="modal-close" onclick="window.MyTasks.closeModal('logUpdateModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="window.MyTasks.closeModal('logUpdateModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -132,7 +135,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Update Notes *</label>
-                    <textarea id="log-notes" class="form-control" rows="4" placeholder="What progress was made?"></textarea>
+                    <textarea id="log-notes" class="form-control" rows="4"
+                        placeholder="What progress was made?"></textarea>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -162,7 +166,8 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title" id="view-title">Task Details</span>
-                <button class="modal-close" onclick="window.MyTasks.closeModal('viewTaskModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="window.MyTasks.closeModal('viewTaskModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" id="viewTaskBody"></div>
             <div class="modal-footer">
@@ -176,7 +181,8 @@
         <div class="modal modal-sm">
             <div class="modal-header" style="background: var(--red-text);">
                 <span class="modal-title">Remove Task</span>
-                <button class="modal-close" onclick="window.MyTasks.closeModal('deleteModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="window.MyTasks.closeModal('deleteModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="confirm-body">
                 <i class="fa-solid fa-trash-can"></i>
@@ -195,4 +201,5 @@
     <script src="../js/layout.js"></script>
     <script src="../js/my-tasks.js"></script>
 </body>
+
 </html>

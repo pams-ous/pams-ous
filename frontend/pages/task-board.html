@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
 </head>
+
 <body>
 
     <!-- SIDEBAR -->
@@ -103,11 +105,16 @@
                 <div class="ribbon-group">
                     <div class="ribbon-group-label">Status</div>
                     <div class="status-tabs" id="statusTabs">
-                        <button class="status-tab active" data-status="ALL">All <span class="cnt" data-cnt="ALL">0</span></button>
-                        <button class="status-tab" data-status="PENDING">Pending <span class="cnt" data-cnt="PENDING">0</span></button>
-                        <button class="status-tab" data-status="IN PROGRESS">In Progress <span class="cnt" data-cnt="IN PROGRESS">0</span></button>
-                        <button class="status-tab" data-status="COMPLETED">Completed <span class="cnt" data-cnt="COMPLETED">0</span></button>
-                        <button class="status-tab" data-status="CANCELLED">Cancelled <span class="cnt" data-cnt="CANCELLED">0</span></button>
+                        <button class="status-tab active" data-status="ALL">All <span class="cnt"
+                                data-cnt="ALL">0</span></button>
+                        <button class="status-tab" data-status="PENDING">Pending <span class="cnt"
+                                data-cnt="PENDING">0</span></button>
+                        <button class="status-tab" data-status="IN PROGRESS">In Progress <span class="cnt"
+                                data-cnt="IN PROGRESS">0</span></button>
+                        <button class="status-tab" data-status="COMPLETED">Completed <span class="cnt"
+                                data-cnt="COMPLETED">0</span></button>
+                        <button class="status-tab" data-status="CANCELLED">Cancelled <span class="cnt"
+                                data-cnt="CANCELLED">0</span></button>
                     </div>
                 </div>
                 <div class="ribbon-group">
@@ -130,14 +137,19 @@
                 </div>
                 <div class="ribbon-group">
                     <div class="ribbon-group-label">Group</div>
-                    <select class="ribbon-input" id="filterGroup"><option value="">All Groups</option></select>
+                    <select class="ribbon-input" id="filterGroup">
+                        <option value="">All Groups</option>
+                    </select>
                 </div>
                 <div class="ribbon-group">
                     <div class="ribbon-group-label">Assignee</div>
-                    <select class="ribbon-input" id="filterAssignee"><option value="">All Assignees</option></select>
+                    <select class="ribbon-input" id="filterAssignee">
+                        <option value="">All Assignees</option>
+                    </select>
                 </div>
                 <div class="ribbon-group items-center">
-                    <button class="ribbon-btn ghost" onclick="TaskBoard.clearFilters()"><i class="fa-solid fa-xmark"></i> Clear filters</button>
+                    <button class="ribbon-btn ghost" onclick="TaskBoard.clearFilters()"><i
+                            class="fa-solid fa-xmark"></i> Clear filters</button>
                 </div>
             </div>
 
@@ -212,7 +224,8 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title">New Task</span>
-                <button class="modal-close" onclick="TaskBoard.closeModal('newTaskModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="TaskBoard.closeModal('newTaskModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -258,7 +271,8 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title" id="view-title">Task Details</span>
-                <button class="modal-close" onclick="TaskBoard.closeModal('viewModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="TaskBoard.closeModal('viewModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <div class="view-field">
@@ -286,8 +300,10 @@
                     </div>
                 </div>
                 <div class="view-actions">
-                    <button class="act-btn act-edit" onclick="TaskBoard.openEditFromView()"><i class="fa-solid fa-pen"></i> Edit</button>
-                    <button class="act-btn act-delete" onclick="TaskBoard.openDeleteFromView()"><i class="fa-solid fa-trash"></i> Delete</button>
+                    <button class="act-btn act-edit" onclick="TaskBoard.openEditFromView()"><i
+                            class="fa-solid fa-pen"></i> Edit</button>
+                    <button class="act-btn act-delete" onclick="TaskBoard.openDeleteFromView()"><i
+                            class="fa-solid fa-trash"></i> Delete</button>
                 </div>
             </div>
         </div>
@@ -298,7 +314,8 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title">Edit Task</span>
-                <button class="modal-close" onclick="TaskBoard.closeModal('editModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="TaskBoard.closeModal('editModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="edit-id">
@@ -353,7 +370,8 @@
         <div class="modal modal-sm">
             <div class="modal-header" style="background: var(--red-text);">
                 <span class="modal-title">Delete Task</span>
-                <button class="modal-close" onclick="TaskBoard.closeModal('deleteModal')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="modal-close" onclick="TaskBoard.closeModal('deleteModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <p style="font-size:14px; color: var(--text); line-height:1.5;">
@@ -373,4 +391,5 @@
     <script src="../js/layout.js"></script>
     <script src="../js/task-board.js"></script>
 </body>
+
 </html>

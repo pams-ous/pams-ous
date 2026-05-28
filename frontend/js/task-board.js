@@ -15,10 +15,10 @@
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
         PAMS_UI.init();
-        
+
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
-        
+
         wireRibbon();
         await loadAll();
     });
@@ -40,14 +40,14 @@
             });
         });
 
-        ['filterPriority','filterGroup','filterAssignee','sortField','sortDir','viewDensity','viewGroupBy','adminSinceDay1','tbSearch']
-        .forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener(el.type === 'search' ? 'input' : 'change', () => {
-                if (id === 'adminSinceDay1') loadAll();
-                else renderList();
+        ['filterPriority', 'filterGroup', 'filterAssignee', 'sortField', 'sortDir', 'viewDensity', 'viewGroupBy', 'adminSinceDay1', 'tbSearch']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener(el.type === 'search' ? 'input' : 'change', () => {
+                    if (id === 'adminSinceDay1') loadAll();
+                    else renderList();
+                });
             });
-        });
     }
 
     async function loadAll() {
@@ -87,7 +87,7 @@
         const userOpts = users.map(u => `<option value="user:${u.email}">${u.name || u.email}</option>`).join('');
         const groupOpts = groups.map(g => `<option value="group:${g.id}">${g.name}</option>`).join('');
         const innerHTML = `<option value="">Select assignee</option><optgroup label="Users">${userOpts}</optgroup><optgroup label="Groups">${groupOpts}</optgroup>`;
-        
+
         const ntAss = document.getElementById('nt-assignee');
         const edAss = document.getElementById('edit-assignee');
         if (ntAss) ntAss.innerHTML = innerHTML;
@@ -97,18 +97,18 @@
     function buildFilterOptions() {
         const groupNames = [...new Set(tasks.filter(t => t.assignee?.type === 'group').map(t => t.assignee.name))].sort();
         const assignees = [...new Set(tasks.map(t => t.assignee?.name).filter(Boolean))].sort();
-        
+
         const gEl = document.getElementById('filterGroup');
         const aEl = document.getElementById('filterAssignee');
         if (!gEl || !aEl) return;
 
         const gV = gEl.value;
         const aV = aEl.value;
-        
+
         gEl.innerHTML = '<option value="">All Groups</option>' + groupNames.map(n => `<option value="${n}">${n}</option>`).join('');
         aEl.innerHTML = '<option value="">All Assignees</option>' + assignees.map(n => `<option value="${n}">${n}</option>`).join('');
-        
-        gEl.value = gV; 
+
+        gEl.value = gV;
         aEl.value = aV;
     }
 
@@ -122,8 +122,8 @@
         if (overdue.length > 0) {
             alertText.textContent = `${overdue.length} task${overdue.length > 1 ? 's are' : ' is'} overdue.`;
             banner.classList.remove('hidden');
-        } else { 
-            banner.classList.add('hidden'); 
+        } else {
+            banner.classList.add('hidden');
         }
     }
 
@@ -158,7 +158,7 @@
         } else {
             rows.innerHTML = list.map(buildRow).join('');
         }
-        
+
         const resLabel = document.getElementById('tbResultsLabel');
         if (resLabel) {
             resLabel.textContent = `${list.length} task${list.length === 1 ? '' : 's'}` + (activeStatus !== 'ALL' ? ` · ${activeStatus}` : '');
@@ -176,7 +176,7 @@
             if (pF && t.priority !== pF) return false;
             if (gF && !(t.assignee?.type === 'group' && t.assignee.name === gF)) return false;
             if (aF && t.assignee?.name !== aF) return false;
-            if (q && !(t.title.toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q))) return false;
+            if (q && !(t.title.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q))) return false;
             return true;
         });
 
@@ -225,20 +225,20 @@
     /**
      * Modal Management
      */
-    const openModal  = (id) => document.getElementById(id)?.classList.add('open');
+    const openModal = (id) => document.getElementById(id)?.classList.add('open');
     const closeModal = (id) => document.getElementById(id)?.classList.remove('open');
 
     // Export public methods for inline handlers
     window.TaskBoard = {
         openNewTask: () => {
-            ['nt-title','nt-desc','nt-priority','nt-due','nt-assignee'].forEach(id => {
+            ['nt-title', 'nt-desc', 'nt-priority', 'nt-due', 'nt-assignee'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
             openModal('newTaskModal');
         },
         createTask: async () => {
-            const body = { 
+            const body = {
                 title: document.getElementById('nt-title').value,
                 description: document.getElementById('nt-desc').value,
                 priority: document.getElementById('nt-priority').value,
@@ -254,7 +254,7 @@
                 tasks.push({ ...body, id: tasks.length + 1, assignee: { name: 'New Assignee', initials: 'NA' }, assignedByName: 'You' });
                 closeModal('newTaskModal'); renderList(); return;
             }
-            try { await apiFetch('/tasks', 'POST', body); closeModal('newTaskModal'); await loadAll(); } 
+            try { await apiFetch('/tasks', 'POST', body); closeModal('newTaskModal'); await loadAll(); }
             catch (err) { alert(err.message); }
         },
         openView: (id) => {
@@ -275,7 +275,7 @@
             document.getElementById('edit-desc').value = t.description || '';
             document.getElementById('edit-status').value = t.status;
             document.getElementById('edit-priority').value = t.priority;
-            document.getElementById('edit-due').value = t.dueDate.slice(0,10);
+            document.getElementById('edit-due').value = t.dueDate.slice(0, 10);
             openModal('editModal');
         },
         saveEdit: async () => {
@@ -285,7 +285,7 @@
                 const t = tasks.find(x => x.id == id); Object.assign(t, body);
                 closeModal('editModal'); renderList(); return;
             }
-            try { await apiFetch(`/tasks/${id}`, 'PUT', body); closeModal('editModal'); await loadAll(); } 
+            try { await apiFetch(`/tasks/${id}`, 'PUT', body); closeModal('editModal'); await loadAll(); }
             catch (err) { alert(err.message); }
         },
         openDeleteTask: (id) => {
@@ -300,14 +300,14 @@
                 tasks = tasks.filter(x => x.id != viewingId);
                 closeModal('deleteModal'); renderList(); return;
             }
-            try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); } 
+            try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); }
             catch (err) { alert(err.message); }
         },
         openEditFromView: () => { closeModal('viewModal'); window.TaskBoard.openEdit(viewingId); },
         openDeleteFromView: () => { closeModal('viewModal'); window.TaskBoard.openDeleteTask(viewingId); },
         closeModal: (id) => closeModal(id),
         clearFilters: () => {
-            ['filterGroup','filterPriority','filterAssignee','tbSearch'].forEach(id => {
+            ['filterGroup', 'filterPriority', 'filterAssignee', 'tbSearch'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });

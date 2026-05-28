@@ -5,16 +5,16 @@
  */
 
 window.PAMS = (function () {
-    
+
     /**
      * Session Management
      */
     const getToken = () => localStorage.getItem('authToken');
     const setToken = (t) => t ? localStorage.setItem('authToken', t) : localStorage.removeItem('authToken');
-    const getUser  = () => {
+    const getUser = () => {
         try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
     };
-    const setUser  = (u) => u ? localStorage.setItem('user', JSON.stringify(u)) : localStorage.removeItem('user');
+    const setUser = (u) => u ? localStorage.setItem('user', JSON.stringify(u)) : localStorage.removeItem('user');
 
     /**
      * Navigation Helpers
@@ -24,7 +24,7 @@ window.PAMS = (function () {
     const _inPages = () => /\/pages\//.test(location.pathname);
 
     const authUrl = (page) => _inPages() ? `../auth/${page}` : page;
-    const pageUrl = (page) => _inAuth()  ? `../pages/${page}` : page;
+    const pageUrl = (page) => _inAuth() ? `../pages/${page}` : page;
 
     /**
      * Auth Guard
@@ -58,12 +58,12 @@ window.PAMS = (function () {
 
         const token = getToken();
         if (token) options.headers['Authorization'] = `Bearer ${token}`;
-        if (body)  options.body = JSON.stringify(body);
+        if (body) options.body = JSON.stringify(body);
 
         try {
             const response = await fetch(url, options);
             const data = await response.json().catch(() => ({}));
-            
+
             if (!response.ok) {
                 throw new Error(data.message || `Request failed (${response.status})`);
             }
