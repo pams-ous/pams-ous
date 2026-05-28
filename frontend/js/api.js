@@ -23,8 +23,15 @@ window.PAMS = (function () {
     const _inAuth = () => /\/auth\//.test(location.pathname);
     const _inPages = () => /\/pages\//.test(location.pathname);
 
-    const authUrl = (page) => _inPages() ? `../auth/${page}` : page;
-    const pageUrl = (page) => _inAuth() ? `../pages/${page}` : page;
+    const authUrl = (page) => {
+        if (page === 'index.html') return (_inPages() || _inAuth()) ? `../${page}` : page;
+        return _inPages() ? `../auth/${page}` : page;
+    };
+    const pageUrl = (page) => {
+        if (_inAuth()) return `../pages/${page}`;
+        if (_inPages()) return page;
+        return `pages/${page}`;
+    };
 
     /**
      * Auth Guard
