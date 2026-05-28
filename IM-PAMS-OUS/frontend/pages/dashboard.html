@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — PUP OUS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo-star"><img src="../assets/pup-ou-logo.png" alt="PUP OUS"
+        onerror="this.onerror=null;this.src='../assets/pup-logo.png';"></div>
+    <div>
+      <div class="brand-name">PUP OUS</div>
+      <div class="brand-sub">Accomplishment System</div>
+    </div>
+  </div>
+
+  <nav class="nav-group">
+    <div class="nav-label">Main</div>
+    <a href="dashboard.html"  class="nav-item active"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
+    <a href="task-board.html" class="nav-item"><i class="fa-solid fa-table-list"></i> Task Board</a>
+    <a href="my-tasks.html"   class="nav-item"><i class="fa-solid fa-clipboard-list"></i> My Tasks</a>
+  </nav>
+
+  <nav class="nav-group" data-admin-only>
+    <div class="nav-label">Management</div>
+    <a href="reports.html"      class="nav-item"><i class="fa-solid fa-chart-bar"></i> Reports</a>
+    <a href="users-groups.html" class="nav-item"><i class="fa-solid fa-users"></i> Users &amp; Groups</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar">?</div>
+      <div>
+        <div class="user-name">—</div>
+        <div class="user-role">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="PAMS.logout()">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="alert-banner hidden" id="alertBanner">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <span id="alertText"></span> <a href="my-tasks.html">View Tasks</a>
+  </div>
+
+  <div class="content">
+
+    <!-- Page Header -->
+    <div class="page-header" style="background:transparent;border:none;padding:0 0 24px 0;">
+      <div class="header-left">
+        <div>
+          <h1>Dashboard</h1>
+          <p id="welcomeText">Welcome back</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="header-date" id="headerDate"></span>
+        <div class="notif-wrap">
+          <button class="bell-btn" title="Notifications">
+            <i class="fa-solid fa-bell"></i><span class="notif-dot"></span>
+          </button>
+          <div class="notif-popover">
+            <div class="notif-header">Notifications</div>
+            <div class="notif-body"></div>
+          </div>
+        </div>
+        <button class="add-task-btn" onclick="window.location.href='task-board.html'">
+          <i class="fa-solid fa-plus"></i> Add Task
+        </button>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stat-grid">
+      <div class="stat-card s-total">
+        <div class="stat-icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+        <div class="stat-body">
+          <div class="stat-num" id="cnt-total">0</div>
+          <div class="stat-lbl">Total Tasks</div>
+        </div>
+      </div>
+      <div class="stat-card s-done">
+        <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="stat-body">
+          <div class="stat-num" id="cnt-completed">0</div>
+          <div class="stat-lbl">Completed</div>
+        </div>
+      </div>
+      <div class="stat-card s-progress">
+        <div class="stat-icon-wrap"><i class="fa-solid fa-circle-notch"></i></div>
+        <div class="stat-body">
+          <div class="stat-num" id="cnt-inprogress">0</div>
+          <div class="stat-lbl">In Progress</div>
+        </div>
+      </div>
+      <div class="stat-card s-overdue">
+        <div class="stat-icon-wrap"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="stat-body">
+          <div class="stat-num" id="cnt-overdue">0</div>
+          <div class="stat-lbl">Overdue</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><i class="fa-solid fa-chart-bar"></i> Tasks by Status per Group</div>
+        </div>
+        <div class="bar-box"><canvas id="barChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><i class="fa-solid fa-chart-pie"></i> Priority Split</div>
+        </div>
+        <div class="donut-box"><canvas id="donutChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="bottom-row">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><i class="fa-solid fa-bolt"></i> Recent Accomplishments</div>
+          <button class="view-all-btn" onclick="window.location.href='my-tasks.html'">View All</button>
+        </div>
+        <div class="acc-list" id="accList"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><i class="fa-solid fa-users"></i> Group Progress</div>
+        </div>
+        <div class="gp-list" id="gpList"></div>
+      </div>
+    </div>
+
+    <!-- Full task table — May-26 spec: dashboard surfaces task details, not
+         just counters. Admins see a History/Day-1 toggle for completed tasks;
+         encoders see the daily-reset view. -->
+    <div class="panel" style="margin-top:20px;">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-lighter);">
+        <div class="panel-title"><i class="fa-solid fa-list-check"></i> All Tasks</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="dashTaskStatus" class="dash-filter">
+            <option value="">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="IN PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+          <label data-admin-only style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);">
+            <input type="checkbox" id="dashHistoryToggle">
+            Show completed since Day&nbsp;1
+          </label>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Assignee / Group</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Due</th>
+              <th>Assigned by</th>
+            </tr>
+          </thead>
+          <tbody id="dashTaskRows">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-faint);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const { apiFetch, requireAuth, setupChrome, fmtHeaderDate, getUser } = PAMS;
+
+let barChart, donutChart;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!requireAuth()) return;
+  setupChrome();
+
+  const u = getUser();
+  if (u) document.getElementById('welcomeText').textContent = `Welcome back, ${u.firstName || u.name || ''}`;
+  document.getElementById('headerDate').textContent = fmtHeaderDate();
+
+  try {
+    const stats = await apiFetch('/dashboard/stats');
+    renderStats(stats);
+  } catch (err) {
+    console.error('Failed to load dashboard:', err);
+  }
+
+  // Wire the dashboard task table + filter controls
+  document.getElementById('dashTaskStatus').addEventListener('change', loadDashTasks);
+  const histToggle = document.getElementById('dashHistoryToggle');
+  if (histToggle) histToggle.addEventListener('change', loadDashTasks);
+  loadDashTasks();
+});
+
+// Pull and render the full task list for the dashboard table.
+// Non-admins always see the daily-reset Completed view; admins can flip the
+// "Show completed since Day 1" checkbox to see the full history.
+async function loadDashTasks() {
+  const tbody  = document.getElementById('dashTaskRows');
+  const status = document.getElementById('dashTaskStatus').value;
+  const hist   = document.getElementById('dashHistoryToggle');
+  const showAllHistory = !!(hist && hist.checked);
+
+  const qs = new URLSearchParams();
+  if (status) qs.set('status', status);
+  if (status === 'COMPLETED' && showAllHistory) qs.set('completedSince', 'all');
+
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-faint);">Loading…</td></tr>`;
+  try {
+    const { tasks } = await apiFetch('/tasks' + (qs.toString() ? `?${qs}` : ''));
+    if (!tasks.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-faint);">No tasks match these filters.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = tasks.map(t => `
+      <tr>
+        <td>
+          <div style="font-weight:600;color:var(--text-primary);">${escape(t.title)}</div>
+          ${t.description ? `<div style="font-size:12px;color:var(--text-muted);">${escape(t.description)}</div>` : ''}
+        </td>
+        <td>${t.assignee
+              ? `${escape(t.assignee.name || '')} <span style="font-size:11px;color:var(--text-faint);">(${t.assignee.type})</span>`
+              : '<span style="color:var(--text-faint);">—</span>'}</td>
+        <td><span class="badge p-${(t.priority||'').toLowerCase()}">${t.priority || ''}</span></td>
+        <td><span class="badge ${statusClass(t.status)}">${t.status || ''}</span></td>
+        <td>${PAMS.fmtDate(t.dueDate)}</td>
+        <td>${escape(t.assignedByName || '')}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:18px;color:#b91c1c;">Failed to load: ${escape(err.message)}</td></tr>`;
+  }
+}
+
+function statusClass(s) {
+  const v = (s || '').toLowerCase().replace(/\s+/g, '-');
+  return `s-${v}` ;
+}
+function escape(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+  ));
+}
+
+function renderStats(s) {
+  // Stat cards
+  document.getElementById('cnt-total').textContent      = s.counts.total;
+  document.getElementById('cnt-completed').textContent  = s.counts.completed;
+  document.getElementById('cnt-inprogress').textContent = s.counts.inProgress;
+  document.getElementById('cnt-overdue').textContent    = s.counts.overdue;
+
+  // Overdue alert
+  if (s.counts.overdue > 0) {
+    const banner = document.getElementById('alertBanner');
+    document.getElementById('alertText').textContent =
+      `${s.counts.overdue} task${s.counts.overdue > 1 ? 's are' : ' is'} overdue.`;
+    banner.classList.remove('hidden');
+  }
+
+  // Bar chart — stacked status counts per group
+  const labels   = s.byGroup.map(g => g.group);
+  const pending  = s.byGroup.map(g => g.pending);
+  const inProg   = s.byGroup.map(g => g.inProgress);
+  const done     = s.byGroup.map(g => g.completed);
+  const cancel   = s.byGroup.map(g => g.cancelled);
+
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'pending',     data: pending, backgroundColor: '#f59e0b' },
+      { label: 'in progress', data: inProg,  backgroundColor: '#3b82f6' },
+      { label: 'completed',   data: done,    backgroundColor: '#22c55e' },
+      { label: 'cancelled',   data: cancel,  backgroundColor: '#9ca3af' },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 18, font: { size: 12 }, usePointStyle: true, pointStyleWidth: 10 } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 2 }, grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
+
+  // Donut — priority split
+  donutChart = new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Low', 'Medium', 'High', 'Urgent'],
+      datasets: [{
+        data: [s.priority.LOW, s.priority.MEDIUM, s.priority.HIGH, s.priority.URGENT],
+        backgroundColor: ['#9ca3af', '#3b82f6', '#f97316', '#ef4444'],
+        borderWidth: 3, borderColor: '#fff', hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: { legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 }, usePointStyle: true, pointStyleWidth: 10 } } }
+    }
+  });
+
+  // Recent accomplishments
+  const accList = document.getElementById('accList');
+  if (s.recentUpdates.length === 0) {
+    accList.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">No recent activity.</div>';
+  } else {
+    accList.innerHTML = s.recentUpdates.map(u => `
+      <div class="acc-item">
+        <div class="acc-dot ${u.text && /complet/i.test(u.text) ? 'green' : 'blue'}"></div>
+        <div class="acc-body">
+          <div class="acc-text"><strong>${u.name || 'Unknown'}</strong>: ${u.text || '—'}</div>
+          <div class="acc-time"><i class="fa-regular fa-clock"></i> ${new Date(u.time).toLocaleString()}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Group progress
+  const gpList = document.getElementById('gpList');
+  if (s.groupProgress.length === 0) {
+    gpList.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">No groups yet.</div>';
+  } else {
+    gpList.innerHTML = s.groupProgress.map(g => {
+      const pct = g.total > 0 ? Math.round((g.completed / g.total) * 100) : 0;
+      return `
+        <div>
+          <div class="gp-top">
+            <span class="gp-name">${g.name}</span>
+            <span class="gp-pct">${pct}%</span>
+          </div>
+          <div class="gp-track"><div class="gp-fill" style="width:${pct}%"></div></div>
+          <div class="gp-sub">${g.completed} / ${g.total} tasks completed</div>
+        </div>`;
+    }).join('');
+  }
+}
+</script>
+</body>
+</html>

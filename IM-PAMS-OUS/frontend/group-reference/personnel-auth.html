@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personnel Portal – PUP OUS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-toggle {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: var(--radius);
+            padding: 0.25rem;
+            margin-bottom: 2rem;
+        }
+        .auth-toggle button {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .auth-toggle button.active {
+            background: var(--white);
+            color: var(--maroon);
+            box-shadow: var(--shadow);
+        }
+    </style>
+</head>
+<body class="login-container">
+    <div class="login-box">
+        <a href="index.html" class="color-maroon text-xs fw-600 d-block mb-4" style="text-decoration: none; text-align: left;">
+            <i class="fas fa-arrow-left"></i> Back to Selection
+        </a>
+        <img src="assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo">
+        <h1 class="color-maroon fw-700 text-sm mt-1">PERSONNEL PORTAL</h1>
+        
+        <div class="auth-toggle mt-4">
+            <button id="showLogin" class="active">Sign In</button>
+            <button id="showSignup">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="mt-4">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="kabayongbundat@pup.edu.ph" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-full mt-2">
+                Sign In
+            </button>
+        </form>
+
+        <!-- Signup Form (Initially Hidden) -->
+        <form id="signupForm" class="mt-4 hidden">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="fullname" class="form-control" placeholder="Kabayong Bundat" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="kabayongbundat@pup.edu.ph" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-gold w-full mt-2">
+                Create Account
+            </button>
+        </form>
+
+        <div class="mt-4 text-xs color-gray text-center">
+            &copy; 2026 PUP OUS – Internal System
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>
