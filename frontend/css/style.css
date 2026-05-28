@@ -2292,6 +2292,192 @@ body.sidebar-open .main {
   color: var(--red-text);
 }
 
+/* ─── PAGE: TERMS & CONDITIONS ─────────────────────── */
+
+.terms-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--deep-maroon) 0%, var(--maroon) 50%, #a00000 100%);
+  padding: 2.5rem 1rem;
+}
+
+.terms-box {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, .35);
+  width: 100%;
+  max-width: 820px;
+  padding: 2.25rem 2.5rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.terms-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid var(--gold);
+  margin-bottom: 1.5rem;
+}
+
+.terms-header .terms-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.terms-header .terms-title-group {
+  flex: 1;
+  text-align: left;
+}
+
+.terms-header h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--maroon);
+  letter-spacing: .3px;
+  margin: 0;
+}
+
+.terms-header .terms-subtitle {
+  font-size: .8rem;
+  color: var(--gray-500);
+  margin-top: .15rem;
+}
+
+.terms-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.terms-meta {
+  font-size: .78rem;
+  color: var(--gray-500);
+}
+
+.terms-meta strong {
+  color: var(--gray-700);
+  font-weight: 600;
+}
+
+.terms-prose {
+  color: var(--text);
+  font-size: .92rem;
+  line-height: 1.65;
+}
+
+.terms-prose section + section {
+  margin-top: 1.5rem;
+}
+
+.terms-prose h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--maroon);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: .55rem;
+  display: flex;
+  align-items: baseline;
+  gap: .55rem;
+}
+
+.terms-prose h2 .terms-section-num {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: .95rem;
+}
+
+.terms-prose p {
+  margin-bottom: .65rem;
+}
+
+.terms-prose ul,
+.terms-prose ol {
+  padding-left: 1.4rem;
+  margin-bottom: .65rem;
+}
+
+.terms-prose li {
+  margin-bottom: .3rem;
+}
+
+.terms-prose strong {
+  color: var(--maroon);
+  font-weight: 600;
+}
+
+.terms-callout {
+  background: var(--pale-gold);
+  border-left: 4px solid var(--gold);
+  padding: .85rem 1rem;
+  border-radius: 6px;
+  font-size: .85rem;
+  color: var(--gray-700);
+  margin: 1rem 0;
+}
+
+.terms-footer {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.terms-footer .terms-copyright {
+  font-size: .75rem;
+  color: var(--gray-500);
+}
+
+/* Sign-in form inline T&C agreement link */
+.terms-agreement {
+  font-size: .72rem;
+  color: var(--gray-500);
+  text-align: center;
+  line-height: 1.5;
+  margin-top: .85rem;
+}
+
+.terms-agreement a {
+  color: var(--maroon);
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.terms-agreement a:hover {
+  color: var(--gold-hover);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .terms-box {
+    padding: 1.5rem 1.25rem 2rem;
+  }
+
+  .terms-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .terms-header .terms-title-group {
+    text-align: center;
+  }
+}
+
 @media print {
 
   .sidebar,
