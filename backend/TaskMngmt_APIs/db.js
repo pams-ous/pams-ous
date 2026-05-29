@@ -1,4 +1,5 @@
-//MySQL database connection pool, bridge node js to mysql 
+//MySQL database connection pool, bridge node js to mysql
+//
 
 const mysql = require('mysql2/promise');
 
