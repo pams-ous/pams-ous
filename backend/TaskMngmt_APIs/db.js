@@ -1,6 +1,5 @@
-/**
-MySQL database connection pool
- */
+//MySQL database connection pool, bridge node js to mysql 
+
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
