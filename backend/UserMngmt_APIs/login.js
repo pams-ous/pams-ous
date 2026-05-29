@@ -102,5 +102,157 @@ manageAccountAPI(io, db);
 otpAPI(io, db);
 passwordResetAPI(io, db);
 
+
+//added 
+
+app.use(express.json());
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") return res.sendStatus(200);
+    next();
+});
+
+app.put('/api/users/:id', async (req, res) => {
+    const userId = req.params.id;
+    const { role } = req.body;
+    
+    const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
+    
+    try {
+        const [result] = await db.query(
+            'UPDATE Employees SET designation = ? WHERE employee_id = ?', 
+            [designation, userId]
+        );
+        
+        // --- ADDED THIS TO SEE EXACTLY WHAT HAPPENS ---
+        if (result.affectedRows === 0) {
+            console.log(`[WARNING] Tried to update role, but could not find Employee ID: "${userId}" in the database.`);
+        } else {
+            console.log(`[SUCCESS] Updated Employee ID: "${userId}" to ${designation}.`);
+        }
+        // ----------------------------------------------
+
+        res.json({ success: true, message: "Role update processed." });
+    } catch (err) {
+        console.error("SQL Error:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 1. GET route to fetch all users from SQL
+app.get('/api/users', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT employee_id AS id, 
+                   CONCAT(first_name, ' ', last_name) AS name, 
+                   email, 
+                   CASE WHEN designation = 'Admin' THEN 'ADMIN' ELSE 'MEMBER' END AS role,
+                   'ACTIVE' as activeStatus 
+            FROM Employees
+        `);
+        res.json(rows);
+    } catch (err) {
+        console.error("Error fetching users:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+//add user
+app.post('/api/users', async (req, res) => {
+    // Add 'code' to the expected request body
+    const { code, name, email, role } = req.body;
+    
+    const nameParts = (name || 'Unknown').split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+    const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
+
+    try {
+        const [result] = await db.query(
+            // Add employee_id to the INSERT command
+            'INSERT INTO Employees (employee_id, first_name, last_name, email, designation) VALUES (?, ?, ?, ?, ?)',
+            [code, firstName, lastName, email, designation]
+        );
+        res.json({ success: true, id: code, message: "User added to SQL!" });
+    } catch (err) {
+        console.error("Error adding user:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- GROUPS API ROUTES ---
+
+// 1. GET all groups and their assigned leader
+app.get('/api/groups', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT g.group_id AS id, 
+                   g.group_name AS name, 
+                   g.\`desc\`, 
+                   (SELECT COUNT(*) FROM Employees_Groups WHERE group_id = g.group_id) AS members,
+                   (SELECT e.email 
+                    FROM Employees_Groups eg 
+                    JOIN Employees e ON eg.employee_id = e.employee_id 
+                    WHERE eg.group_id = g.group_id AND eg.role = 'Leader' 
+                    LIMIT 1) AS leader
+            FROM Job_Groups g
+        `);
+        res.json(rows);
+    } catch (err) {
+        console.error("Error fetching groups:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2. POST to create a new group
+app.post('/api/groups', async (req, res) => {
+    const { name, desc, leaderEmail } = req.body;
+    try {
+        // Insert into Job_Groups table
+        const [result] = await db.query('INSERT INTO Job_Groups (group_name, `desc`) VALUES (?, ?)', [name, desc]);
+        const newGroupId = result.insertId;
+
+        // If a leader was selected, add them to Employees_Groups table
+        if (leaderEmail) {
+            const [emp] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [leaderEmail]);
+            if (emp.length > 0) {
+                await db.query('INSERT INTO Employees_Groups (employee_id, group_id, role) VALUES (?, ?, ?)', [emp[0].employee_id, newGroupId, 'Leader']);
+            }
+        }
+        res.json({ success: true, message: "Group added!" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 3. PUT to edit an existing group
+app.put('/api/groups/:id', async (req, res) => {
+    const { name, desc, leaderEmail } = req.body;
+    const groupId = req.params.id;
+    try {
+        await db.query('UPDATE Job_Groups SET group_name = ?, `desc` = ? WHERE group_id = ?', [name, desc, groupId]);
+        
+        // Remove the existing leader for this group to replace them
+        await db.query("DELETE FROM Employees_Groups WHERE group_id = ? AND role = 'Leader'", [groupId]);
+        
+        if (leaderEmail) {
+            const [emp] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [leaderEmail]);
+            if (emp.length > 0) {
+                await db.query('INSERT INTO Employees_Groups (employee_id, group_id, role) VALUES (?, ?, ?)', [emp[0].employee_id, groupId, 'Leader']);
+            }
+        }
+        res.json({ success: true, message: "Group updated!" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 4. DELETE a group
+app.delete('/api/groups/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM Job_Groups WHERE group_id = ?', [req.params.id]);
+        res.json({ success: true, message: "Group deleted!" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
 const PORT = process.env.PORT || process.env.port || 3000;
 server.listen(PORT, () => console.log(`Server connected at port ${PORT}`));

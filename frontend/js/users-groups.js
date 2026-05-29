@@ -23,41 +23,28 @@
         await loadAll();
     });
 
-    async function loadAll() {
-        try {
-            if (CONFIG.USE_MOCK_API) {
-                users = [
-                    { id: 1, name: 'Admin User', email: 'admin@pup.edu.ph', role: 'ADMIN', activeStatus: 'Online' },
-                    { id: 2, name: 'Juan Dela Cruz', email: 'juan@pup.edu.ph', role: 'MEMBER', activeStatus: 'Online' },
-                    { id: 3, name: 'Maria Santos', email: 'maria@pup.edu.ph', role: 'MEMBER', activeStatus: 'Offline' }
-                ];
-                groups = [
-                    { id: 1, name: 'Student Records', desc: 'Management of academic transcripts.', members: 5, leader: 'Maria Santos' },
-                    { id: 2, name: 'ICT Infrastructure', desc: 'Network and server maintenance.', members: 3, leader: 'Admin User' }
-                ];
-                designations = [
-                    { id: 1, name: 'Head', hierarchyPosition: 1, isDefault: false },
-                    { id: 2, name: 'Chief - Student Records', hierarchyPosition: 2, isDefault: false },
-                    { id: 4, name: 'Encoder / Administrative Staff', hierarchyPosition: 4, isDefault: true }
-                ];
-            } else {
-                const [u, g, d] = await Promise.all([
-                    apiFetch('/users'),
-                    apiFetch('/groups'),
-                    apiFetch('/designations').catch(() => ({ designations: [] }))
-                ]);
-                users = u.users || [];
-                groups = g.groups || [];
-                designations = d.designations || [];
-            }
 
-            renderUsers();
-            renderGroups();
-            populateDesignationSelect('newUserDesignation');
-        } catch (err) {
-            console.error('Load failed:', err);
-        }
-    }
+	async function loadAll() {
+		try {
+            // Fetch live Users
+			const userRes = await fetch('http://localhost:3000/api/users');
+			if (userRes.ok) users = await userRes.json();
+            
+            // Fetch live Groups
+            const groupRes = await fetch('http://localhost:3000/api/groups');
+            if (groupRes.ok) groups = await groupRes.json();
+			
+			renderUsers(); 
+            renderGroups(); // Redraw the Groups table with SQL data
+		} catch (error) {
+			console.error("Failed to load from DB:", error);
+		}
+	}
+
+	// Ensure loadAll runs when the page starts
+	document.addEventListener('DOMContentLoaded', () => {
+		loadAll();
+	});
 
     function roleLabel(r) { return r === 'ADMIN' ? 'ADMINISTRATOR' : 'ENCODER / ADMIN. STAFF'; }
     function roleClass(r) { return r === 'ADMIN' ? 'badge-admin' : 'badge-pending'; }
@@ -95,31 +82,39 @@
         `).join('');
     }
 
-    function renderGroups() {
-        const body = document.getElementById('groupsBody');
-        if (!body) return;
+	 function renderUsers() {
+	  // Export loadAll to Admin so the dropdown script can trigger table refreshes
+	  if (!window.Admin) window.Admin = {};
+	  window.Admin.refreshData = loadAll;
 
-        body.innerHTML = groups.map(g => `
-            <tr>
-                <td>
-                    <div class="group-name">${g.name}</div>
-                    <div class="group-sub">${g.desc || ''}</div>
-                </td>
-                <td class="text-center fw-600">${g.members}</td>
-                <td>${g.leader || '—'}</td>
-                <td>
-                    <div class="flex gap-2 justify-center">
-                        <button class="action-btn edit" title="Edit Group" onclick="window.Admin.openEditGroup(${g.id})">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                        <button class="action-btn delete" title="Delete Group" onclick="window.Admin.deleteGroup(${g.id}, '${g.name}')">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    }
+	  document.getElementById('usersBody').innerHTML = users.map(u => `
+		<tr>
+		  <td class="td-name">${u.name || '—'}</td>
+		  <td class="td-email">${u.email}</td>
+		  <td>
+			<select 
+				class="form-control role-select-dropdown" 
+				onchange="window.Admin.changeRole('${u.id}', this.value)"
+				data-user-id="${u.id}" 
+				data-current-role="${u.role}"
+				style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
+				<option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
+				<option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
+			</select>
+		  </td>
+		  <td><span class="badge ${statusClass(u.activeStatus)}">${statusLabel(u.activeStatus)}</span></td>
+		  <td class="td-actions">
+			<button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
+			  <i class="fas fa-pen"></i>
+			</button>
+			${u.id === currentUserId ? '' : `
+			<button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
+			  <i class="fas fa-trash"></i>
+			</button>
+			`}
+		  </td>
+		</tr>`).join('');
+	}
 
     function populateDesignationSelect(id, selectedId) {
         const sel = document.getElementById(id);
@@ -155,24 +150,38 @@
             openModal(id);
         },
         closeModal: (id) => closeModal(id),
-        addUser: async () => {
+		addUser: async () => {
+            // Grab ALL values from your modal, including the Employee Code
             const code = document.getElementById('newUserCode').value.trim();
             const name = document.getElementById('newUserName').value.trim();
             const email = document.getElementById('newUserEmail').value.trim();
             const role = document.getElementById('newUserRole').value;
-            const designation = document.getElementById('newUserDesignation').value;
 
-            if (!name || !email) { alert('Name and Email are required.'); return; }
-
-            if (CONFIG.USE_MOCK_API) {
-                users.push({ id: users.length + 1, name, email, role, activeStatus: 'Online' });
-                closeModal('addUserModal'); renderUsers(); return;
+            // Make sure the code isn't blank
+            if (!code || !name || !email) { 
+                alert('Employee Code, Name, and Email are required.'); 
+                return; 
             }
 
             try {
-                await apiFetch('/users', 'POST', { name, email, role, employeeCode: code, designationIds: designation ? [Number(designation)] : undefined });
-                closeModal('addUserModal'); await loadAll();
-            } catch (err) { alert(err.message); }
+                const response = await fetch('http://localhost:3000/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Add 'code' to the data being sent to the backend
+                    body: JSON.stringify({ code, name, email, role })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to save to database");
+                }
+
+                window.Admin.closeModal('addUserModal');
+                await loadAll(); 
+                
+            } catch (error) {
+                console.error('Error adding user:', error);
+                alert('Failed to add user! Check the console for details.');
+            }
         },
         toggleUser: async (id) => {
             if (CONFIG.USE_MOCK_API) {
@@ -201,17 +210,45 @@
             if (CONFIG.USE_MOCK_API) { users = users.filter(x => x.id !== id); renderUsers(); return; }
             try { await apiFetch(`/users/${id}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
         },
-        addGroup: async () => {
+		changeRole: async (id, newRole) => {
+            try {
+                // Send the PUT request to your Node.js backend
+                const response = await fetch(`http://localhost:3000/api/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to update role in database");
+                }
+
+                // If successful, reload the table to lock in the new SQL data
+                await loadAll(); 
+                
+            } catch (err) {
+                console.error("Error changing role:", err);
+                alert("Failed to change role! Reverting...");
+                await loadAll(); // Reload to revert the dropdown if it failed
+            }
+        },
+		addGroup: async () => {
             const name = document.getElementById('newGroupName').value.trim();
             const desc = document.getElementById('newGroupDesc').value.trim();
             const leader = document.getElementById('newGroupLeader').value;
             if (!name) { alert('Group name required.'); return; }
 
-            if (CONFIG.USE_MOCK_API) {
-                groups.push({ id: groups.length + 1, name, desc, members: 0, leader });
-                closeModal('addGroupModal'); renderGroups(); return;
-            }
-            try { await apiFetch('/groups', 'POST', { name, desc, leaderEmail: leader }); closeModal('addGroupModal'); await loadAll(); } catch (err) { alert(err.message); }
+            try { 
+                const response = await fetch('http://localhost:3000/api/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, desc, leaderEmail: leader })
+                });
+                if (!response.ok) throw new Error("Failed to add group");
+                
+                window.Admin.closeModal('addGroupModal'); 
+                await loadAll(); 
+            } catch (err) { alert(err.message); }
         },
         openEditGroup: (id) => {
             const g = groups.find(x => x.id === id);
@@ -222,23 +259,31 @@
             populateLeaderSelect('editGroupLeader', users.find(u => u.name === g.leader)?.email);
             openModal('editGroupModal');
         },
-        saveGroupEdit: async () => {
+		saveGroupEdit: async () => {
             const id = document.getElementById('editGroupId').value;
             const name = document.getElementById('editGroupName').value.trim();
             const desc = document.getElementById('editGroupDesc').value.trim();
             const leader = document.getElementById('editGroupLeader').value;
 
-            if (CONFIG.USE_MOCK_API) {
-                const g = groups.find(x => x.id == id);
-                if (g) { g.name = name; g.desc = desc; g.leader = users.find(u => u.email === leader)?.name || leader; }
-                closeModal('editGroupModal'); renderGroups(); return;
-            }
-            try { await apiFetch(`/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader }); closeModal('editGroupModal'); await loadAll(); } catch (err) { alert(err.message); }
+            try { 
+                const response = await fetch(`http://localhost:3000/api/groups/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, desc, leaderEmail: leader })
+                });
+                if (!response.ok) throw new Error("Failed to update group");
+                
+                window.Admin.closeModal('editGroupModal'); 
+                await loadAll(); 
+            } catch (err) { alert(err.message); }
         },
-        deleteGroup: async (id, name) => {
+		deleteGroup: async (id, name) => {
             if (!confirm(`Delete group "${name}"?`)) return;
-            if (CONFIG.USE_MOCK_API) { groups = groups.filter(x => x.id !== id); renderGroups(); return; }
-            try { await apiFetch(`/groups/${id}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
+            try { 
+                const response = await fetch(`http://localhost:3000/api/groups/${id}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error("Failed to delete group");
+                await loadAll(); 
+            } catch (err) { alert(err.message); }
         }
     };
 })();
