@@ -1,0 +1,15 @@
+/**
+MySQL database connection pool
+ */
+const mysql = require('mysql2/promise');
+
+const pool = mysql.createPool({
+    host: 'localhost',
+    user: 'root', // Update with  MySQL user
+    password: 'password', // Update with  MySQL password
+    database: 'people',
+    waitForConnections: true,
+    connectionLimit: 10 //10 simultaneous connections
+});
+
+module.exports = pool;
