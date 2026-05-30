@@ -540,6 +540,15 @@ tbody td {
 
 /* ─── SIDEBAR ────────────────────────────────────── */
 
+/* 1. Pre-open state (Applied to <html> by boot.js to prevent flicker) */
+.sidebar-pre-open .sidebar { width: var(--sb-w-expanded) !important; transition: none !important; }
+.sidebar-pre-open .main { margin-left: var(--sb-w-expanded) !important; transition: none !important; }
+.sidebar-pre-open .sidebar-brand > div:not(.logo-star):not(.sidebar-toggle) { opacity: 1 !important; width: auto !important; transition: none !important; }
+.sidebar-pre-open .user-card > div:not(.user-avatar) { opacity: 1 !important; width: auto !important; transition: none !important; }
+.sidebar-pre-open .nav-label { display: block !important; }
+.sidebar-pre-open .nav-item { font-size: 14px !important; width: auto !important; margin: 4px 10px !important; padding: 10px 12px !important; justify-content: flex-start !important; }
+
+/* 2. Base Styles */
 .sidebar {
   width: var(--sb-w-collapsed);
   min-height: 100vh;
@@ -657,7 +666,8 @@ body.sidebar-open .sidebar-toggle {
   padding: 8px 0 0;
 }
 
-body:not(.sidebar-open) .nav-group {
+/* Collapsed State: Only if NOT open AND NOT pre-opened */
+html:not(.sidebar-pre-open) body:not(.sidebar-open) .nav-group {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -666,7 +676,14 @@ body:not(.sidebar-open) .nav-group {
 
 .nav-label {
   display: none;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1px;
 }
+body.sidebar-open .nav-label { display: block; }
 
 .nav-item {
   display: flex;
@@ -704,7 +721,8 @@ body:not(.sidebar-open) .nav-group {
   border-color: var(--sb-accent);
 }
 
-body:not(.sidebar-open) .nav-item {
+/* Collapsed State: Only if NOT open AND NOT pre-opened */
+html:not(.sidebar-pre-open) body:not(.sidebar-open) .nav-item {
   width: 44px;
   height: 44px;
   margin: 0;
@@ -716,7 +734,7 @@ body:not(.sidebar-open) .nav-item {
   justify-content: center;
 }
 
-body:not(.sidebar-open) .nav-item i {
+html:not(.sidebar-pre-open) body:not(.sidebar-open) .nav-item i {
   font-size: 17px;
 }
 
@@ -733,7 +751,8 @@ body:not(.sidebar-open) .nav-item i {
   margin-bottom: 10px;
 }
 
-body:not(.sidebar-open) .user-card {
+/* Collapsed State centering */
+html:not(.sidebar-pre-open) body:not(.sidebar-open) .user-card {
   justify-content: center;
 }
 
@@ -760,7 +779,9 @@ body:not(.sidebar-open) .user-card {
   transition: opacity 0.18s, width 0.28s cubic-bezier(.2, .7, .2, 1);
 }
 
-body.sidebar-open .user-card>div:not(.user-avatar) {
+/* Visibility logic */
+body.sidebar-open .user-card>div:not(.user-avatar),
+html.sidebar-pre-open .user-card>div:not(.user-avatar) {
   opacity: 1;
   width: auto;
   pointer-events: auto;
@@ -807,7 +828,8 @@ body.sidebar-open .user-card>div:not(.user-avatar) {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-body:not(.sidebar-open) .logout-btn {
+/* Collapsed State centering */
+html:not(.sidebar-pre-open) body:not(.sidebar-open) .logout-btn {
   width: 44px;
   height: 44px;
   margin: 0 auto;
@@ -819,7 +841,7 @@ body:not(.sidebar-open) .logout-btn {
   justify-content: center;
 }
 
-body:not(.sidebar-open) .logout-btn i {
+html:not(.sidebar-pre-open) body:not(.sidebar-open) .logout-btn i {
   font-size: 17px;
 }
 

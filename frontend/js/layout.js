@@ -35,14 +35,17 @@ window.PAMS_UI = (function () {
         const sidebar = document.querySelector('.sidebar');
         if (!sidebar) return;
 
-        // 1. Apply initial state WITHOUT animation
-        document.body.classList.add('no-transition');
-        const wasOpen = localStorage.getItem('sidebar_open') === '1';
-        document.body.classList.toggle('sidebar-open', wasOpen);
-
-        // Force reflow to ensure the state is applied before re-enabling transitions
-        void sidebar.offsetWidth;
-        document.body.classList.remove('no-transition');
+        // 1. Hand-off from boot.js:
+        // boot.js adds 'sidebar-pre-open' to <html> to prevent flicker.
+        // We now move that to the standard 'sidebar-open' class on the body.
+        const isPreOpened = document.documentElement.classList.contains('sidebar-pre-open');
+        if (isPreOpened) {
+            document.body.classList.add('no-transition', 'sidebar-open');
+            document.documentElement.classList.remove('sidebar-pre-open');
+            // Force reflow
+            void sidebar.offsetWidth;
+            document.body.classList.remove('no-transition');
+        }
 
         const toggleSidebar = () => {
             const isOpen = document.body.classList.toggle('sidebar-open');
