@@ -35,62 +35,9 @@ const db = mysql.createPool({
     database: process.env.DB_NAME || 'people'
 });
 
-// =======================================================
-// 3. AUTHENTICATION LOGIC (Copied from login.js)
-// =======================================================
-
-async function handle_login(socket, data) {
-    const email = data.email;
-    const rawPw = data.password;
-
-    if (rawPw.trim().length <= 0 || !rawPw) {
-        return socket.emit('login_backendLog', { success: false, rawData: `Enter the password!`});
-    }
-
-    const query = 
-    `SELECT password FROM employees WHERE email = ? LIMIT 1;`;
-
-    try {
-        const [records] = await db.query(query, [email]);
-        if (records && records.length > 0) {
-            const hashedPw = records[0].password;
-
-            const {verify_pass} = require("./passwordUtil");
-            let validPw = await verify_pass(rawPw, hashedPw);
-            const {getEmployeeDetails} = require("./dbChecks");
-            const result = await getEmployeeDetails(db, data.email);
-            const [firstName, middleName, lastName, suffix] = [result?.first_name, result?.middle_name, result?.last_name, result?.suffix];
-            const empName = [firstName, middleName, lastName, suffix].filter(Boolean).join(" ");
-
-            socket.emit('login_backendLog', {
-                success: validPw,
-                rawData: `Email: ${email}\\nValid: ${validPw}\\n`,
-                empName: empName,
-                email: email
-            });
-            console.log(`validPw`);
-        } else {
-            socket.emit('login_backendLog', {
-                success: false,
-                rawData: `Account not found!`
-            });
-        }
-    } catch (err) {
-        socket.emit('login_backendLog', {success: false, rawData: `${err}`});
-    }
-}
-
-// 4. SOCKET CONNECTION HANDLERS
-io.on('connection', (socket) => {
-    console.log(`Connected!`);
-    socket.on('sendAccDetails', async (data) => {
-        handle_login(socket, data);
-    });
-});
-
 
 // =======================================================
-// 5. API MODULE INITIALIZATION & ROUTING
+// 3. API MODULE INITIALIZATION & ROUTING
 // =======================================================
 
 const {searchAPI} = require("./UserMngmt_APIs/userSearch");
@@ -109,7 +56,7 @@ passwordResetAPI(io, db);
 loginAPI(express, db, io, app);
 
 // =======================================================
-// 6. FINAL STARTUP EXECUTION
+// 4. FINAL STARTUP EXECUTION
 // =======================================================
 
 const PORT = process.env.PORT || process.env.port || 3000;
