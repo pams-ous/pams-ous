@@ -6,7 +6,7 @@
 const CONFIG = {
     // Backend API Configuration
     // API_BASE_URL: 'http://localhost:3000', // Production/Local Backend
-    API_BASE_URL: 'http://127.0.0.1:5500', // Typical local development (e.g., Live Server)
+    API_BASE_URL: 'http://127.0.0.1:3000', // Typical local development (e.g., Live Server)
 
     // Backend Socket.IO server (real PAMS backend — see backend/UserMngmt_APIs/login.js)
     BACKEND_SOCKET_URL: 'http://127.0.0.1:3000',
@@ -19,7 +19,7 @@ const CONFIG = {
     DEFAULT_DATE_LOCALE: 'en-PH',
 
     // Feature Flags (for transition from prototype to production)
-    USE_MOCK_API: true,
+    USE_MOCK_API: false,
 
     // OTP Settings — kept in sync with backend/.env (OTP_CODE_LENGTH, OTP_TTL_MINUTES)
     OTP: {
