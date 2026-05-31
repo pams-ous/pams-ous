@@ -19,7 +19,7 @@ const CONFIG = {
     DEFAULT_DATE_LOCALE: 'en-PH',
 
     // Feature Flags (for transition from prototype to production)
-    USE_MOCK_API: false,
+    USE_MOCK_API: true,
 
     // OTP Settings — kept in sync with backend/.env (OTP_CODE_LENGTH, OTP_TTL_MINUTES)
     OTP: {
