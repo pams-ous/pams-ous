@@ -3,7 +3,7 @@ To initialize:
 npm init -y
 
 To install the required modules:
-npm i argon2 mysql2 socket.io express
+npm i argon2 mysql2 socket.io express node-cron
 
 To install nodemon (watcher):
 npm i -D nodemon
@@ -19,6 +19,7 @@ const argon2 = require('argon2');
 const mysql = require('mysql2/promise');
 const { Server } = require('socket.io');
 const express = require('express');
+const cron = require('node-cron');
 
 const app = express();
 const server = http.createServer(app);
@@ -112,6 +113,56 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
     if (req.method === "OPTIONS") return res.sendStatus(200);
     next();
+});
+
+// Import the Task Routes
+const taskRoutes = require('../TaskMngmt_APIs/taskRoutes');
+
+// to route any '/api/tasks' requests to that file
+app.use('/api/tasks', taskRoutes);
+
+// NEW ROUTE: Catch the REST login fetch from auth.js
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    
+    if (!password || password.trim().length <= 0) {
+        return res.status(400).json({ success: false, message: 'Enter the password!' });
+    }
+
+    try {
+        // 1. Find the user in the database
+        const [records] = await db.query('SELECT password, designation, first_name, last_name FROM employees WHERE email = ? LIMIT 1;', [email]);
+        
+        if (records && records.length > 0) {
+            const hashedPw = records[0].password;
+            
+            // 2. Verify Password using your existing utility
+            const {verify_pass} = require("./passwordUtil");
+            let validPw = await verify_pass(password, hashedPw);
+            
+            if (validPw) {
+                // 3. Send back the exact JSON structure auth.js needs to redirect to the dashboard
+                res.json({
+                    success: true,
+                    token: "jwt-token-active", // Placeholder token to satisfy the frontend session check
+                    user: {
+                        id: 1,
+                        email: email,
+                        role: records[0].designation === 'Admin' ? 'ADMIN' : 'MEMBER',
+                        firstName: records[0].first_name,
+                        lastName: records[0].last_name
+                    }
+                });
+            } else {
+                res.status(401).json({ success: false, message: 'Invalid password' });
+            }
+        } else {
+            res.status(404).json({ success: false, message: 'Account not found!' });
+        }
+    } catch (err) {
+        console.error("REST Login Error:", err);
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 app.put('/api/users/:id', async (req, res) => {
@@ -253,6 +304,30 @@ app.delete('/api/groups/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// --- TASK AUTOMATION (CRON JOB) ---
+// This runs every hour, on the hour.
+cron.schedule('0 * * * *', async () => {
+    try {
+        console.log('Running scheduled task check...');
+        
+        // SQL: Update to 'pending' if it is currently 'in progress' 
+        // AND it was created more than 24 hours ago.
+        const query = `
+            UPDATE Tasks 
+            SET status = 'pending' 
+            WHERE status = 'in progress' 
+            AND created_at <= NOW() - INTERVAL 1 DAY
+        `;
+        
+        const [result] = await db.query(query);
+        
+        if (result.affectedRows > 0) {
+            console.log(`Success: Moved ${result.affectedRows} overdue tasks to 'Pending'.`);
+        }
+    } catch (error) {
+        console.error('Failed to run scheduled task update:', error);
+    }
+});
 
 const PORT = process.env.PORT || process.env.port || 3000;
 server.listen(PORT, () => console.log(`Server connected at port ${PORT}`));
