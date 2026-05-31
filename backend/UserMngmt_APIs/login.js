@@ -56,6 +56,15 @@ async function handle_login(socket, data) {
 
             const {verify_pass} = require("./passwordUtil");
             let validPw = await verify_pass(rawPw, hashedPw);
+			
+			if (validPw) {
+                // 1. Update the DB to show them as Online using your existing active_status ENUM
+                await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
+                
+                // 2. Attach the email to this specific socket connection so we remember who they are
+                socket.userEmail = email;
+            }
+			
             const {getEmployeeDetails} = require("./dbChecks");
             const result = await getEmployeeDetails(db, data.email);
             const [firstName, middleName, lastName, suffix] = [result?.first_name, result?.middle_name, result?.last_name, result?.suffix];
@@ -87,6 +96,28 @@ io.on('connection', (socket) => {
         handle_login(socket, data);
     });
 
+    socket.on('register_session', async (email) => {
+        socket.userEmail = email; // Attach the email to this fresh socket
+        try {
+            await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
+            console.log(`[SESSION] ${email} reconnected to a new page.`);
+        } catch (err) {
+            console.error("Error setting online status on reconnect:", err);
+        }
+    });
+
+    // Catch when the user leaves, closes their tab, or logs out
+    socket.on('disconnect', async () => {
+        if (socket.userEmail) {
+            try {
+                // Change their active_status back to Offline
+                await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [socket.userEmail]);
+                console.log(`[SESSION] ${socket.userEmail} went offline.`);
+            } catch (err) {
+                console.error("Error updating offline status:", err);
+            }
+        }
+    });
 });
 
 const {searchAPI} = require("./userSearch");
@@ -144,12 +175,12 @@ app.put('/api/users/:id', async (req, res) => {
 // 1. GET route to fetch all users from SQL
 app.get('/api/users', async (req, res) => {
     try {
-        const [rows] = await db.query(`
+		const [rows] = await db.query(`
             SELECT employee_id AS id, 
                    CONCAT(first_name, ' ', last_name) AS name, 
                    email, 
                    CASE WHEN designation = 'Admin' THEN 'ADMIN' ELSE 'MEMBER' END AS role,
-                   'ACTIVE' as activeStatus 
+                   COALESCE(active_status, 'Offline') AS activeStatus 
             FROM Employees
         `);
         res.json(rows);

@@ -99,3 +99,15 @@ window.PAMS = (function () {
         authUrl, pageUrl, fmtDate, fmtHeaderDate
     };
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if the Socket.io library is loaded on the current HTML page
+    if (typeof io !== 'undefined') {
+        const socket = io(typeof CONFIG !== 'undefined' ? CONFIG.BACKEND_SOCKET_URL : "http://localhost:3000"); 
+        const savedEmail = localStorage.getItem('PAMS_userEmail');
+        
+        if (savedEmail) {
+            socket.emit('register_session', savedEmail);
+        }
+    }
+});
