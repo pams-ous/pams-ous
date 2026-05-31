@@ -10,7 +10,7 @@
     let users = [];
     let groups = [];
     let viewingId = null;
-    let activeStatus = 'ALL';
+    let activeStatus = 'IN PROGRESS';
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
