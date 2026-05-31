@@ -51,13 +51,13 @@ module.exports = {
         }
     },
 
-    createTask: async (req, res) => {//process new entry submissions (POST requests). Determine whether tasks for indiv || group
+    createTask: async (req, res) => {
         try {
             const { title, description, priority, dueDate, status, assigneeEmail, groupId } = req.body;
-
+        
             let assignedToUser = null;
             let assignedToGroup = null;
-
+        
             // Resolve assignee mapping based on frontend payload
             if (assigneeEmail) {
                 const employee = await Task.findEmployeeByEmail(assigneeEmail);
@@ -65,30 +65,27 @@ module.exports = {
             } else if (groupId) {
                 assignedToGroup = parseInt(groupId);
             }
-            
-            // below block is placeholder in case of errors in testing
-            // just remove the multi-line comment and put in HARDCODED_ADMIN_ID an actual id from table
-            // Fallback for assigned_by since schema requires it.             
-            // assigned_by is NOT NULL
-            /* 
-            const HARDCODED_ADMIN_ID = '1';
 
+            // Use Francis's ID as the 'assigned_by' (the creator)
+            const ADMIN_ID = '3764981a-f888-4a3f-9e50-1b1416141345';
+
+            // Actually create the task in the database
             const newTaskId = await Task.create({
                 title,
                 description,
-                priority: priority.toLowerCase(), // Convert 'HIGH' to 'high' for DB Enum
+                priority: priority.toLowerCase(), 
                 dueDate,
-                status: status.toLowerCase(),     // Convert 'PENDING' to 'pending' for DB Enum
-                assignedBy: HARDCODED_ADMIN_ID,
-                assignedToUser,
-                assignedToGroup
+                status: 'in progress',    
+                assignedBy: ADMIN_ID,
+                assignedToUser: assignedToUser,
+                assignedToGroup: assignedToGroup
             });
-            */
 
             res.status(201).json({ message: 'Task created successfully', taskId: newTaskId });
         } catch (error) {
-            console.error('Error creating task:', error);
-            res.status(500).json({ message: 'Failed to create task' });
+            // log the real error to terminal
+            console.error('FULL ERROR DETAILS:', error); 
+            res.status(500).json({ message: 'Failed to create task', details: error.message });
         }
     },
 
