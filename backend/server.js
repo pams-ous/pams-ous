@@ -8,7 +8,7 @@ npm i argon2 mysql2 socket.io cors nodemailer express
 
 \n===============================================================*/
 
-require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '.', '.env') });
 
 const http = require('http');
 const mysql = require('mysql2/promise');
@@ -61,4 +61,5 @@ loginAPI(express, db, io, app);
 
 const PORT = process.env.PORT || process.env.port || 3000;
 
-server.listen(PORT, () => console.log(`\n===================================================\nServer connected successfully at port ${PORT}\n===================================================`));
+// make the server listen to all network interfaces (0.0.0.0)
+server.listen(PORT, '0.0.0.0', () => console.log(`\n===================================================\nServer connected successfully at port ${PORT}\n===================================================`));

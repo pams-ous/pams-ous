@@ -1,10 +1,7 @@
-//Data layer for interacting with the Tasks table
-//
-
-const db = require('./db');
+// Data layer for interacting with the Tasks table
 
 module.exports = {
-    findAll: async () => {//read
+    findAll: async (db) => { // Accept central db pool
         const query = `
             SELECT 
                 t.task_id as id, t.title, t.description, t.priority, t.status, 
@@ -21,12 +18,12 @@ module.exports = {
         return rows;
     },
 
-    findEmployeeByEmail: async (email) => {//check email if exists grabe employee_id
+    findEmployeeByEmail: async (db, email) => { 
         const [rows] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [email]);
         return rows[0] || null;
     },
 
-    create: async (taskData) => {//create new tasks
+    create: async (db, taskData) => { 
         const { title, description, priority, dueDate, status, assignedBy, assignedToUser, assignedToGroup } = taskData;
         const query = `
             INSERT INTO Tasks 
@@ -46,8 +43,7 @@ module.exports = {
         return result.insertId;
     },
 
-    update: async (id, updateData) => {//update operation
-        // Dynamically build the update query based on what the frontend sent
+    update: async (db, id, updateData) => { 
         const fields = [];
         const values = [];
 
@@ -63,7 +59,7 @@ module.exports = {
         return result.affectedRows;
     },
 
-    delete: async (id) => {//delete operation
+    delete: async (db, id) => { 
         const [result] = await db.query('DELETE FROM Tasks WHERE task_id = ?', [id]);
         return result.affectedRows;
     }

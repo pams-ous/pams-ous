@@ -20,6 +20,48 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
+        // --- SAFE WEBSOCKET PLUG-IN SETUP ---
+        if (typeof io !== 'undefined') {
+            const socket = io('http://localhost:3000');
+
+            const userSession = JSON.parse(localStorage.getItem('pams_user') || '{}');
+            if (userSession.email) {
+                socket.emit('register_session', userSession.email);
+            }
+
+            // Locate the socket.on('status_change') block inside DOMContentLoaded and change it to this:
+
+            socket.on('status_change', (data) => {
+                const { email, status } = data;
+                
+                // 1. Update the local data array state
+                const matchIndex = users.findIndex(u => u.email === email);
+                if (matchIndex !== -1) {
+                    users[matchIndex].activeStatus = status;
+                }
+
+                // 2. Find the cell wrapper and update the badge, circle icon, and styles live
+                const targetTd = document.querySelector(`td[data-user-email="${email}"]`);
+                if (targetTd) {
+                    const isOnline = status.toLowerCase() === 'online';
+                    const badgeClass = isOnline ? 'status-online' : 'status-offline';
+                    const statusColor = isOnline ? '#28a745' : '#6c757d';
+                    const displayStatus = status || 'Offline';
+
+                    // Update the outer cell color style
+                    targetTd.style.color = statusColor;
+
+                    // Rewrite the internal badge and circle icon cleanly
+                    targetTd.innerHTML = `
+                        <span class="status-badge ${badgeClass}">
+                            <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${statusColor};"></i>
+                            ${displayStatus}
+                        </span>
+                    `;
+                }
+            });
+        }
+
         await loadAll();
     });
 
@@ -42,79 +84,61 @@
 	}
 
 	// Ensure loadAll runs when the page starts
-	document.addEventListener('DOMContentLoaded', () => {
-		loadAll();
-	});
+	document.addEventListener('DOMContentLoaded', async () => {
+        if (!requireAuth()) return;
+        PAMS_UI.init();
 
-    function roleLabel(r) { return r === 'ADMIN' ? 'ADMINISTRATOR' : 'ENCODER / ADMIN. STAFF'; }
-    function roleClass(r) { return r === 'ADMIN' ? 'badge-admin' : 'badge-pending'; }
-    function statusClass(s) { return s === 'Online' ? 'b-active' : 'b-inactive'; }
-    function statusLabel(s) { return s === 'Online' ? 'ACTIVE' : 'INACTIVE'; }
+        const dateEl = document.getElementById('headerDate');
+        if (dateEl) dateEl.textContent = fmtHeaderDate();
 
-    function renderUsers() {
-        const body = document.getElementById('usersBody');
-        if (!body) return;
+        await loadAll();
+    });
 
-        body.innerHTML = users.map(u => `
-            <tr>
-                <td>
-                    <div class="td-name">${u.name || '—'}</div>
-                    <div class="td-email">${u.email}</div>
-                </td>
-                <td>${u.email}</td>
-                <td><span class="badge ${roleClass(u.role)}">${roleLabel(u.role)}</span></td>
-                <td><span class="badge ${statusClass(u.activeStatus)}">${statusLabel(u.activeStatus)}</span></td>
-                <td>
-                    <div class="flex gap-2">
-                        <button class="action-btn deactivate" title="${u.activeStatus === 'Online' ? 'Deactivate' : 'Activate'}" onclick="window.Admin.toggleUser(${u.id})">
-                            <i class="fa-solid ${u.activeStatus === 'Online' ? 'fa-user-slash' : 'fa-user-check'}"></i>
-                        </button>
-                        <button class="action-btn edit" title="Reset Password" onclick="window.Admin.openResetPassword(${u.id}, '${u.name || u.email}')">
-                            <i class="fa-solid fa-key"></i>
-                        </button>
-                        ${u.id === currentUserId ? '' : `
-                        <button class="action-btn delete" title="Delete User" onclick="window.Admin.deleteUser(${u.id}, '${u.name || u.email}')">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>`}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    }
+	function renderUsers() {
+    // Export loadAll to Admin so the dropdown script can trigger table refreshes
+    if (!window.Admin) window.Admin = {};
+    window.Admin.refreshData = loadAll;
+      
+    document.getElementById('usersBody').innerHTML = users.map(u => {
+        // --- FIXED: Calculated inside the map loop where 'u' is actively defined ---
+        const isOnline = (u.activeStatus || 'Offline').toLowerCase() === 'online';
+        const badgeClass = isOnline ? 'status-online' : 'status-offline';
 
-	 function renderUsers() {
-	  // Export loadAll to Admin so the dropdown script can trigger table refreshes
-	  if (!window.Admin) window.Admin = {};
-	  window.Admin.refreshData = loadAll;
+        return `
+        <tr>
+          <td class="td-name">${u.name || '—'}</td>
+          <td class="td-email">${u.email}</td>
+          <td>
+            <select 
+                class="form-control role-select-dropdown" 
+                onchange="window.Admin.changeRole('${u.id}', this.value)"
+                data-user-id="${u.id}" 
+                data-current-role="${u.role}"
+                style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
+                <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
+                <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
+            </select>
+          </td>
 
-	  document.getElementById('usersBody').innerHTML = users.map(u => `
-		<tr>
-		  <td class="td-name">${u.name || '—'}</td>
-		  <td class="td-email">${u.email}</td>
-		  <td>
-			<select 
-				class="form-control role-select-dropdown" 
-				onchange="window.Admin.changeRole('${u.id}', this.value)"
-				data-user-id="${u.id}" 
-				data-current-role="${u.role}"
-				style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
-				<option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
-				<option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
-			</select>
-		  </td>
-		  <td><span class="badge ${statusClass(u.activeStatus)}">${statusLabel(u.activeStatus)}</span></td>
-		  <td class="td-actions">
-			<button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
-			  <i class="fas fa-pen"></i>
-			</button>
-			${u.id === currentUserId ? '' : `
-			<button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
-			  <i class="fas fa-trash"></i>
-			</button>
-			`}
-		  </td>
-		</tr>`).join('');
-	}
+          <td data-user-email="${u.email}" style="color: ${u.activeStatus === 'Online' ? '#28a745' : '#6c757d'}; font-weight: 600;">
+            <span class="status-badge ${badgeClass}">
+                <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${u.activeStatus === 'Online' ? '#28a745' : '#6c757d'};"></i> ${u.activeStatus || 'Offline'}
+            </span>
+          </td>
+          
+          <td class="td-actions">
+            <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
+              <i class="fas fa-pen"></i>
+            </button>
+            ${u.id === currentUserId ? '' : `
+            <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
+              <i class="fas fa-trash"></i>
+            </button>
+            `}
+          </td>
+        </tr>`;
+    }).join('');
+}
 
     function populateDesignationSelect(id, selectedId) {
         const sel = document.getElementById(id);

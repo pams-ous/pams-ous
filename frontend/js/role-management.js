@@ -13,20 +13,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!userId || newRole === previousRole) return;
 
-            // Safeguard: confirm before changing an Admin to a lower role
+            // --- FIXED SECTION: UNIVERSAL CONFIRMATION & UI RESET GUARD ---
+            let message = `Are you sure you want to change this designation to ${newRole}?`;
             if (previousRole === 'ADMIN' && newRole !== 'ADMIN') {
-                const confirmed = confirm("Are you sure you want to demote this administrator?");
-                if (!confirmed) {
-                    dropdown.value = previousRole; // Revert UI
-                    return;
-                }
+                message = "Are you sure you want to demote this administrator?";
             }
 
-            // Disable dropdown visually while processing
+            const confirmed = confirm(message);
+            if (!confirmed) {
+                dropdown.value = previousRole; // Visually forces dropdown to stay on its current setting
+                return;                        // Halts execution completely
+            }
+            // ---------------------------------------------------------------
+
             dropdown.disabled = true;
 
-			try {
-                // Force the request to hit the Node.js backend on Port 3000
+            try {
                 const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -35,10 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!response.ok) throw new Error("Failed to update in database");
 
-                // Update state on success
                 dropdown.setAttribute('data-current-role', newRole);
                 
-                // Refresh table if the loadAll function was exported
                 if (window.Admin && typeof window.Admin.refreshData === 'function') {
                     window.Admin.refreshData();
                 }
@@ -47,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Error updating role:', error);
                 alert(`Failed to update role: ${error.message}`);
-                dropdown.value = previousRole; // Revert UI on failure
+                dropdown.value = previousRole; // Revert UI on database failure
             } finally {
                 dropdown.disabled = false;
             }
-
+        }
     });
 });
