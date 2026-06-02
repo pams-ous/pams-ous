@@ -42,47 +42,17 @@
 	}
 
 	// Ensure loadAll runs when the page starts
-	document.addEventListener('DOMContentLoaded', () => {
-		loadAll();
-	});
+	document.addEventListener('DOMContentLoaded', async () => {
+        if (!requireAuth()) return;
+        PAMS_UI.init();
 
-    function roleLabel(r) { return r === 'ADMIN' ? 'ADMINISTRATOR' : 'ENCODER / ADMIN. STAFF'; }
-    function roleClass(r) { return r === 'ADMIN' ? 'badge-admin' : 'badge-pending'; }
-    function statusClass(s) { return s === 'Online' ? 'b-active' : 'b-inactive'; }
-    function statusLabel(s) { return s === 'Online' ? 'ACTIVE' : 'INACTIVE'; }
+        const dateEl = document.getElementById('headerDate');
+        if (dateEl) dateEl.textContent = fmtHeaderDate();
 
-    function renderUsers() {
-        const body = document.getElementById('usersBody');
-        if (!body) return;
+        await loadAll();
+    });
 
-        body.innerHTML = users.map(u => `
-            <tr>
-                <td>
-                    <div class="td-name">${u.name || '—'}</div>
-                    <div class="td-email">${u.email}</div>
-                </td>
-                <td>${u.email}</td>
-                <td><span class="badge ${roleClass(u.role)}">${roleLabel(u.role)}</span></td>
-                <td><span class="badge ${statusClass(u.activeStatus)}">${statusLabel(u.activeStatus)}</span></td>
-                <td>
-                    <div class="flex gap-2">
-                        <button class="action-btn deactivate" title="${u.activeStatus === 'Online' ? 'Deactivate' : 'Activate'}" onclick="window.Admin.toggleUser(${u.id})">
-                            <i class="fa-solid ${u.activeStatus === 'Online' ? 'fa-user-slash' : 'fa-user-check'}"></i>
-                        </button>
-                        <button class="action-btn edit" title="Reset Password" onclick="window.Admin.openResetPassword(${u.id}, '${u.name || u.email}')">
-                            <i class="fa-solid fa-key"></i>
-                        </button>
-                        ${u.id === currentUserId ? '' : `
-                        <button class="action-btn delete" title="Delete User" onclick="window.Admin.deleteUser(${u.id}, '${u.name || u.email}')">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>`}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-	 function renderUsers() {
+	function renderUsers() {
 	  // Export loadAll to Admin so the dropdown script can trigger table refreshes
 	  if (!window.Admin) window.Admin = {};
 	  window.Admin.refreshData = loadAll;
@@ -102,8 +72,11 @@
 				<option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
 			</select>
 		  </td>
-		  <td><span class="badge ${statusClass(u.activeStatus)}">${statusLabel(u.activeStatus)}</span></td>
-		  <td class="td-actions">
+
+          <td style="color: ${u.activeStatus === 'Online' ? '#28a745' : '#6c757d'}; font-weight: 600;">
+              <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px;"></i> ${u.activeStatus || 'Offline'}
+          </td>
+          <td class="td-actions">
 			<button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
 			  <i class="fas fa-pen"></i>
 			</button>

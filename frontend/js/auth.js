@@ -69,9 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
         signupFormId: 'adminSignupForm'
     });
 
-    const setSession = (token, user) => {
+const setSession = (token, user) => {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
+        
+        if (user && user.email) {
+            localStorage.setItem('PAMS_userEmail', user.email);
+        }
     };
 
     const loadDesignations = async () => {
