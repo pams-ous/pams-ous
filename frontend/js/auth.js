@@ -70,8 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 const setSession = (token, user) => {
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        PAMS.setToken(token);
+        PAMS.setUser(user);
         
         if (user && user.email) {
             localStorage.setItem('PAMS_userEmail', user.email);

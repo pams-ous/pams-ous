@@ -1,5 +1,7 @@
 const {getEmployeeDetails} = require("./dbChecks");
-async function getEmployeeData(db, data, socket, mode) {
+const { verifyToken } = require("./authUtil");
+
+async function getEmployeeData(db, data, socket, mode, state) {
 
     const email = data.email;
     const queryResult = await getEmployeeDetails(db, email);
@@ -12,7 +14,7 @@ async function getEmployeeData(db, data, socket, mode) {
     
     if (mode === "get") {
         if (empID === undefined) {
-            accountFound = false;
+            state.accountFound = false;
             socket.emit('managementLog', {
                 success: false,
                 rawData: `Account doesn't exist!`
@@ -22,10 +24,10 @@ async function getEmployeeData(db, data, socket, mode) {
             });
             return;
         } 
-        accountFound = true;
+        state.accountFound = true;
         socket.emit('managementLog', {
             success: true,
-            rawData: `${email}:${empID}:${accountFound}`
+            rawData: `${email}:${empID}:${state.accountFound}`
         });
 
         socket.emit('returnFetchData', {
@@ -41,7 +43,7 @@ async function getEmployeeData(db, data, socket, mode) {
         const query = `DELETE FROM Employees
         WHERE employee_id = ?;`;
 
-        db.query(query, [empID]);
+        await db.query(query, [empID]);
     }
 
     return {email: email, 
@@ -85,14 +87,27 @@ async function manageAccountAPI(io, db) {
     io.on('connection', (socket) => {
         console.log("Management API connected.");
 
-        let accountFound = false;
+        const verifyAdmin = () => {
+            const token = socket.handshake.auth?.token;
+            const user = verifyToken(token);
+            return user && user.role === 'ADMIN';
+        };
 
         socket.on('getEmployeeData', (data) => {
-            getEmployeeData(db, data, socket, "get");
+            if (!verifyAdmin()) {
+                socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
+                return;
+            }
+            getEmployeeData(db, data, socket, "get", { accountFound: false });
         });
 
         socket.on('deleteAccount', async (data) => {
-            const {email, empID} = await getEmployeeData(db, data, socket, "delete");
+            if (!verifyAdmin()) {
+                socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
+                return;
+            }
+            const state = { accountFound: false };
+            const {email, empID} = await getEmployeeData(db, data, socket, "delete", state);
             
             if (empID !== undefined) {
                 socket.emit('managementLog', {
@@ -108,6 +123,10 @@ async function manageAccountAPI(io, db) {
         });
 
         socket.on('updateDetails', (data) => {
+            if (!verifyAdmin()) {
+                socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
+                return;
+            }
             editEmployeeData(socket, db, data);
         });
 

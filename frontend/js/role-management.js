@@ -25,15 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Disable dropdown visually while processing
             dropdown.disabled = true;
 
-			try {
-                // Force the request to hit the Node.js backend on Port 3000
-                const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ role: newRole })
-                });
-
-                if (!response.ok) throw new Error("Failed to update in database");
+            try {
+                await PAMS.apiFetch(`/users/${userId}`, 'PUT', { role: newRole });
 
                 // Update state on success
                 dropdown.setAttribute('data-current-role', newRole);
@@ -51,6 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 dropdown.disabled = false;
             }
-
+        }
     });
 });

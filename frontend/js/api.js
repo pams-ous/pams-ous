@@ -44,9 +44,27 @@ window.PAMS = (function () {
         return true;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const user = getUser();
+        const email = user?.email || localStorage.getItem('PAMS_userEmail');
+
+        // 1. Try Socket Logout (for instant UI updates)
+        if (PAMS.socket) {
+            PAMS.socket.emit('logout');
+        }
+
+        // 2. Try REST Logout (Guaranteed for ngrok/proxies)
+        if (email) {
+            try {
+                await apiFetch('/auth/logout', 'POST', { email });
+            } catch (e) {
+                console.error('REST logout failed:', e);
+            }
+        }
+
         setToken(null);
         setUser(null);
+        localStorage.removeItem('PAMS_userEmail');
         window.location.href = authUrl('index.html');
     };
 
@@ -96,14 +114,20 @@ window.PAMS = (function () {
     return {
         apiFetch, getToken, setToken, getUser, setUser,
         requireAuth, logout,
-        authUrl, pageUrl, fmtDate, fmtHeaderDate
+        authUrl, pageUrl, fmtDate, fmtHeaderDate,
+        socket: null
     };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
     // Check if the Socket.io library is loaded on the current HTML page
     if (typeof io !== 'undefined') {
-        const socket = io(typeof CONFIG !== 'undefined' ? CONFIG.BACKEND_SOCKET_URL : "http://localhost:3000"); 
+        const token = PAMS.getToken();
+        const socket = io(typeof CONFIG !== 'undefined' ? CONFIG.BACKEND_SOCKET_URL : "http://localhost:3000", {
+            auth: { token },
+            transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
+        }); 
+        PAMS.socket = socket; // Store socket in PAMS object
         const savedEmail = localStorage.getItem('PAMS_userEmail');
         
         if (savedEmail) {

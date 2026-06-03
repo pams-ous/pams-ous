@@ -33,19 +33,20 @@
 
     const OTP_LEN = (window.CONFIG && window.CONFIG.OTP && window.CONFIG.OTP.CODE_LENGTH) || 6;
     const RESEND_COOLDOWN = (window.CONFIG && window.CONFIG.OTP && window.CONFIG.OTP.RESEND_COOLDOWN_SECONDS) || 30;
-    const BACKEND_URL = (window.CONFIG && window.CONFIG.BACKEND_SOCKET_URL) || 'http://127.0.0.1:3000';
+    const BACKEND_URL = (window.CONFIG && window.CONFIG.BACKEND_SOCKET_URL) || '';
     const USE_MOCK = !!(window.CONFIG && window.CONFIG.USE_MOCK_API);
 
     let sharedSocket = null;
 
     function getSocket() {
         if (USE_MOCK) return null;
-        if (sharedSocket && sharedSocket.connected) return sharedSocket;
+        if (window.PAMS && window.PAMS.socket && window.PAMS.socket.connected) return window.PAMS.socket;
         if (typeof window.io !== 'function') {
             console.error('socket.io-client not loaded. Add the CDN script to the page.');
             return null;
         }
         sharedSocket = window.io(BACKEND_URL, { transports: ['websocket', 'polling'] });
+        if (window.PAMS) window.PAMS.socket = sharedSocket;
         return sharedSocket;
     }
 

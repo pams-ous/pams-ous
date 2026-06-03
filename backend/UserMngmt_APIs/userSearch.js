@@ -1,9 +1,20 @@
+const { verifyToken } = require("./authUtil");
+
 async function searchAPI(io, db) {
     io.on('connection', (socket) => {
     console.log('Search API connected.');
 
+    const verifyAuth = () => {
+        const token = socket.handshake.auth?.token;
+        return verifyToken(token) !== null;
+    };
+
     // Listen for incoming search requests from the client UI
     socket.on('searchEmployees', async (data) => {
+        if (!verifyAuth()) {
+            socket.emit('searchResult', { success: false, rawData: `Unauthorized access.` });
+            return;
+        }
         const searchString = data.query;
         console.log(`Search transaction initiated for: "${searchString}"`);
 
@@ -23,7 +34,7 @@ async function searchAPI(io, db) {
             // Emit the array rows containing all matched employee data back to the frontend
             socket.emit('searchResult', { success: true, rawData: results });
         } catch (err) {
-            socket.emit('searchResult', { success: true, rawData: err });
+            socket.emit('searchResult', { success: false, rawData: err });
         }
     });
 });

@@ -20,6 +20,51 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
+        // --- SAFE WEBSOCKET PLUG-IN SETUP ---
+        if (typeof io !== 'undefined') {
+            const token = PAMS.getToken();
+            const socket = io(CONFIG.BACKEND_SOCKET_URL, {
+                auth: { token }
+            });
+
+            const userSession = PAMS.getUser();
+            if (userSession && userSession.email) {
+                socket.emit('register_session', userSession.email);
+            }
+
+            // Locate the socket.on('status_change') block inside DOMContentLoaded and change it to this:
+
+            socket.on('status_change', (data) => {
+                const { email, status } = data;
+                
+                // 1. Update the local data array state
+                const matchIndex = users.findIndex(u => u.email === email);
+                if (matchIndex !== -1) {
+                    users[matchIndex].activeStatus = status;
+                }
+
+                // 2. Find the cell wrapper and update the badge, circle icon, and styles live
+                const targetTd = document.querySelector(`td[data-user-email="${email}"]`);
+                if (targetTd) {
+                    const isOnline = status.toLowerCase() === 'online';
+                    const badgeClass = isOnline ? 'status-online' : 'status-offline';
+                    const statusColor = isOnline ? '#28a745' : '#6c757d';
+                    const displayStatus = status || 'Offline';
+
+                    // Update the outer cell color style
+                    targetTd.style.color = statusColor;
+
+                    // Rewrite the internal badge and circle icon cleanly
+                    targetTd.innerHTML = `
+                        <span class="status-badge ${badgeClass}">
+                            <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${statusColor};"></i>
+                            ${displayStatus}
+                        </span>
+                    `;
+                }
+            });
+        }
+
         await loadAll();
     });
 
@@ -27,12 +72,10 @@
 	async function loadAll() {
 		try {
             // Fetch live Users
-			const userRes = await fetch('http://localhost:3000/api/users');
-			if (userRes.ok) users = await userRes.json();
+			users = await apiFetch('/users');
             
             // Fetch live Groups
-            const groupRes = await fetch('http://localhost:3000/api/groups');
-            if (groupRes.ok) groups = await groupRes.json();
+            groups = await apiFetch('/groups');
 			
 			renderUsers(); 
             renderGroups(); // Redraw the Groups table with SQL data
@@ -53,41 +96,50 @@
     });
 
 	function renderUsers() {
-	  // Export loadAll to Admin so the dropdown script can trigger table refreshes
-	  if (!window.Admin) window.Admin = {};
-	  window.Admin.refreshData = loadAll;
+    // Export loadAll to Admin so the dropdown script can trigger table refreshes
+    if (!window.Admin) window.Admin = {};
+    window.Admin.refreshData = loadAll;
+      
+    document.getElementById('usersBody').innerHTML = users.map(u => {
+        // --- FIXED: Calculated inside the map loop where 'u' is actively defined ---
+        const isOnline = (u.activeStatus || 'Offline').toLowerCase() === 'online';
+        const badgeClass = isOnline ? 'status-online' : 'status-offline';
 
-	  document.getElementById('usersBody').innerHTML = users.map(u => `
-		<tr>
-		  <td class="td-name">${u.name || '—'}</td>
-		  <td class="td-email">${u.email}</td>
-		  <td>
-			<select 
-				class="form-control role-select-dropdown" 
-				onchange="window.Admin.changeRole('${u.id}', this.value)"
-				data-user-id="${u.id}" 
-				data-current-role="${u.role}"
-				style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
-				<option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
-				<option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
-			</select>
-		  </td>
-
-          <td style="color: ${u.activeStatus === 'Online' ? '#28a745' : '#6c757d'}; font-weight: 600;">
-              <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px;"></i> ${u.activeStatus || 'Offline'}
+        return `
+        <tr>
+          <td class="td-name">${u.name || '—'}</td>
+          <td class="td-email">${u.email}</td>
+          <td>
+            <select 
+                class="form-control role-select-dropdown" 
+                onchange="window.Admin.changeRole('${u.id}', this.value)"
+                data-user-id="${u.id}" 
+                data-current-role="${u.role}"
+                style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
+                <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
+                <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
+            </select>
           </td>
+
+          <td data-user-email="${u.email}" style="color: ${u.activeStatus === 'Online' ? '#28a745' : '#6c757d'}; font-weight: 600;">
+            <span class="status-badge ${badgeClass}">
+                <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${u.activeStatus === 'Online' ? '#28a745' : '#6c757d'};"></i> ${u.activeStatus || 'Offline'}
+            </span>
+          </td>
+          
           <td class="td-actions">
-			<button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
-			  <i class="fas fa-pen"></i>
-			</button>
-			${u.id === currentUserId ? '' : `
-			<button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
-			  <i class="fas fa-trash"></i>
-			</button>
-			`}
-		  </td>
-		</tr>`).join('');
-	}
+            <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
+              <i class="fas fa-pen"></i>
+            </button>
+            ${u.id === currentUserId ? '' : `
+            <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
+              <i class="fas fa-trash"></i>
+            </button>
+            `}
+          </td>
+        </tr>`;
+    }).join('');
+}
 
     function populateDesignationSelect(id, selectedId) {
         const sel = document.getElementById(id);
@@ -137,23 +189,14 @@
             }
 
             try {
-                const response = await fetch('http://localhost:3000/api/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    // Add 'code' to the data being sent to the backend
-                    body: JSON.stringify({ code, name, email, role })
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to save to database");
-                }
+                await apiFetch('/users', 'POST', { code, name, email, role });
 
                 window.Admin.closeModal('addUserModal');
                 await loadAll(); 
                 
             } catch (error) {
                 console.error('Error adding user:', error);
-                alert('Failed to add user! Check the console for details.');
+                alert(`Failed to add user: ${error.message}`);
             }
         },
         toggleUser: async (id) => {
@@ -185,23 +228,14 @@
         },
 		changeRole: async (id, newRole) => {
             try {
-                // Send the PUT request to your Node.js backend
-                const response = await fetch(`http://localhost:3000/api/users/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ role: newRole })
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to update role in database");
-                }
+                await apiFetch(`/users/${id}`, 'PUT', { role: newRole });
 
                 // If successful, reload the table to lock in the new SQL data
                 await loadAll(); 
                 
             } catch (err) {
                 console.error("Error changing role:", err);
-                alert("Failed to change role! Reverting...");
+                alert(`Failed to change role: ${err.message}. Reverting...`);
                 await loadAll(); // Reload to revert the dropdown if it failed
             }
         },
@@ -212,16 +246,11 @@
             if (!name) { alert('Group name required.'); return; }
 
             try { 
-                const response = await fetch('http://localhost:3000/api/groups', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, desc, leaderEmail: leader })
-                });
-                if (!response.ok) throw new Error("Failed to add group");
+                await apiFetch('/groups', 'POST', { name, desc, leaderEmail: leader });
                 
                 window.Admin.closeModal('addGroupModal'); 
                 await loadAll(); 
-            } catch (err) { alert(err.message); }
+            } catch (err) { alert(`Error: ${err.message}`); }
         },
         openEditGroup: (id) => {
             const g = groups.find(x => x.id === id);
@@ -239,24 +268,18 @@
             const leader = document.getElementById('editGroupLeader').value;
 
             try { 
-                const response = await fetch(`http://localhost:3000/api/groups/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, desc, leaderEmail: leader })
-                });
-                if (!response.ok) throw new Error("Failed to update group");
+                await apiFetch(`/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader });
                 
                 window.Admin.closeModal('editGroupModal'); 
                 await loadAll(); 
-            } catch (err) { alert(err.message); }
+            } catch (err) { alert(`Error: ${err.message}`); }
         },
 		deleteGroup: async (id, name) => {
             if (!confirm(`Delete group "${name}"?`)) return;
             try { 
-                const response = await fetch(`http://localhost:3000/api/groups/${id}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error("Failed to delete group");
+                await apiFetch(`/groups/${id}`, 'DELETE');
                 await loadAll(); 
-            } catch (err) { alert(err.message); }
+            } catch (err) { alert(`Error: ${err.message}`); }
         }
     };
 })();

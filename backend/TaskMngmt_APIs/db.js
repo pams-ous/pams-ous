@@ -4,11 +4,10 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-    host: '127.0.0.1',
-    port: 3306,
-    user: 'root', // Update with the actual MySQL user
-    password: '!', // Update with the actual MySQL password
-    database: 'people',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER, // Update with  MySQL user
+    password: process.env.DB_PASSWORD, // Update with  MySQL password from .env
+    database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10 //10 simultaneous connections
 });

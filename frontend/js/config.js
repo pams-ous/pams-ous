@@ -5,11 +5,13 @@
 
 const CONFIG = {
     // Backend API Configuration
-    // API_BASE_URL: 'http://localhost:3000', // Production/Local Backend
-    API_BASE_URL: 'http://127.0.0.1:3000', // Typical local development (e.g., Live Server)
+    // Dynamically use the current origin (works for 127.0.0.1:3000, ngrok, or production)
+    // If using a separate frontend dev server (e.g. Live Server on 5500), 
+    // you can hardcode the backend URL here.
+    API_BASE_URL: window.location.origin,
 
-    // Backend Socket.IO server (real PAMS backend — see backend/UserMngmt_APIs/login.js)
-    BACKEND_SOCKET_URL: 'http://127.0.0.1:3000',
+    // Backend Socket.IO server
+    BACKEND_SOCKET_URL: window.location.origin,
 
     // System Metadata
     SYSTEM_NAME: 'PUP OUS - PAMS',
@@ -19,7 +21,7 @@ const CONFIG = {
     DEFAULT_DATE_LOCALE: 'en-PH',
 
     // Feature Flags (for transition from prototype to production)
-    USE_MOCK_API: true,
+    USE_MOCK_API: false,
 
     // OTP Settings — kept in sync with backend/.env (OTP_CODE_LENGTH, OTP_TTL_MINUTES)
     OTP: {
