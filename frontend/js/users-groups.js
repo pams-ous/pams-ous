@@ -20,8 +20,16 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
+        // Fetch Designations for the dropdown
+        try {
+            designations = await apiFetch('/designations');
+        } catch (e) {
+            console.error("Failed to load designations:", e);
+        }
+
         // --- SAFE WEBSOCKET PLUG-IN SETUP ---
         if (typeof io !== 'undefined') {
+
             const token = PAMS.getToken();
             const socket = io(CONFIG.BACKEND_SOCKET_URL, {
                 auth: { token }
@@ -112,8 +120,8 @@
           <td>
             <select 
                 class="form-control role-select-dropdown" 
-                onchange="window.Admin.changeRole('${u.id}', this.value)"
-                data-user-id="${u.id}" 
+                onchange="window.Admin.changeRole('${u.email}', this.value)"
+                data-user-email="${u.email}" 
                 data-current-role="${u.role}"
                 style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
                 <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
@@ -128,11 +136,11 @@
           </td>
           
           <td class="td-actions">
-            <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
+            <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.email}')" title="Edit user">
               <i class="fas fa-pen"></i>
             </button>
             ${u.id === currentUserId ? '' : `
-            <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
+            <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.email}', '${u.name}')" title="Delete user">
               <i class="fas fa-trash"></i>
             </button>
             `}
@@ -145,12 +153,12 @@
         const sel = document.getElementById(id);
         if (!sel) return;
 
-        const sorted = [...designations].sort((a, b) => a.hierarchyPosition - b.hierarchyPosition);
-        sel.innerHTML = sorted.map(d => `<option value="${d.id}" ${selectedId == d.id ? 'selected' : ''}>${d.name}</option>`).join('');
+        const sorted = [...designations].sort((a, b) => (a.hierarchy_position || 100) - (b.hierarchy_position || 100));
+        sel.innerHTML = sorted.map(d => `<option value="${d.name}" ${selectedId == d.name ? 'selected' : ''}>${d.name}</option>`).join('');
 
         if (!selectedId) {
-            const def = sorted.find(d => d.isDefault);
-            if (def) sel.value = String(def.id);
+            const def = sorted.find(d => d.is_default);
+            if (def) sel.value = String(def.name);
         }
     }
 
@@ -172,24 +180,35 @@
     window.Admin = {
         openModal: (id) => {
             if (id === 'addGroupModal') populateLeaderSelect('newGroupLeader');
+            if (id === 'addUserModal') populateDesignationSelect('newUserDesignation');
             openModal(id);
         },
         closeModal: (id) => closeModal(id),
-		addUser: async () => {
+        addUser: async () => {
             // Grab ALL values from your modal, including the Employee Code
             const code = document.getElementById('newUserCode').value.trim();
-            const name = document.getElementById('newUserName').value.trim();
+            const firstName = document.getElementById('newUserFirstName').value.trim();
+            const lastName = document.getElementById('newUserLastName').value.trim();
+            const middleName = document.getElementById('newUserMiddleName').value.trim();
+            const suffix = document.getElementById('newUserSuffix').value.trim();
             const email = document.getElementById('newUserEmail').value.trim();
             const role = document.getElementById('newUserRole').value;
+            const password = document.getElementById('newUserPassword').value;
+            const confirmPass = document.getElementById('confirmNewUserPassword').value;
+            const designationName = document.getElementById('newUserDesignation').value;
 
-            // Make sure the code isn't blank
-            if (!code || !name || !email) { 
-                alert('Employee Code, Name, and Email are required.'); 
+            // Make sure the required fields aren't blank
+            if (!firstName || !lastName || !email || !password) { 
+                alert('First Name, Last Name, Email, and Password are required.'); 
                 return; 
+            }
+            if (password !== confirmPass) {
+                alert('Passwords do not match.');
+                return;
             }
 
             try {
-                await apiFetch('/users', 'POST', { code, name, email, role });
+                await apiFetch('/users', 'POST', { code, firstName, lastName, middleName, suffix, email, role, password, designationName });
 
                 window.Admin.closeModal('addUserModal');
                 await loadAll(); 
@@ -197,6 +216,29 @@
             } catch (error) {
                 console.error('Error adding user:', error);
                 alert(`Failed to add user: ${error.message}`);
+            }
+        },
+        openEditUser: (email) => {
+            document.getElementById('editUserEmail').value = email;
+            document.getElementById('editUserEmailDisplay').textContent = email;
+            document.getElementById('editUserPassword').value = '';
+            document.getElementById('confirmEditUserPassword').value = '';
+            openModal('editUserModal');
+        },
+        saveUserPassword: async () => {
+            const email = document.getElementById('editUserEmail').value;
+            const pass = document.getElementById('editUserPassword').value;
+            const confirmPass = document.getElementById('confirmEditUserPassword').value;
+
+            if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
+            if (pass !== confirmPass) { alert('Passwords do not match.'); return; }
+
+            try {
+                await apiFetch('/users/update-password', 'POST', { email, newPassword: pass });
+                closeModal('editUserModal');
+                alert('Password updated successfully!');
+            } catch (err) {
+                alert(`Error: ${err.message}`);
             }
         },
         toggleUser: async (id) => {
@@ -221,14 +263,14 @@
             if (CONFIG.USE_MOCK_API) { alert('Password reset successful (Mock)'); closeModal('resetPassModal'); return; }
             try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); alert('Success!'); } catch (err) { alert(err.message); }
         },
-        deleteUser: async (id, name) => {
+        deleteUser: async (email, name) => {
             if (!confirm(`Delete user "${name}"?`)) return;
-            if (CONFIG.USE_MOCK_API) { users = users.filter(x => x.id !== id); renderUsers(); return; }
-            try { await apiFetch(`/users/${id}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
+            if (CONFIG.USE_MOCK_API) { users = users.filter(x => x.email !== email); renderUsers(); return; }
+            try { await apiFetch(`/users/${email}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
         },
-		changeRole: async (id, newRole) => {
+		changeRole: async (email, newRole) => {
             try {
-                await apiFetch(`/users/${id}`, 'PUT', { role: newRole });
+                await apiFetch(`/users/${email}`, 'PUT', { role: newRole });
 
                 // If successful, reload the table to lock in the new SQL data
                 await loadAll(); 

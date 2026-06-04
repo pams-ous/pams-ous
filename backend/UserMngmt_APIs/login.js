@@ -2,7 +2,7 @@
 MODULARIZED LOGIN & APP ROUTING (UserMngmt_APIs/login.js)
 ===============================================================
 */
-const { verify_pass } = require("./passwordUtil");
+const { verify_pass, hash_password } = require("./passwordUtil");
 const { getEmployeeDetails } = require("./dbChecks");
 const { generateToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
@@ -130,7 +130,7 @@ function loginAPI(express, db, io, app) {
     const taskRoutes = require('../TaskMngmt_APIs/taskRoutes');
     app.use('/api/tasks', taskRoutes);
 
-    // --- 4. EXPRESS REST API ROUTING HANDLERS ---
+// --- 4. EXPRESS REST API ROUTING HANDLERS ---
     app.post('/api/auth/logout', async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
@@ -190,16 +190,22 @@ function loginAPI(express, db, io, app) {
 
     // Update User Position/Role
     app.put('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const userId = req.params.id;
+        const userEmail = req.params.id;
         const { role } = req.body;
         const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
         
         try {
+            const [user] = await db.query('SELECT employee_id FROM Employees WHERE email = ? LIMIT 1', [userEmail]);
+            if (user.length === 0) {
+                return res.status(404).json({ success: false, message: "User not found with provided email" });
+            }
+            const userId = user[0].employee_id;
+
             const [result] = await db.query('UPDATE Employees SET designation = ? WHERE employee_id = ?', [designation, userId]);
             if (result.affectedRows === 0) {
                 console.log(`[WARNING] Tried to update role, but could not find Employee ID: "${userId}" in the database.`);
             } else {
-                console.log(`[SUCCESS] Updated Employee ID: "${userId}" to ${designation}.`);
+                console.log(`[SUCCESS] Updated Employee ID: "${userId}" (${userEmail}) to ${designation}.`);
             }
             res.json({ success: true, message: "Role update processed." });
         } catch (err) {
@@ -226,25 +232,7 @@ function loginAPI(express, db, io, app) {
         }
     });
 
-    // Add Direct User
-    app.post('/api/users', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const { code, name, email, role } = req.body;
-        const nameParts = (name || 'Unknown').split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
-        const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
-
-        try {
-            await db.query(
-                'INSERT INTO Employees (employee_id, first_name, last_name, email, designation) VALUES (?, ?, ?, ?, ?)',
-                [code, firstName, lastName, email, designation]
-            );
-            res.json({ success: true, id: code, message: "User added to SQL!" });
-        } catch (err) {
-            console.error("Error adding user:", err);
-            res.status(500).json({ error: err.message });
-        }
-    });
+    // Fetch All Users
 
     // Fetch Groups Details
     app.get('/api/groups', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {

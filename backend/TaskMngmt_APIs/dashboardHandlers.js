@@ -1,0 +1,103 @@
+/**
+ * dashboardHandlers.js
+ * Purpose: Provides aggregated statistics and real-time activity data for the main Dashboard.
+ * Standards: Express REST API for initial load + Socket.io broadcast support.
+ */
+
+function dashboardAPI(app, io, db) {
+    
+    /**
+     * GET /api/dashboard/stats
+     * The primary data source for the Dashboard UI.
+     * Combines multiple aggregations into a single response to reduce network overhead.
+     */
+    app.get('/api/dashboard/stats', async (req, res) => {
+        try {
+            // 1. Task Counts (Stat Cards)
+            const [countsRows] = await db.query(`
+                SELECT 
+                    COUNT(*) as total,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
+                    COALESCE(SUM(CASE WHEN status = 'in progress' THEN 1 ELSE 0 END), 0) as inProgress,
+                    COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
+                    COALESCE(SUM(CASE WHEN status NOT IN ('completed', 'cancelled') AND due_date < CURDATE() THEN 1 ELSE 0 END), 0) as overdue
+                FROM Tasks
+            `);
+            const counts = countsRows[0];
+
+            // 2. Tasks By Group (Bar Chart)
+            const [byGroup] = await db.query(`
+                SELECT 
+                    g.group_name as \`group\`,
+                    COALESCE(SUM(CASE WHEN t.status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
+                    COALESCE(SUM(CASE WHEN t.status = 'in progress' THEN 1 ELSE 0 END), 0) as inProgress,
+                    COALESCE(SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
+                    COALESCE(SUM(CASE WHEN t.status = 'cancelled' THEN 1 ELSE 0 END), 0) as cancelled
+                FROM Job_Groups g
+                LEFT JOIN Tasks t ON g.group_id = t.assigned_to_group
+                GROUP BY g.group_id
+            `);
+
+            // 3. Priority Split (Donut Chart)
+            const [priorityRows] = await db.query(`
+                SELECT 
+                    COALESCE(SUM(CASE WHEN priority = 'low' THEN 1 ELSE 0 END), 0) as LOW,
+                    COALESCE(SUM(CASE WHEN priority = 'medium' THEN 1 ELSE 0 END), 0) as MEDIUM,
+                    COALESCE(SUM(CASE WHEN priority = 'high' THEN 1 ELSE 0 END), 0) as HIGH,
+                    COALESCE(SUM(CASE WHEN priority = 'urgent' THEN 1 ELSE 0 END), 0) as URGENT
+                FROM Tasks
+            `);
+            const priority = priorityRows[0];
+
+            // 4. Recent Accomplishments (Activity Log)
+            const [recentUpdates] = await db.query(`
+                SELECT 
+                    CONCAT(e.first_name, ' ', e.last_name) as name, 
+                    tu.updated_text as text, 
+                    tu.logged_at as time
+                FROM Task_Updates tu
+                JOIN Employees e ON tu.updated_by = e.employee_id
+                ORDER BY tu.logged_at DESC
+                LIMIT 8
+            `);
+
+            // 5. Group Progress (Horizontal bars)
+            const [groupProgress] = await db.query(`
+                SELECT 
+                    g.group_name as name,
+                    COALESCE(SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
+                    COUNT(t.task_id) as total
+                FROM Job_Groups g
+                LEFT JOIN Tasks t ON g.group_id = t.assigned_to_group
+                GROUP BY g.group_id
+                HAVING total > 0
+            `);
+
+            res.json({
+                success: true,
+                counts,
+                byGroup,
+                priority,
+                recentUpdates,
+                groupProgress
+            });
+
+        } catch (err) {
+            console.error("Dashboard Stats Error:", err);
+            res.status(500).json({ success: false, message: "Failed to load dashboard statistics." });
+        }
+    });
+
+    /**
+     * Socket.io Handlers
+     * Listens for broadcasts from other modules to trigger real-time UI refreshes.
+     */
+    io.on("connection", (socket) => {
+        // When a task is created/updated in other modules, we can notify the dashboard
+        socket.on("taskActivity", () => {
+            io.emit("refreshDashboard");
+        });
+    });
+}
+
+module.exports = { dashboardAPI };

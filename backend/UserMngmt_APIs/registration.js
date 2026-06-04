@@ -2,11 +2,12 @@ const crypto = require("crypto");
 const { hash_password, verify_pass } = require("./passwordUtil");
 const { ifEmployeeExists } = require("./dbChecks");
 const { generateAndSendOtp, verifyOtp } = require("./otpService");
+const { authenticateToken, authorizeRole } = require("./authMiddleware");
 
 function buildPayload(data) {
     const tempEmpCode = data.tempEmpCode || data.empCode || data.employeeCode;
     return {
-        tempEmpCode: tempEmpCode ? String(tempEmpCode).toUpperCase() : "",
+        tempEmpCode: tempEmpCode ? String(tempEmpCode).toUpperCase() : null,
         firstName: data.firstName || "",
         middleName: data.middleName || "",
         lastName: data.lastName || "",
@@ -152,7 +153,7 @@ async function handleConfirm(db, socket, data) {
     }
 }
 
-async function regiUserAPI(io, db) {
+async function regiUserAPI(io, db, app) {
     io.on("connection", (socket) => {
         console.log("Registration API connected.");
 
@@ -162,6 +163,36 @@ async function regiUserAPI(io, db) {
 
         // Back-compat: the original event still works but now also requires OTP confirmation.
         socket.on("newAccDetails", (data) => handleRequest(db, socket, data));
+    });
+
+    // REST API: Add Direct User (Admin managed)
+    app.post('/api/users', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
+        const { code, firstName, lastName, middleName, suffix, email, role, password, designationName } = req.body;
+        
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({ success: false, message: "Email, Password, First Name, and Last Name are required" });
+        }
+
+        try {
+            const exists = await ifEmployeeExists(db, email, code);
+            if (exists) {
+                return res.status(400).json({ success: false, message: "An account with that email or employee code already exists." });
+            }
+
+            const hashedPassword = await hash_password(password);
+            const designation = designationName || (role === 'ADMIN' ? 'Admin' : 'Encoder');
+            const employee_id = code ? code : crypto.randomUUID();
+            const employee_code = code ? code : null;
+
+            await db.query(
+                'INSERT INTO Employees (employee_id, employee_code, first_name, last_name, middle_name, suffix, email, designation, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [employee_id, employee_code, firstName, lastName, middleName, suffix, email, designation, hashedPassword]
+            );
+            res.json({ success: true, id: employee_id, message: "User added to SQL!" });
+        } catch (err) {
+            console.error("Admin Add User Error:", err);
+            res.status(500).json({ error: err.message });
+        }
     });
 }
 

@@ -50,6 +50,67 @@ module.exports = {
         }
     },
 
+    getMyTasks: async (req, res) => {
+        try {
+            const userEmail = req.query.email;
+            if (!userEmail) return res.status(400).json({ message: 'Email required' });
+
+            // 1. Find the logged-in employee (Returns ONLY the ID based on our debug log)
+            const employee = await Task.findEmployeeByEmail(userEmail);
+            if (!employee) return res.status(404).json({ message: 'User not found' });
+
+            // Extract the known, safe ID
+            const targetId = employee.employee_id;
+
+            // 2. Fetch all raw tasks
+            const rawTasks = await Task.findAll();
+
+            // 3. Match tasks strictly by ID (and exclude closed statuses)
+            const myRawTasks = rawTasks.filter(t => {
+                const matchesUser = t.assigned_to_user === targetId;
+                
+                // Exclude tasks that are completed or cancelled
+                const isClosed = t.status === 'completed' || t.status === 'cancelled';
+                
+                return matchesUser && !isClosed;
+            });
+
+            // DEBUG: If it's STILL empty after this, uncomment the line below to see exactly what columns Task.findAll() provides
+            // console.log("DEBUG - First Task from DB:", rawTasks[0]);
+
+            // 4. Format perfectly for my-tasks.js to prevent UI rendering bugs
+            const formattedTasks = myRawTasks.map(t => {
+                let assigneeObj = null;
+                // If your findAll() join provides names, we still build the object for the UI
+                if (t.assignee_fn) {
+                    assigneeObj = { 
+                        name: `${t.assignee_fn} ${t.assignee_ln}`, 
+                        type: 'user', 
+                        initials: getInitials(t.assignee_fn, t.assignee_ln) 
+                    };
+                }
+
+                return {
+                    id: t.id,
+                    title: t.title,
+                    description: t.description,
+                    priority: t.priority ? t.priority.toUpperCase() : 'MEDIUM',
+                    status: t.status ? t.status.toUpperCase() : 'PENDING',
+                    dueDate: t.dueDate,
+                    createdAt: t.createdAt,
+                    updatedAt: t.updatedAt || t.createdAt, 
+                    assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
+                    assignee: assigneeObj
+                };
+            });
+
+            res.status(200).json({ tasks: formattedTasks });
+        } catch (error) {
+            console.error('Error fetching my tasks:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    },
+
     createTask: async (req, res) => {
         try {
             const { title, description, priority, dueDate, assigneeEmail, groupId } = req.body;
@@ -159,6 +220,43 @@ module.exports = {
         } catch (error) {
             console.error('Error deleting task:', error);
             res.status(500).json({ message: 'Failed to delete task' });
+        }
+    },
+
+    logTaskUpdate: async (req, res) => {
+        try {
+            const { taskId, email, notes, statusChange } = req.body;
+            if (!taskId || !notes || !email) {
+                return res.status(400).json({ message: 'Task ID, email, and notes are required.' });
+            }
+
+            // Find employee ID from email
+            const employee = await Task.findEmployeeByEmail(email);
+            if (!employee) return res.status(404).json({ message: 'User not found' });
+
+            await Task.logUpdate(taskId, employee.employee_id, notes, statusChange);
+            res.status(200).json({ message: 'Update logged successfully' });
+        } catch (error) {
+            console.error('Error logging task update:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    },
+
+    getTaskDetails: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const updates = await Task.getUpdatesByTaskId(id);
+            
+            // Map underscores back to spaces for frontend display uniformity
+            const formattedUpdates = updates.map(u => ({
+                ...u,
+                status_change: u.status_change ? u.status_change.toUpperCase().replace('_', ' ') : null
+            }));
+
+            res.status(200).json({ updates: formattedUpdates });
+        } catch (error) {
+            console.error('Error fetching task details:', error);
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 };

@@ -7,6 +7,9 @@ module.exports = {
             SELECT 
                 t.task_id as id, t.title, t.description, t.priority, t.status, 
                 t.due_date as dueDate, t.created_at as createdAt,
+                t.updated_at as updatedAt,
+                t.assigned_to_user,
+                t.assigned_to_group,
                 a.first_name as assignee_fn, a.last_name as assignee_ln,
                 g.group_id, g.group_name,
                 c.first_name as creator_fn, c.last_name as creator_ln
@@ -73,5 +76,36 @@ module.exports = {
     delete: async (id) => {
         const [result] = await db.query('DELETE FROM Tasks WHERE task_id = ?', [id]);
         return result.affectedRows;
+    },
+
+    logUpdate: async (taskId, userId, notes, statusChange) => {
+        // 1. Insert the history entry into Task_Updates
+        const logQuery = `
+            INSERT INTO Task_Updates (task_id, updated_by, updated_text, status_change)
+            VALUES (?, ?, ?, ?)
+        `;
+        // Normalize status_change for the update log enum (which uses underscores)
+        const logStatus = statusChange ? statusChange.toLowerCase().replace(' ', '_') : null;
+        await db.query(logQuery, [taskId, userId, notes, logStatus]);
+
+        // 2. If a status change was requested, update the main Tasks table status too
+        if (statusChange) {
+            // Normalize for Tasks enum (which uses spaces, e.g., 'in progress')
+            const taskStatus = statusChange.toLowerCase().replace('_', ' ');
+            const updateTaskQuery = `UPDATE Tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?`;
+            await db.query(updateTaskQuery, [taskStatus, taskId]);
+        }
+        return true;
+    },
+
+    getUpdatesByTaskId: async (taskId) => {
+        const query = `
+            SELECT logged_at, updated_text, status_change 
+            FROM Task_Updates 
+            WHERE task_id = ? 
+            ORDER BY logged_at DESC
+        `;
+        const [rows] = await db.query(query, [taskId]);
+        return rows;
     }
 };
