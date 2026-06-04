@@ -201,4 +201,27 @@
             if (panel) panel.scrollIntoView({ behavior: 'smooth' });
         }
     };
+    // SEARCH FUNCTIONALITY
+    const searchInput = document.getElementById('taskSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const tasks = document.querySelectorAll('.task-item, .task-card, [data-task-id]');
+
+            tasks.forEach(task => {
+                const titleEl = task.querySelector('.task-title, h3, h4');
+                // Added a selector for the description (adjust the class name if yours is different)
+                const descEl = task.querySelector('.task-description, .description, p');
+                
+                const titleText = titleEl ? titleEl.textContent.toLowerCase() : '';
+                const descText = descEl ? descEl.textContent.toLowerCase() : '';
+
+                // Check if the query matches the title OR the description
+                const isVisible = titleText.includes(query) || descText.includes(query);
+                
+                task.style.display = isVisible ? '' : 'none';
+            });
+        });
+    }
+// END SEARCH FUNCTIONALITY
 })();
