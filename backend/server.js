@@ -62,6 +62,7 @@ const {manageAccountAPI} = require("./UserMngmt_APIs/manage");
 const {otpAPI} = require("./UserMngmt_APIs/otp");
 const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
 const {loginAPI} = require("./UserMngmt_APIs/login");
+const {reportAPI} = require("./ReportMgmt_APIs/reportHandlers");
 const {reportAPI} = require("./ReportMngmt_APIs/reportHandlers");
 const {dashboardAPI} = require("./TaskMngmt_APIs/dashboardHandlers");
 

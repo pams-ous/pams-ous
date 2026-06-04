@@ -149,6 +149,41 @@
     }).join('');
 }
 
+function renderGroups() {
+        const tbody = document.getElementById('groupsBody');
+        if (!tbody) return;
+
+        if (groups.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #6c757d; padding: 20px;">No groups have been created yet.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = groups.map(g => `
+            <tr>
+                <td style="font-weight: 600; color: #2d2d2d;">${g.name || '—'}</td>
+                <td style="color: #6c757d; font-size: 0.85rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${g.desc || ''}">
+                    ${g.desc || '—'}
+                </td>
+                <td>
+                    ${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${g.leader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}
+                </td>
+                <td style="text-align: center;">
+                    <span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
+                        <i class="fas fa-users" style="margin-right: 4px; color: #6b7280;"></i> ${g.members || 0}
+                    </span>
+                </td>
+                <td class="td-actions">
+                    <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${(g.name || '').replace(/'/g, "\\'")}')" title="Delete group">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
     function populateDesignationSelect(id, selectedId) {
         const sel = document.getElementById(id);
         if (!sel) return;
