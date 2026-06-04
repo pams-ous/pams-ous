@@ -132,7 +132,7 @@
               <i class="fas fa-pen"></i>
             </button>
             ${u.id === currentUserId ? '' : `
-            <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.id}', '${u.name}')" title="Delete user">
+            <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.email}', '${u.name}')" title="Delete user">
               <i class="fas fa-trash"></i>
             </button>
             `}
@@ -221,10 +221,10 @@
             if (CONFIG.USE_MOCK_API) { alert('Password reset successful (Mock)'); closeModal('resetPassModal'); return; }
             try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); alert('Success!'); } catch (err) { alert(err.message); }
         },
-        deleteUser: async (id, name) => {
+        deleteUser: async (email, name) => {
             if (!confirm(`Delete user "${name}"?`)) return;
-            if (CONFIG.USE_MOCK_API) { users = users.filter(x => x.id !== id); renderUsers(); return; }
-            try { await apiFetch(`/users/${id}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
+            if (CONFIG.USE_MOCK_API) { users = users.filter(x => x.email !== email); renderUsers(); return; }
+            try { await apiFetch(`/users/${email}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
         },
 		changeRole: async (email, newRole) => {
             try {

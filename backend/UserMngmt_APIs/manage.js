@@ -135,8 +135,14 @@ async function manageAccountAPI(io, db, app) {
 
     // REST API: Delete User
     app.delete('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const userId = req.params.id;
+        const userEmail = req.params.id;
         try {
+            const [user] = await db.query('SELECT employee_id FROM Employees WHERE email = ? LIMIT 1', [userEmail]);
+            if (user.length === 0) {
+                return res.status(404).json({ success: false, message: "User not found with provided email" });
+            }
+            const userId = user[0].employee_id;
+
             const [result] = await db.query('DELETE FROM Employees WHERE employee_id = ?', [userId]);
             if (result.affectedRows === 0) {
                 return res.status(404).json({ success: false, message: "User not found" });
