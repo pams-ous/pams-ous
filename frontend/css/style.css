@@ -1964,6 +1964,31 @@ body.sidebar-open .main {
   padding: 20px;
   box-shadow: var(--shadow);
   border: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  max-height: 850px;
+}
+
+#historyList {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-top: 10px;
+}
+
+/* Custom scrollbar for history list */
+#historyList::-webkit-scrollbar {
+  width: 5px;
+}
+
+#historyList::-webkit-scrollbar-thumb {
+  background-color: var(--gray-200);
+  border-radius: 10px;
+}
+
+#historyList::-webkit-scrollbar-thumb:hover {
+  background-color: var(--maroon);
 }
 
 .report-card {
@@ -2012,6 +2037,10 @@ body.sidebar-open .main {
   overflow: hidden;
   box-shadow: var(--shadow);
   border: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  max-height: 850px;
 }
 
 .preview-header {
@@ -2064,6 +2093,21 @@ body.sidebar-open .main {
 
 .preview-body {
   padding: 26px 30px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.preview-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.preview-body::-webkit-scrollbar-thumb {
+  background-color: var(--gray-200);
+  border-radius: 10px;
+}
+
+.preview-body::-webkit-scrollbar-thumb:hover {
+  background-color: var(--maroon);
 }
 
 .stats-row {
