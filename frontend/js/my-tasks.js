@@ -172,7 +172,7 @@
             }
 
             try {
-                await apiFetch('/task-updates', 'POST', { taskId, email: getUser().email, notes, statusChange: statusChange || null });
+                await apiFetch('/tasks/updates', 'POST', { taskId, email: getUser().email, notes, statusChange: statusChange || null });
                 closeModal('logUpdateModal');
                 await loadTasks();
             } catch (err) { alert(err.message); }
