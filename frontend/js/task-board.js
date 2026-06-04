@@ -63,14 +63,27 @@
             } else {
                 const sinceDay1 = document.getElementById('adminSinceDay1')?.checked;
                 const qs = sinceDay1 ? '?completedSince=all' : '';
-                const [t, u, g] = await Promise.all([
-                    apiFetch('/tasks' + qs),
-                    apiFetch('/users'),
-                    apiFetch('/groups')
-                ]);
+                // 1. Fetch tasks first (to crash the page if it fails)
+                const t = await apiFetch('/tasks' + qs);
                 tasks = t.tasks || t || [];
-                users = u.users || u || [];
-                groups = g.groups || g || [];
+
+                // 2. Safely try to fetch users
+                try {
+                    const u = await apiFetch('/users');
+                    users = u.users || u || [];
+                } catch (error) {
+                    console.warn("User list hidden for this account designation.");
+                    users = [];
+                }
+                
+                // 3. Safely try to fetch groups
+                try {
+                    const g = await apiFetch('/groups');
+                    groups = g.groups || g || [];
+                } catch (error) {
+                    console.warn("Group list hidden for this account designation.");
+                    groups = [];
+                }
             }
             populateAssigneeSelects();
             buildFilterOptions();
