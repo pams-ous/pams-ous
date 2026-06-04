@@ -129,6 +129,17 @@ module.exports = {
                 return res.status(400).json({ message: 'Task must be assigned to a user or group.' });
             }
 
+            // Prevent past dates from bypassing the UI
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+
+            if (dueDate < todayStr) {
+                return res.status(400).json({ message: 'Due date cannot be set in the past.' });
+            }
+
             let assignedToUser = null;
             let assignedToGroup = null;
         

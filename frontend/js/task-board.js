@@ -248,6 +248,19 @@
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+
+            // Lock out past dates in the calendar picker
+            const dueInput = document.getElementById('nt-due');
+            if (dueInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                
+                // Formats as YYYY-MM-DD and sets it as the minimum allowed date
+                dueInput.min = `${yyyy}-${mm}-${dd}`;
+            }
+
             openModal('newTaskModal');
         },
         createTask: async () => {
