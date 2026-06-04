@@ -1,6 +1,5 @@
--- PAMS-OUS — clean base schema (Empty Startup)
+-- PAMS-OUS — clean base schema (FINAL VERIFIED VERSION)
 -- Run once on a fresh local MySQL to create the `people` database and all tables.
--- Safe to re-run: DROP TABLE IF EXISTS guards each table.
 
 CREATE DATABASE IF NOT EXISTS `people`
     CHARACTER SET utf8mb4
@@ -8,21 +7,12 @@ CREATE DATABASE IF NOT EXISTS `people`
 
 USE `people`;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+-- Turn off checks to allow dropping and creating in any order
+SET FOREIGN_KEY_CHECKS = 0;
 
 --
 -- Table structure for table `Employees`
 --
-
 DROP TABLE IF EXISTS `Employees`;
 CREATE TABLE `Employees` (
   `employee_id` varchar(36) NOT NULL,
@@ -33,7 +23,7 @@ CREATE TABLE `Employees` (
   `suffix` varchar(45) DEFAULT NULL,
   `designation` varchar(80) NOT NULL DEFAULT 'Encoder',
   `email` varchar(45) NOT NULL,
-  `password` varchar(97) NOT NULL,
+  `password` varchar(255) NOT NULL,
   `active_status` enum('Online','Offline') NOT NULL DEFAULT 'Offline',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -44,7 +34,6 @@ CREATE TABLE `Employees` (
 --
 -- Table structure for table `Designations`
 --
-
 DROP TABLE IF EXISTS `Designations`;
 CREATE TABLE `Designations` (
   `designation_id` int NOT NULL AUTO_INCREMENT,
@@ -62,7 +51,6 @@ CREATE TABLE `Designations` (
 --
 -- Table structure for table `Job_Groups`
 --
-
 DROP TABLE IF EXISTS `Job_Groups`;
 CREATE TABLE `Job_Groups` (
   `group_id` int NOT NULL AUTO_INCREMENT,
@@ -77,7 +65,6 @@ CREATE TABLE `Job_Groups` (
 --
 -- Table structure for table `Employees_Groups`
 --
-
 DROP TABLE IF EXISTS `Employees_Groups`;
 CREATE TABLE `Employees_Groups` (
   `employee_id` varchar(36) DEFAULT NULL,
@@ -93,12 +80,11 @@ CREATE TABLE `Employees_Groups` (
 --
 -- Table structure for table `Tasks`
 --
-
 DROP TABLE IF EXISTS `Tasks`;
 CREATE TABLE `Tasks` (
   `task_id` int NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
-  `description` varchar(45) DEFAULT NULL,
+  `description` text DEFAULT NULL,
   `assigned_by` varchar(36) NOT NULL,
   `assigned_to_user` varchar(36) DEFAULT NULL,
   `assigned_to_group` int DEFAULT NULL,
@@ -109,37 +95,35 @@ CREATE TABLE `Tasks` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`task_id`),
   KEY `tasks-employees_idx` (`assigned_by`),
-  KEY `tasks-employees: employee_idx` (`assigned_to_user`),
+  KEY `tasks-employees_employee_idx` (`assigned_to_user`),
   KEY `tasks-employees_groups_idx` (`assigned_to_group`),
-  CONSTRAINT `tasks-employees: admin` FOREIGN KEY (`assigned_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `tasks-employees: employee` FOREIGN KEY (`assigned_to_user`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `tasks-employees_groups` FOREIGN KEY (`assigned_to_group`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `tasks-employees_admin` FOREIGN KEY (`assigned_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tasks-employees_employee` FOREIGN KEY (`assigned_to_user`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tasks-employees_groups_link` FOREIGN KEY (`assigned_to_group`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Table structure for table `Task_Updates`
 --
-
 DROP TABLE IF EXISTS `Task_Updates`;
 CREATE TABLE `Task_Updates` (
   `update_id` int NOT NULL AUTO_INCREMENT,
   `task_id` int NOT NULL,
-  `updated_by" varchar(36) NOT NULL,
-  `updated_text` varchar(45) NOT NULL,
+  `updated_by` varchar(36) NOT NULL,
+  `updated_text` text NOT NULL,
   `status_change` enum('pending','in_progress','completed','cancelled') DEFAULT NULL,
   `attachment_url` varchar(500) DEFAULT NULL,
   `logged_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`update_id`),
   KEY `task_updates-tasks_idx` (`task_id`),
   KEY `task_updates-employees_idx` (`updated_by`),
-  CONSTRAINT `task_updates-employees` FOREIGN KEY (`updated_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `task_updates-tasks` FOREIGN KEY (`task_id`) REFERENCES `Tasks` (`task_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `task_updates-employees_link` FOREIGN KEY (`updated_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `task_updates-tasks_link` FOREIGN KEY (`task_id`) REFERENCES `Tasks` (`task_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Table structure for table `Report`
 --
-
 DROP TABLE IF EXISTS `Report`;
 CREATE TABLE `Report` (
   `report_id` int NOT NULL AUTO_INCREMENT,
@@ -153,17 +137,16 @@ CREATE TABLE `Report` (
   `generated_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`report_id`),
   KEY `report-employees_idx` (`generated_by`),
-  KEY `report-employees: scope_idx` (`scope_user_id`),
-  KEY `report-group: scope_idx` (`scope_group_id`),
-  CONSTRAINT `report-employees` FOREIGN KEY (`generated_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `report-employees: scope` FOREIGN KEY (`scope_user_id`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `report-group: scope` FOREIGN KEY (`scope_group_id`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `report-employees_scope_idx` (`scope_user_id`),
+  KEY `report-group_scope_idx` (`scope_group_id`),
+  CONSTRAINT `report-employees_link` FOREIGN KEY (`generated_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `report-employees_scope_link` FOREIGN KEY (`scope_user_id`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `report-group_scope_link` FOREIGN KEY (`scope_group_id`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Table structure for table `Report_Entries`
 --
-
 DROP TABLE IF EXISTS `Report_Entries`;
 CREATE TABLE `Report_Entries` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -174,16 +157,10 @@ CREATE TABLE `Report_Entries` (
   KEY `report_entries-task_updates_idx` (`task_update_id`),
   KEY `report_entries-task_idx` (`task_id`),
   KEY `report_entries-report_idx` (`report_id`),
-  CONSTRAINT `report_entries-report` FOREIGN KEY (`report_id`) REFERENCES `Report` (`report_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `report_entries-task` FOREIGN KEY (`task_id`) REFERENCES `Tasks` (`task_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `report_entries-task_updates` FOREIGN KEY (`task_update_id`) REFERENCES `Task_Updates` (`update_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `report_entries-report_link` FOREIGN KEY (`report_id`) REFERENCES `Report` (`report_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `report_entries-task_link` FOREIGN KEY (`task_id`) REFERENCES `Tasks` (`task_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `report_entries-task_updates_link` FOREIGN KEY (`task_update_id`) REFERENCES `Task_Updates` (`update_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+-- Turn checks back on
+SET FOREIGN_KEY_CHECKS = 1;
