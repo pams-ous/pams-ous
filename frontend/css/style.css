@@ -2728,25 +2728,3 @@ body.sidebar-open .main {
     color: #fff !important;
   }
 }
-
-/* My Tasks Searchbar */
-#taskSearchInput {
-    padding: .45rem .75rem;
-    border: 1.5px solid var(--gray-200);
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: inherit;
-    min-width: 180px;
-    outline: none;
-    transition: all 0.2s ease;
-}
-
-#taskSearchInput::placeholder {
-    color: #9ca3af;
-    font-weight: 400;
-}
-
-#taskSearchInput:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
