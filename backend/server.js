@@ -62,6 +62,8 @@ const {manageAccountAPI} = require("./UserMngmt_APIs/manage");
 const {otpAPI} = require("./UserMngmt_APIs/otp");
 const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
 const {loginAPI} = require("./UserMngmt_APIs/login");
+const {reportAPI} = require("./ReportMgmt_APIs/reportHandlers");
+const {dashboardAPI} = require("./TaskMgmt_APIs/dashboardHandlers");
 
 const taskRoutes = require('./TaskMngmt_APIs/taskRoutes');
 app.use(express.json());
@@ -73,6 +75,8 @@ manageAccountAPI(io, db, app);
 otpAPI(io, db);
 passwordResetAPI(io, db);
 loginAPI(express, db, io, app);
+reportAPI(io, db);
+dashboardAPI(app, io, db);
 
 app.use('/api/tasks', taskRoutes);
 

@@ -1,10 +1,11 @@
 /**
  * reports.js
  * Purpose: Admin-only report generation and history management.
+ * Refactored: Uses Socket.io to match the team's professional backend standard.
  */
 
 (function () {
-    const { apiFetch, requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
+    const { requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
 
     let reports = [];
     let activeReportId = null;
@@ -18,27 +19,107 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
-        await loadReports();
+        // 1. Initialize Socket Listeners for Reports
+        setupSocketListeners();
+
+        // 2. Initial Data Load (Wait for socket to be ready)
+        const checkSocket = setInterval(() => {
+            if (PAMS.socket && PAMS.socket.connected) {
+                loadReports();
+                clearInterval(checkSocket);
+            }
+        }, 500);
+        
+        // Timeout after 5 seconds
+        setTimeout(() => clearInterval(checkSocket), 5000);
     });
 
-    async function loadReports() {
-        try {
-            if (CONFIG.USE_MOCK_API) {
-                reports = [
-                    { id: 1, title: 'Weekly Performance Summary', generatedAt: '2026-05-27T08:00:00Z', generatedByName: 'Admin', period: 'May 18 - May 24, 2026', scopeLabel: 'System-Wide' },
-                    { id: 2, title: 'Student Records Progress', generatedAt: '2026-05-20T14:30:00Z', generatedByName: 'Admin', period: 'May 11 - May 17, 2026', scopeLabel: 'Group: Student Records' }
-                ];
-            } else {
-                const data = await apiFetch('/reports');
-                reports = data.reports || [];
+    /**
+     * Socket Logic
+     */
+    function setupSocketListeners() {
+        if (!PAMS.socket) {
+            // Silently wait for the global socket in api.js to initialize
+            setTimeout(setupSocketListeners, 100);
+            return;
+        }
+
+        // Clean up previous listeners if any (important for hot-reloads)
+        PAMS.socket.off('reportLog');
+        PAMS.socket.off('reportGenerated');
+
+        // Listen for the unified report log event
+        PAMS.socket.on('reportLog', (result) => {
+            if (!result.success) {
+                console.error("Report API Error:", result.rawData);
+                alert(`Report Error: ${result.rawData || 'Unknown error'}`);
+                return;
             }
+
+            switch (result.stage) {
+                case 'list':
+                    reports = result.data || [];
+                    renderHistory();
+                    if (reports.length > 0 && !activeReportId) {
+                        selectReport(reports[0].report_id);
+                    }
+                    break;
+                
+                case 'details':
+                    renderReportPreview(result.data);
+                    break;
+
+                case 'generate':
+                    alert(result.rawData || "Report generated successfully!");
+                    loadReports(); // Refresh the list
+                    break;
+            }
+        });
+
+        // Listen for real-time broadcasts
+        PAMS.socket.on('reportGenerated', (data) => {
+            loadReports(); 
+        });
+    }
+
+    function loadReports() {
+        if (CONFIG.USE_MOCK_API) {
+            reports = [
+                { report_id: 1, report_type: 'Weekly', scope_type: 'All', generated_at: '2026-05-27T08:00:00Z', generated_by_name: 'Admin', period_start: '2026-05-18', period_end: '2026-05-24' },
+                { report_id: 2, report_type: 'Daily', scope_type: 'Group', generated_at: '2026-05-20T14:30:00Z', generated_by_name: 'Admin', period_start: '2026-05-11', period_end: '2026-05-17' }
+            ];
             renderHistory();
-            if (reports.length > 0) await selectReport(reports[0].id);
-        } catch (err) {
-            console.error('Load reports failed:', err);
+            if (reports.length > 0) selectReport(reports[0].report_id);
+            return;
+        }
+
+        if (PAMS.socket && PAMS.socket.connected) {
+            PAMS.socket.emit('getReports');
+        } else {
+            console.warn("Cannot load reports: Socket disconnected.");
         }
     }
 
+    async function selectReport(id) {
+        activeReportId = id;
+        renderHistory();
+
+        if (CONFIG.USE_MOCK_API) {
+            renderReportPreview([
+                { title: 'Process Student Appeals', assignee_name: 'Juan Dela Cruz', historical_status: 'IN PROGRESS', priority: 'URGENT' },
+                { title: 'Update Faculty Records', assignee_name: 'Maria Santos', historical_status: 'COMPLETED', priority: 'MEDIUM' }
+            ]);
+            return;
+        }
+
+        if (PAMS.socket && PAMS.socket.connected) {
+            PAMS.socket.emit('getReportDetails', id);
+        }
+    }
+
+    /**
+     * UI Rendering
+     */
     function renderHistory() {
         const list = document.getElementById('historyList');
         if (!list) return;
@@ -49,64 +130,55 @@
         }
 
         list.innerHTML = reports.map(r => `
-            <div class="report-card ${r.id === activeReportId ? 'active' : ''}" onclick="window.Reports.selectReport(${r.id})">
-                <div class="report-card-title"><i class="fa-solid fa-file-invoice"></i> ${r.title}</div>
+            <div class="report-card ${r.report_id === activeReportId ? 'active' : ''}" onclick="window.Reports.selectReport(${r.report_id})">
+                <div class="report-card-title"><i class="fa-solid fa-file-invoice"></i> ${r.report_type} Report</div>
                 <div class="report-card-meta">
-                    Generated: ${new Date(r.generatedAt).toLocaleDateString()}
-                    ${r.generatedByName ? ` &middot; By: ${r.generatedByName}` : ''}
+                    <strong>Scope:</strong> ${r.scope_target || r.scope_type}<br>
+                    <strong>Period:</strong> ${fmtDate(r.period_start)} – ${fmtDate(r.period_end)}<br>
+                    <span style="display:block; margin-top:4px; opacity:0.8;">Generated: ${new Date(r.generated_at).toLocaleDateString()} by ${r.generated_by_name || 'Admin'}</span>
                 </div>
             </div>
         `).join('');
     }
 
-    async function selectReport(id) {
-        activeReportId = id;
-        renderHistory();
+    function renderReportPreview(tasks) {
+        const report = reports.find(r => r.report_id === activeReportId);
+        if (!report) return;
 
-        try {
-            let data;
-            if (CONFIG.USE_MOCK_API) {
-                const report = reports.find(r => r.id === id);
-                data = {
-                    report,
-                    tasks: [
-                        { title: 'Process Student Appeals', assignee: 'Juan Dela Cruz', status: 'IN PROGRESS', priority: 'URGENT' },
-                        { title: 'Update Faculty Records', assignee: 'Maria Santos', status: 'COMPLETED', priority: 'MEDIUM' }
-                    ],
-                    stats: { total: 10, completed: 5, inProgress: 3, pending: 1, cancelled: 1 }
-                };
-            } else {
-                data = await apiFetch(`/reports/${id}`);
-            }
+        document.getElementById('previewTitle').textContent = `${report.report_type} Accomplishment Report`;
+        document.getElementById('previewPeriod').textContent = `Period: ${fmtDate(report.period_start)} – ${fmtDate(report.period_end)} | Scope: ${report.scope_type}`;
+        
+        // Calculate stats from snapshot data
+        const stats = { total: tasks.length, completed: 0, inProgress: 0, pending: 0, cancelled: 0 };
+        tasks.forEach(t => {
+            const s = (t.historical_status || "").toLowerCase();
+            if (s === 'completed') stats.completed++;
+            else if (s === 'in progress') stats.inProgress++;
+            else if (s === 'pending') stats.pending++;
+            else if (s === 'cancelled') stats.cancelled++;
+        });
 
-            const { report, tasks, stats } = data;
+        document.getElementById('statTotal').textContent = stats.total;
+        document.getElementById('statCompleted').textContent = stats.completed;
+        document.getElementById('statInProgress').textContent = stats.inProgress;
 
-            document.getElementById('previewTitle').textContent = report.title;
-            document.getElementById('previewPeriod').textContent = `Period: ${report.period} | Scope: ${report.scopeLabel}`;
-            document.getElementById('statTotal').textContent = stats.total;
-            document.getElementById('statCompleted').textContent = stats.completed;
-            document.getElementById('statInProgress').textContent = stats.inProgress;
+        const statusMap = { 'COMPLETED': 'badge-completed', 'IN PROGRESS': 'badge-in_progress', 'PENDING': 'badge-pending', 'CANCELLED': 'badge-cancelled' };
+        const prioMap = { 'URGENT': 'badge-urgent', 'HIGH': 'badge-urgent', 'MEDIUM': 'badge-in_progress', 'LOW': 'badge-pending' };
 
-            const statusMap = { 'COMPLETED': 'badge-completed', 'IN PROGRESS': 'badge-in_progress', 'PENDING': 'badge-pending', 'CANCELLED': 'badge-cancelled' };
-            const prioMap = { 'URGENT': 'badge-urgent', 'HIGH': 'badge-urgent', 'MEDIUM': 'badge-in_progress', 'LOW': 'badge-pending' };
-
-            const tbody = document.getElementById('taskBody');
-            if (tbody) {
-                tbody.innerHTML = tasks.length === 0
-                    ? '<tr><td colspan="4" class="log-empty">No tasks in this report.</td></tr>'
-                    : tasks.map(t => `
-                        <tr>
-                            <td class="fw-600">${t.title}</td>
-                            <td>${t.assignee}</td>
-                            <td><span class="badge ${statusMap[t.status] || ''}">${t.status}</span></td>
-                            <td><span class="badge ${prioMap[t.priority] || ''}">${t.priority}</span></td>
-                        </tr>`).join('');
-            }
-
-            renderChart(stats);
-        } catch (err) {
-            console.error('Load report failed:', err);
+        const tbody = document.getElementById('taskBody');
+        if (tbody) {
+            tbody.innerHTML = tasks.length === 0
+                ? '<tr><td colspan="4" class="log-empty">No tasks in this report.</td></tr>'
+                : tasks.map(t => `
+                    <tr>
+                        <td class="fw-600">${t.title}</td>
+                        <td>${t.assignee_name || '—'}</td>
+                        <td><span class="badge ${statusMap[t.historical_status.toUpperCase()] || ''}">${t.historical_status}</span></td>
+                        <td><span class="badge ${prioMap[t.priority.toUpperCase()] || ''}">${t.priority}</span></td>
+                    </tr>`).join('');
         }
+
+        renderChart(stats);
     }
 
     function renderChart(stats) {
@@ -165,12 +237,19 @@
                     document.getElementById('gen-group').innerHTML = '<option value="1">Student Records</option><option value="2">Admission</option>';
                     allUsers = [{ email: 'juan@pup.edu.ph', name: 'Juan Dela Cruz', code: 'PUP-001' }];
                 } else {
-                    const [g, u] = await Promise.all([apiFetch('/groups'), apiFetch('/users')]);
-                    document.getElementById('gen-group').innerHTML = g.groups.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
-                    allUsers = u.users || [];
+                    // Use centralized lookup services from api.js
+                    const [groupsList, usersList] = await Promise.all([
+                        PAMS.getGroups(),
+                        PAMS.getUsers()
+                    ]);
+
+                    document.getElementById('gen-group').innerHTML = groupsList.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+                    allUsers = usersList;
                 }
                 window.Reports.filterUserResults();
-            } catch { }
+            } catch (err) {
+                console.error("Failed to populate generation modal:", err);
+            }
 
             window.Reports.clearPickedUser();
             window.Reports.onScopeChange();
@@ -239,30 +318,30 @@
             if (!start || !end) { alert('Please set the period.'); return; }
 
             const me = getUser();
-            const body = { reportType: type, scopeType: scope, periodStart: start, periodEnd: end, generatedByEmail: me.email };
+            const body = { 
+                reportType: type, 
+                scopeType: scope, 
+                periodStart: start, 
+                periodEnd: end, 
+                generatedByEmail: me.email,
+                scopeValue: null
+            };
 
-            if (scope === 'Group') body.scopeGroupId = parseInt(document.getElementById('gen-group').value);
-            if (scope === 'Individual') {
-                body.scopeUserEmail = document.getElementById('gen-user-email').value;
-                if (!body.scopeUserEmail) { alert('Please pick an employee.'); return; }
-            }
+            if (scope === 'Group') body.scopeValue = document.getElementById('gen-group').value;
+            if (scope === 'Individual') body.scopeValue = document.getElementById('gen-user-email').value;
 
             if (CONFIG.USE_MOCK_API) {
                 const newId = reports.length + 1;
-                reports.unshift({ id: newId, title: `${type} Report - New`, generatedAt: new Date().toISOString(), generatedByName: 'You', period: `${start} to ${end}`, scopeLabel: scope });
+                reports.unshift({ report_id: newId, report_type: type, scope_type: scope, generated_at: new Date().toISOString(), generated_by_name: 'You', period_start: start, period_end: end });
                 closeModal('genModal');
                 renderHistory();
-                await selectReport(newId);
+                selectReport(newId);
                 return;
             }
 
-            try {
-                const data = await apiFetch('/reports', 'POST', body);
+            if (PAMS.socket) {
+                PAMS.socket.emit('generateReport', body);
                 closeModal('genModal');
-                await loadReports();
-                if (data.reportId) await selectReport(data.reportId);
-            } catch (err) {
-                alert('Failed to generate: ' + err.message);
             }
         },
         selectReport: (id) => selectReport(id),

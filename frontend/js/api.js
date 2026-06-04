@@ -111,10 +111,29 @@ window.PAMS = (function () {
         return new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     };
 
+    /**
+     * System-wide Data Lookups (Shared Services)
+     */
+    const getUsers = async () => {
+        const data = await apiFetch('/users');
+        return Array.isArray(data) ? data : (data.users || []);
+    };
+
+    const getGroups = async () => {
+        const data = await apiFetch('/groups');
+        return Array.isArray(data) ? data : (data.groups || []);
+    };
+
+    const getDesignations = async () => {
+        const data = await apiFetch('/designations');
+        return Array.isArray(data) ? data : (data.designations || []);
+    };
+
     return {
         apiFetch, getToken, setToken, getUser, setUser,
         requireAuth, logout,
         authUrl, pageUrl, fmtDate, fmtHeaderDate,
+        getUsers, getGroups, getDesignations,
         socket: null
     };
 })();
