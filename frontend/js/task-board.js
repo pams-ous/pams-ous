@@ -251,24 +251,45 @@
             openModal('newTaskModal');
         },
         createTask: async () => {
+            const titleVal = document.getElementById('nt-title').value.trim();
+            const descVal = document.getElementById('nt-desc').value.trim();
+            const priorityVal = document.getElementById('nt-priority').value;
+            const dueVal = document.getElementById('nt-due').value;
+            const assigneeVal = document.getElementById('nt-assignee').value;
+
+            // --- 1. Client-Side Validation ---
+            if (!titleVal || !priorityVal || !dueVal || !assigneeVal) {
+                alert("Please fill in all required fields: Task Title, Priority, Due Date, and Assign To.");
+                return; // Stops the function immediately so the task isn't created
+            }
+
+            // --- 2. Assemble Payload ---
             const body = {
-                title: document.getElementById('nt-title').value,
-                description: document.getElementById('nt-desc').value,
-                priority: document.getElementById('nt-priority').value,
-                dueDate: document.getElementById('nt-due').value,
+                title: titleVal,
+                description: descVal,
+                priority: priorityVal,
+                dueDate: dueVal,
                 status: 'PENDING'
             };
-            const aVal = document.getElementById('nt-assignee').value;
-            if (aVal) {
-                const [type, key] = aVal.split(':');
-                if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
-            }
+
+            const [type, key] = assigneeVal.split(':');
+            if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
+
+            // --- 3. Submit ---
             if (CONFIG.USE_MOCK_API) {
                 tasks.push({ ...body, id: tasks.length + 1, assignee: { name: 'New Assignee', initials: 'NA' }, assignedByName: 'You' });
-                closeModal('newTaskModal'); renderList(); return;
+                closeModal('newTaskModal'); 
+                renderList(); 
+                return;
             }
-            try { await apiFetch('/tasks', 'POST', body); closeModal('newTaskModal'); await loadAll(); }
-            catch (err) { alert(err.message); }
+            
+            try { 
+                await apiFetch('/tasks', 'POST', body); 
+                closeModal('newTaskModal'); 
+                await loadAll(); 
+            } catch (err) { 
+                alert(err.message); 
+            }
         },
         openView: (id) => {
             const t = tasks.find(x => x.id === id); if (!t) return;

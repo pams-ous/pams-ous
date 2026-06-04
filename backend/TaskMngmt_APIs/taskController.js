@@ -115,9 +115,18 @@ module.exports = {
         try {
             const { title, description, priority, dueDate, assigneeEmail, groupId } = req.body;
         
-            //input validation
+            // --- STRICT SERVER-SIDE VALIDATION ---
             if (!title || !title.trim()) {
-                return res.status(400).json({ message: 'Task title is required' });
+                return res.status(400).json({ message: 'Task title is required.' });
+            }
+            if (!priority || !priority.trim()) {
+                return res.status(400).json({ message: 'Priority is required.' });
+            }
+            if (!dueDate || !dueDate.trim()) {
+                return res.status(400).json({ message: 'Due date is required.' });
+            }
+            if (!assigneeEmail && !groupId) {
+                return res.status(400).json({ message: 'Task must be assigned to a user or group.' });
             }
 
             let assignedToUser = null;
@@ -131,6 +140,8 @@ module.exports = {
             }
             
             console.log("Decoded Token User Object:", req.user);
+            
+            // ... (keep the rest of your createTask logic from extracting the creator down to the catch block) ...
 
             //Extracting the actual authenticated creator
             const creatorId = req.user.id; 
