@@ -66,7 +66,7 @@ const {loginAPI} = require("./UserMngmt_APIs/login");
 // Initialize all APIs (The order matters!)
 searchAPI(io, db);
 regiUserAPI(io, db);
-manageAccountAPI(io, db);
+manageAccountAPI(io, db, app);
 otpAPI(io, db);
 passwordResetAPI(io, db);
 loginAPI(express, db, io, app);

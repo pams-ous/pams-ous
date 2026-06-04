@@ -17,7 +17,7 @@
     // If we're not on a login/landing page and have no token, 
     // we can trigger a fast redirect before the body even starts loading.
     const isAuthPage = /\/auth\//.test(location.pathname) || location.pathname.endsWith('index.html');
-    const hasToken = !!localStorage.getItem('authToken');
+    const hasToken = !!sessionStorage.getItem('authToken');
 
     if (!isAuthPage && !hasToken) {
         // Redirect to root index (landing)

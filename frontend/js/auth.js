@@ -74,7 +74,7 @@ const setSession = (token, user) => {
         PAMS.setUser(user);
         
         if (user && user.email) {
-            localStorage.setItem('PAMS_userEmail', user.email);
+            sessionStorage.setItem('PAMS_userEmail', user.email);
         }
     };
 

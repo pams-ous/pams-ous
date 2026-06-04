@@ -25,7 +25,6 @@ function loginAPI(express, db, io, app) {
         next();
     });
 
-    // --- 2. SOCKET.IO SESSION & LIFECYCLE HANDLERS ---
     async function handle_login(socket, data) {
         const email = data.email;
         const rawPw = data.password;
@@ -106,14 +105,22 @@ function loginAPI(express, db, io, app) {
         socket.on('disconnect', async () => {
             if (socket.userEmail) {
                 const disconnectedEmail = socket.userEmail;
-                try {
-                    await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [disconnectedEmail]);
-                    console.log(`[SESSION] ${disconnectedEmail} went offline.`);
-                    
-                    // BROADCAST TO ALL CLIPS: User is now offline
-                    io.emit('status_change', { email: disconnectedEmail, status: 'Offline' });
-                } catch (err) {
-                    console.error("Error updating offline status:", err);
+                
+                // Presence Check: Only mark offline if no other sockets for this user are connected
+                const otherSockets = Array.from(io.sockets.sockets.values()).filter(s => s !== socket && s.userEmail === disconnectedEmail);
+                
+                if (otherSockets.length === 0) {
+                    try {
+                        await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [disconnectedEmail]);
+                        console.log(`[SESSION] ${disconnectedEmail} went offline (last session closed).`);
+                        
+                        // BROADCAST TO ALL CLIPS: User is now offline
+                        io.emit('status_change', { email: disconnectedEmail, status: 'Offline' });
+                    } catch (err) {
+                        console.error("Error updating offline status:", err);
+                    }
+                } else {
+                    console.log(`[SESSION] ${disconnectedEmail} disconnected, but still has ${otherSockets.length} active session(s).`);
                 }
             }
         });
@@ -210,7 +217,7 @@ function loginAPI(express, db, io, app) {
                        email, 
                        CASE WHEN designation = 'Admin' THEN 'ADMIN' ELSE 'MEMBER' END AS role,
                        COALESCE(active_status, 'Offline') AS activeStatus 
-                FROM Employees
+                FROM Employees;
             `);
             res.json(rows);
         } catch (err) {

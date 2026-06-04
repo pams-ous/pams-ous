@@ -9,12 +9,12 @@ window.PAMS = (function () {
     /**
      * Session Management
      */
-    const getToken = () => localStorage.getItem('authToken');
-    const setToken = (t) => t ? localStorage.setItem('authToken', t) : localStorage.removeItem('authToken');
+    const getToken = () => sessionStorage.getItem('authToken');
+    const setToken = (t) => t ? sessionStorage.setItem('authToken', t) : sessionStorage.removeItem('authToken');
     const getUser = () => {
-        try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+        try { return JSON.parse(sessionStorage.getItem('user') || 'null'); } catch { return null; }
     };
-    const setUser = (u) => u ? localStorage.setItem('user', JSON.stringify(u)) : localStorage.removeItem('user');
+    const setUser = (u) => u ? sessionStorage.setItem('user', JSON.stringify(u)) : sessionStorage.removeItem('user');
 
     /**
      * Navigation Helpers
@@ -64,7 +64,7 @@ window.PAMS = (function () {
 
         setToken(null);
         setUser(null);
-        localStorage.removeItem('PAMS_userEmail');
+        sessionStorage.removeItem('PAMS_userEmail');
         window.location.href = authUrl('index.html');
     };
 
@@ -128,10 +128,15 @@ document.addEventListener('DOMContentLoaded', () => {
             transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
         }); 
         PAMS.socket = socket; // Store socket in PAMS object
-        const savedEmail = localStorage.getItem('PAMS_userEmail');
+        const savedEmail = sessionStorage.getItem('PAMS_userEmail');
         
         if (savedEmail) {
             socket.emit('register_session', savedEmail);
         }
+
+        // Ensure user is marked offline when tab/window is closed
+        window.addEventListener('beforeunload', () => {
+            socket.emit('logout');
+        });
     }
 });

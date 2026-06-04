@@ -1,5 +1,6 @@
 const {getEmployeeDetails} = require("./dbChecks");
 const { verifyToken } = require("./authUtil");
+const { authenticateToken, authorizeRole } = require("./authMiddleware");
 
 async function getEmployeeData(db, data, socket, mode, state) {
 
@@ -83,7 +84,7 @@ async function editEmployeeData(socket, db, data) {
     }
 }
 
-async function manageAccountAPI(io, db) {
+async function manageAccountAPI(io, db, app) {
     io.on('connection', (socket) => {
         console.log("Management API connected.");
 
@@ -130,6 +131,21 @@ async function manageAccountAPI(io, db) {
             editEmployeeData(socket, db, data);
         });
 
+    });
+
+    // REST API: Delete User
+    app.delete('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
+        const userId = req.params.id;
+        try {
+            const [result] = await db.query('DELETE FROM Employees WHERE employee_id = ?', [userId]);
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ success: false, message: "User not found" });
+            }
+            res.json({ success: true, message: "User deleted successfully" });
+        } catch (err) {
+            console.error("Delete Error:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
     });
 }
 
