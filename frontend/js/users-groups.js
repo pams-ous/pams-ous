@@ -112,8 +112,8 @@
           <td>
             <select 
                 class="form-control role-select-dropdown" 
-                onchange="window.Admin.changeRole('${u.id}', this.value)"
-                data-user-id="${u.id}" 
+                onchange="window.Admin.changeRole('${u.email}', this.value)"
+                data-user-email="${u.email}" 
                 data-current-role="${u.role}"
                 style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
                 <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
@@ -128,7 +128,7 @@
           </td>
           
           <td class="td-actions">
-            <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.id}')" title="Edit user">
+            <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.email}')" title="Edit user">
               <i class="fas fa-pen"></i>
             </button>
             ${u.id === currentUserId ? '' : `
@@ -226,9 +226,9 @@
             if (CONFIG.USE_MOCK_API) { users = users.filter(x => x.id !== id); renderUsers(); return; }
             try { await apiFetch(`/users/${id}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
         },
-		changeRole: async (id, newRole) => {
+		changeRole: async (email, newRole) => {
             try {
-                await apiFetch(`/users/${id}`, 'PUT', { role: newRole });
+                await apiFetch(`/users/${email}`, 'PUT', { role: newRole });
 
                 // If successful, reload the table to lock in the new SQL data
                 await loadAll(); 

@@ -7,11 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('change', async (event) => {
         if (event.target.classList.contains('role-select-dropdown')) {
             const dropdown = event.target;
-            const userId = dropdown.getAttribute('data-user-id');
+            const userEmail = dropdown.getAttribute('data-user-email');
             const previousRole = dropdown.getAttribute('data-current-role');
             const newRole = dropdown.value;
 
-            if (!userId || newRole === previousRole) return;
+            if (!userEmail || newRole === previousRole) return;
 
             // Safeguard: confirm before changing an Admin to a lower role
             if (previousRole === 'ADMIN' && newRole !== 'ADMIN') {
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dropdown.disabled = true;
 
             try {
-                await PAMS.apiFetch(`/users/${userId}`, 'PUT', { role: newRole });
+                await PAMS.apiFetch(`/users/${userEmail}`, 'PUT', { role: newRole });
 
                 // Update state on success
                 dropdown.setAttribute('data-current-role', newRole);
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.Admin.refreshData();
                 }
                 
-                console.log(`Successfully updated user ${userId} to ${newRole}`);
+                console.log(`Successfully updated user ${userEmail} to ${newRole}`);
             } catch (error) {
                 console.error('Error updating role:', error);
                 alert(`Failed to update role: ${error.message}`);

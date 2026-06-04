@@ -190,16 +190,22 @@ function loginAPI(express, db, io, app) {
 
     // Update User Position/Role
     app.put('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const userId = req.params.id;
+        const userEmail = req.params.id;
         const { role } = req.body;
         const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
         
         try {
+            const [user] = await db.query('SELECT employee_id FROM Employees WHERE email = ? LIMIT 1', [userEmail]);
+            if (user.length === 0) {
+                return res.status(404).json({ success: false, message: "User not found with provided email" });
+            }
+            const userId = user[0].employee_id;
+
             const [result] = await db.query('UPDATE Employees SET designation = ? WHERE employee_id = ?', [designation, userId]);
             if (result.affectedRows === 0) {
                 console.log(`[WARNING] Tried to update role, but could not find Employee ID: "${userId}" in the database.`);
             } else {
-                console.log(`[SUCCESS] Updated Employee ID: "${userId}" to ${designation}.`);
+                console.log(`[SUCCESS] Updated Employee ID: "${userId}" (${userEmail}) to ${designation}.`);
             }
             res.json({ success: true, message: "Role update processed." });
         } catch (err) {
