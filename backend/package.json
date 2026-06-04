@@ -2,7 +2,7 @@
   "name": "backend-practice",
   "version": "1.0.0",
   "description": "",
-  "main": "UserMngmt_APIs/login.js", 
+  "main": "UserMngmt_APIs/login.js",
   "scripts": {
     "start": "node UserMngmt_APIs/login.js",
     "dev": "nodemon UserMngmt_APIs/login.js",
@@ -14,10 +14,12 @@
   "type": "commonjs",
   "dependencies": {
     "argon2": "^0.44.0",
-    "dotenv": "^16.4.5",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
-    "mysql2": "^3.22.3",
-    "nodemailer": "^6.9.14",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.4",
+    "nodemailer": "^8.0.10",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
