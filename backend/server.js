@@ -62,6 +62,7 @@ const {manageAccountAPI} = require("./UserMngmt_APIs/manage");
 const {otpAPI} = require("./UserMngmt_APIs/otp");
 const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
 const {loginAPI} = require("./UserMngmt_APIs/login");
+const {reportAPI} = require("./ReportMgmt_APIs/reportHandlers");
 
 // Initialize all APIs (The order matters!)
 searchAPI(io, db);
@@ -70,6 +71,7 @@ manageAccountAPI(io, db, app);
 otpAPI(io, db);
 passwordResetAPI(io, db);
 loginAPI(express, db, io, app);
+reportAPI(io, db);
 
 // Catch-all route: Send non-API requests to your frontend index.html
 app.get(/.*/, (req, res) => {
