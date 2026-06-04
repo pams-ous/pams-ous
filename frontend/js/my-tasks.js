@@ -40,33 +40,33 @@
         }
     }
 
-    function renderTasks() {
+    function renderTasks(data = tasks) {
         const tbody = document.getElementById('taskTableBody');
         if (!tbody) return;
 
         const today = new Date(new Date().toDateString());
 
-        const overdue = tasks.filter(t =>
+        const overdueCount = tasks.filter(t =>
             t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today
-        );
+        ).length;
 
         const banner = document.getElementById('alertBanner');
         const alertText = document.getElementById('alertText');
         if (banner && alertText) {
-            if (overdue.length > 0) {
-                alertText.textContent = `${overdue.length} task${overdue.length > 1 ? 's are' : ' is'} overdue.`;
+            if (overdueCount > 0) {
+                alertText.textContent = `${overdueCount} task${overdueCount > 1 ? 's are' : ' is'} overdue.`;
                 banner.classList.remove('hidden');
             } else {
                 banner.classList.add('hidden');
             }
         }
 
-        if (tasks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="log-empty">No tasks assigned to you yet.</td></tr>';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="log-empty">No matching tasks found.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = tasks.map((t, i) => {
+        tbody.innerHTML = data.map((t, i) => {
             const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today;
             const pCls = { URGENT: 'badge-urgent', HIGH: 'badge-urgent', MEDIUM: 'badge-in_progress', LOW: 'badge-pending' }[t.priority] || '';
             const sCls = 'badge-' + t.status.toLowerCase().replace(' ', '_');
@@ -201,4 +201,22 @@
             if (panel) panel.scrollIntoView({ behavior: 'smooth' });
         }
     };
+
+    // SEARCH FUNCTIONALITY
+    const searchInput = document.getElementById('taskSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                renderTasks(tasks);
+                return;
+            }
+
+            const filtered = tasks.filter(t => 
+                (t.title || '').toLowerCase().includes(query) || 
+                (t.description || '').toLowerCase().includes(query)
+            );
+            renderTasks(filtered);
+        });
+    }
 })();

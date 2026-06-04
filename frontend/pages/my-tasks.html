@@ -93,12 +93,16 @@
 
         <div class="content ph-32">
             <div class="panel">
-                <div class="panel-head">
-                    <div class="panel-title">
-                        <i class="fa-solid fa-clipboard-list"></i> Assigned to Me
-                    </div>
+        <div class="panel-head">
+            <div class="panel-title">
+                <i class="fa-solid fa-clipboard-list"></i> Assigned to Me
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="search-wrap">
+                    <input type="search" id="taskSearchInput" class="ribbon-input" placeholder="Search tasks...">
                 </div>
-
+            </div>
+        </div>
                 <div class="table-wrap ph-24" style="padding-bottom: 2rem;">
                     <table class="task-table">
                         <thead>
