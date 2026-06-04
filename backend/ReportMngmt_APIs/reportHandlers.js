@@ -131,6 +131,27 @@ async function reportAPI(io, db) {
                 socket.emit("reportLog", { success: false, rawData: `Generation failed: ${err.message}` });
             }
         });
+
+        /**
+         * 4. DELETE REPORT
+         */
+        socket.on("deleteReport", async (reportId) => {
+            try {
+                await db.query("DELETE FROM Report WHERE report_id = ?", [reportId]);
+                
+                // Broadcast to all admins to sync their history list
+                io.emit("reportDeleted", reportId);
+
+                socket.emit("reportLog", { 
+                    success: true, 
+                    stage: "delete", 
+                    rawData: "Report deleted successfully." 
+                });
+            } catch (err) {
+                console.error("Deletion failed:", err);
+                socket.emit("reportLog", { success: false, rawData: `Deletion failed: ${err.message}` });
+            }
+        });
     });
 }
 

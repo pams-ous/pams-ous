@@ -235,6 +235,25 @@
         </div>
     </div>
 
+    <!-- DELETE REPORT CONFIRMATION MODAL -->
+    <div class="modal-backdrop" id="deleteReportModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Delete Report</span>
+                <button class="modal-close" onclick="window.Reports.closeModal('deleteReportModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="confirm-body">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Are you sure you want to permanently delete this report?</p>
+                <p class="text-xs color-gray mt-2">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer is-centered">
+                <button class="btn-cancel" onclick="window.Reports.closeModal('deleteReportModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="window.Reports.confirmDelete()">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Configuration and API Logic -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="../js/config.js"></script>

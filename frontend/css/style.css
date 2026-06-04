@@ -112,6 +112,10 @@ body {
   justify-content: space-between;
 }
 
+.justify-center {
+  justify-content: center;
+}
+
 .gap-1 {
   gap: .25rem;
 }
@@ -1676,6 +1680,10 @@ body.sidebar-open .main {
   gap: .75rem;
 }
 
+.modal-footer.is-centered {
+  justify-content: center;
+}
+
 .btn-cancel {
   background: var(--gray-100);
   color: var(--gray-700);
@@ -1992,12 +2000,42 @@ body.sidebar-open .main {
 }
 
 .report-card {
+  position: relative;
   border: 1.5px solid var(--gray-100);
   border-radius: 8px;
   padding: 14px 16px;
   margin-bottom: 10px;
   cursor: pointer;
   transition: var(--transition);
+}
+
+.report-card:hover .report-delete-btn {
+  opacity: 1;
+}
+
+.report-delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  opacity: 0;
+  transition: var(--transition);
+  z-index: 10;
+}
+
+.report-delete-btn:hover {
+  background: var(--red-bg);
+  color: var(--red-text);
+  border-color: var(--red-border);
 }
 
 .report-card:hover {

@@ -9,6 +9,7 @@
 
     let reports = [];
     let activeReportId = null;
+    let reportToDelete = null;
     let chart;
     let allUsers = [];
 
@@ -73,12 +74,22 @@
                     alert(result.rawData || "Report generated successfully!");
                     loadReports(); // Refresh the list
                     break;
+
+                case 'delete':
+                    closeModal('deleteReportModal');
+                    loadReports();
+                    break;
             }
         });
 
         // Listen for real-time broadcasts
         PAMS.socket.on('reportGenerated', (data) => {
             loadReports(); 
+        });
+
+        PAMS.socket.on('reportDeleted', (id) => {
+            if (activeReportId === id) activeReportId = null;
+            loadReports();
         });
     }
 
@@ -131,6 +142,9 @@
 
         list.innerHTML = reports.map(r => `
             <div class="report-card ${r.report_id === activeReportId ? 'active' : ''}" onclick="window.Reports.selectReport(${r.report_id})">
+                <button class="report-delete-btn" title="Delete Report" onclick="window.Reports.openDeleteModal(event, ${r.report_id})">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
                 <div class="report-card-title"><i class="fa-solid fa-file-invoice"></i> ${r.report_type} Report</div>
                 <div class="report-card-meta">
                     <strong>Scope:</strong> ${r.scope_target || r.scope_type}<br>
@@ -432,6 +446,24 @@
             }
         },
         selectReport: (id) => selectReport(id),
+        openDeleteModal: (event, id) => {
+            if (event) event.stopPropagation();
+            reportToDelete = id;
+            openModal('deleteReportModal');
+        },
+        confirmDelete: () => {
+            if (!reportToDelete) return;
+            if (CONFIG.USE_MOCK_API) {
+                reports = reports.filter(r => r.report_id !== reportToDelete);
+                if (activeReportId === reportToDelete) activeReportId = null;
+                closeModal('deleteReportModal');
+                renderHistory();
+                return;
+            }
+            if (PAMS.socket) {
+                PAMS.socket.emit('deleteReport', reportToDelete);
+            }
+        },
         print: () => window.print()
     };
 })();
