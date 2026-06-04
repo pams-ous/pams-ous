@@ -133,8 +133,9 @@
             <div class="report-card ${r.report_id === activeReportId ? 'active' : ''}" onclick="window.Reports.selectReport(${r.report_id})">
                 <div class="report-card-title"><i class="fa-solid fa-file-invoice"></i> ${r.report_type} Report</div>
                 <div class="report-card-meta">
-                    Generated: ${new Date(r.generated_at).toLocaleDateString()}
-                    ${r.generated_by_name ? ` &middot; By: ${r.generated_by_name}` : ''}
+                    <strong>Scope:</strong> ${r.scope_target || r.scope_type}<br>
+                    <strong>Period:</strong> ${fmtDate(r.period_start)} – ${fmtDate(r.period_end)}<br>
+                    <span style="display:block; margin-top:4px; opacity:0.8;">Generated: ${new Date(r.generated_at).toLocaleDateString()} by ${r.generated_by_name || 'Admin'}</span>
                 </div>
             </div>
         `).join('');
