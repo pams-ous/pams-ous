@@ -43,7 +43,7 @@ CREATE TABLE `Employees` (
   `last_name` varchar(45) NOT NULL,
   `middle_name` varchar(45) DEFAULT NULL,
   `suffix` varchar(45) DEFAULT NULL,
-  `designation` enum('Chief','Admin','Encoder') NOT NULL DEFAULT 'Encoder',
+  `designation` varchar(80) NOT NULL DEFAULT 'Encoder',
   `email` varchar(45) NOT NULL,
   `password` varchar(97) NOT NULL,
   `active_status` enum('Online','Offline') NOT NULL DEFAULT 'Offline',
@@ -53,6 +53,33 @@ CREATE TABLE `Employees` (
   PRIMARY KEY (`employee_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `Designations`
+--
+
+DROP TABLE IF EXISTS `Designations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Designations` (
+  `designation_id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(80) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `color` varchar(9) NOT NULL DEFAULT '#6B0A1A',
+  `hierarchy_position` int NOT NULL DEFAULT '100',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0',
+  `is_system` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`designation_id`),
+  UNIQUE KEY `uq_designation_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+INSERT INTO `Designations` (`name`, `description`, `hierarchy_position`, `is_default`) VALUES 
+('Chief', 'Highest administrative rank', 1, 0),
+('Admin', 'System Administrator', 2, 0),
+('Encoder', 'General Staff/Personnel', 3, 1),
+('Staff', 'Support Staff', 4, 0);
 
 --
 -- Dumping data for table `Employees`

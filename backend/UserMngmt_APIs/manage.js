@@ -1,6 +1,7 @@
 const {getEmployeeDetails} = require("./dbChecks");
 const { verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
+const { hash_password } = require("./passwordUtil");
 
 async function getEmployeeData(db, data, socket, mode, state) {
 
@@ -71,7 +72,7 @@ async function editEmployeeData(socket, db, data) {
             });
             return
         }
-        const [updateRecord] = await db.query(query, [empCode, email, lastName, firstName, middleName, suffix, empID]);
+        const [updateRecord] = await db.query(query, [empCode || null, email, lastName, firstName, middleName, suffix, empID]);
         socket.emit('managementLog', {
             success: true,
             rawData: `Successfully updated the details!`
@@ -133,7 +134,19 @@ async function manageAccountAPI(io, db, app) {
 
     });
 
+    // Fetch Designations
+    app.get('/api/designations', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
+        try {
+            const [rows] = await db.query('SELECT designation_id AS id, name, hierarchy_position, is_default FROM Designations ORDER BY hierarchy_position ASC');
+            res.json(rows);
+        } catch (err) {
+            console.error("Error fetching designations:", err);
+            res.status(500).json({ error: err.message });
+        }
+    });
+
     // REST API: Delete User
+
     app.delete('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const userEmail = req.params.id;
         try {
@@ -150,6 +163,29 @@ async function manageAccountAPI(io, db, app) {
             res.json({ success: true, message: "User deleted successfully" });
         } catch (err) {
             console.error("Delete Error:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+
+    // REST API: Update User Password
+    app.post('/api/users/update-password', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
+        const { email, newPassword } = req.body;
+        if (!email || !newPassword) {
+            return res.status(400).json({ success: false, message: "Email and new password are required" });
+        }
+
+        try {
+            const [user] = await db.query('SELECT employee_id FROM Employees WHERE email = ? LIMIT 1', [email]);
+            if (user.length === 0) {
+                return res.status(404).json({ success: false, message: "User not found" });
+            }
+            const userId = user[0].employee_id;
+            const hashedPassword = await hash_password(newPassword);
+
+            await db.query('UPDATE Employees SET password = ? WHERE employee_id = ?', [hashedPassword, userId]);
+            res.json({ success: true, message: "Password updated successfully" });
+        } catch (err) {
+            console.error("Password Update Error:", err);
             res.status(500).json({ success: false, error: err.message });
         }
     });

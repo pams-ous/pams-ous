@@ -155,14 +155,52 @@
                     <label class="form-label">Employee Code</label>
                     <input type="text" id="newUserCode" class="form-control" placeholder="e.g. EMP-202X-011">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Full Name *</label>
-                    <input type="text" id="newUserName" class="form-control" placeholder="e.g. Juan Dela Cruz">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">First Name *</label>
+                        <input type="text" id="newUserFirstName" class="form-control" placeholder="First Name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last Name *</label>
+                        <input type="text" id="newUserLastName" class="form-control" placeholder="Last Name">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Middle Name</label>
+                        <input type="text" id="newUserMiddleName" class="form-control" placeholder="Middle Name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Suffix</label>
+                        <input type="text" id="newUserSuffix" class="form-control" placeholder="e.g. Jr.">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email Address *</label>
                     <input type="email" id="newUserEmail" class="form-control"
                         placeholder="e.g. juan.delacruz@pup.edu.ph">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <div class="password-field-wrap">
+                        <input type="password" id="newUserPassword" class="form-control"
+                            placeholder="••••••••" required>
+                        <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('newUserPassword', this)"
+                            aria-label="Toggle password visibility">
+                            <i class="fa-regular fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm Password *</label>
+                    <div class="password-field-wrap">
+                        <input type="password" id="confirmNewUserPassword" class="form-control"
+                            placeholder="••••••••" required>
+                        <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('confirmNewUserPassword', this)"
+                            aria-label="Toggle password visibility">
+                            <i class="fa-regular fa-eye-slash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -187,7 +225,49 @@
         </div>
     </div>
 
+    <!-- EDIT USER MODAL -->
+    <div class="modal-backdrop" id="editUserModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Edit User Password</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('editUserModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm color-gray mb-3">
+                    Updating password for <strong id="editUserEmailDisplay" class="color-maroon"></strong>.
+                </p>
+                <input type="hidden" id="editUserEmail">
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <div class="password-field-wrap">
+                        <input type="password" id="editUserPassword" class="form-control" placeholder="Min. 6 characters">
+                        <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('editUserPassword', this)"
+                            aria-label="Toggle password visibility">
+                            <i class="fa-regular fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password</label>
+                    <div class="password-field-wrap">
+                        <input type="password" id="confirmEditUserPassword" class="form-control" placeholder="Repeat password">
+                        <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('confirmEditUserPassword', this)"
+                            aria-label="Toggle password visibility">
+                            <i class="fa-regular fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('editUserModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.saveUserPassword()">Update Password</button>
+            </div>
+        </div>
+    </div>
+
     <!-- RESET PASSWORD MODAL -->
+
     <div class="modal-backdrop" id="resetPassModal">
         <div class="modal modal-sm">
             <div class="modal-header">
@@ -276,6 +356,7 @@
 	<script src="../js/config.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/layout.js"></script>
+    <script src="../js/auth.js"></script>
     <script src="../js/users-groups.js"></script>
     <script src="../js/role-management.js"></script>
 </body>

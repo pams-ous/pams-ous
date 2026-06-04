@@ -70,7 +70,7 @@ app.use(express.json());
 
 // Initialize all APIs (The order matters!)
 searchAPI(io, db);
-regiUserAPI(io, db);
+regiUserAPI(io, db, app);
 manageAccountAPI(io, db, app);
 otpAPI(io, db);
 passwordResetAPI(io, db);
