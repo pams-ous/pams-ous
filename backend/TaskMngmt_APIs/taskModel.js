@@ -1,10 +1,8 @@
-//Data layer for interacting with the Tasks table
-//
-
+// Data layer for interacting with the Tasks table
 const db = require('./db');
 
 module.exports = {
-    findAll: async () => {//read
+    findAll: async () => {
         const query = `
             SELECT 
                 t.task_id as id, t.title, t.description, t.priority, t.status, 
@@ -21,12 +19,18 @@ module.exports = {
         return rows;
     },
 
-    findEmployeeByEmail: async (email) => {//check email if exists grabe employee_id
+    findById: async (id) => {
+        const query = 'SELECT * FROM Tasks WHERE task_id = ?';
+        const [rows] = await db.query(query, [id]);
+        return rows[0] || null;
+    },
+
+    findEmployeeByEmail: async (email) => {
         const [rows] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [email]);
         return rows[0] || null;
     },
 
-    create: async (taskData) => {//create new tasks
+    create: async (taskData) => {
         const { title, description, priority, dueDate, status, assignedBy, assignedToUser, assignedToGroup } = taskData;
         const query = `
             INSERT INTO Tasks 
@@ -35,24 +39,27 @@ module.exports = {
         `;
         const [result] = await db.query(query, [
             title, 
-            description || null, 
+            description, 
             priority, 
             dueDate, 
             status, 
             assignedBy, 
-            assignedToUser || null, 
-            assignedToGroup || null
+            assignedToUser, 
+            assignedToGroup
         ]);
         return result.insertId;
     },
 
-    update: async (id, updateData) => {//update operation
-        // Dynamically build the update query based on what the frontend sent
+    update: async (id, updateData) => {
         const fields = [];
         const values = [];
 
-        if (updateData.title) { fields.push('title = ?'); values.push(updateData.title); }
-        if (updateData.status) { fields.push('status = ?'); values.push(updateData.status); }
+        // Complete coverage logic for full updates
+        if (updateData.title !== undefined) { fields.push('title = ?'); values.push(updateData.title); }
+        if (updateData.description !== undefined) { fields.push('description = ?'); values.push(updateData.description); }
+        if (updateData.priority !== undefined) { fields.push('priority = ?'); values.push(updateData.priority); }
+        if (updateData.dueDate !== undefined) { fields.push('due_date = ?'); values.push(updateData.dueDate); }
+        if (updateData.status !== undefined) { fields.push('status = ?'); values.push(updateData.status); }
         
         if (fields.length === 0) return 0;
 
@@ -63,7 +70,7 @@ module.exports = {
         return result.affectedRows;
     },
 
-    delete: async (id) => {//delete operation
+    delete: async (id) => {
         const [result] = await db.query('DELETE FROM Tasks WHERE task_id = ?', [id]);
         return result.affectedRows;
     }

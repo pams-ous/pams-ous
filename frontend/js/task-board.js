@@ -68,9 +68,9 @@
                     apiFetch('/users'),
                     apiFetch('/groups')
                 ]);
-                tasks = t.tasks || [];
-                users = u.users || [];
-                groups = g.groups || [];
+                tasks = t.tasks || t || [];
+                users = u.users || u || [];
+                groups = g.groups || g || [];
             }
             populateAssigneeSelects();
             buildFilterOptions();
@@ -280,13 +280,31 @@
         },
         saveEdit: async () => {
             const id = document.getElementById('edit-id').value;
-            const body = { title: document.getElementById('edit-title').value, status: document.getElementById('edit-status').value };
+            
+            // Grab ALL fields from the edit modal
+            const body = { 
+                title: document.getElementById('edit-title').value, 
+                description: document.getElementById('edit-desc').value,
+                status: document.getElementById('edit-status').value,
+                priority: document.getElementById('edit-priority').value,
+                dueDate: document.getElementById('edit-due').value
+            };
+            
             if (CONFIG.USE_MOCK_API) {
-                const t = tasks.find(x => x.id == id); Object.assign(t, body);
-                closeModal('editModal'); renderList(); return;
+                const t = tasks.find(x => x.id == id); 
+                Object.assign(t, body);
+                closeModal('editModal'); 
+                renderList(); 
+                return;
             }
-            try { await apiFetch(`/tasks/${id}`, 'PUT', body); closeModal('editModal'); await loadAll(); }
-            catch (err) { alert(err.message); }
+            
+            try { 
+                await apiFetch(`/tasks/${id}`, 'PUT', body); 
+                closeModal('editModal'); 
+                await loadAll(); 
+            } catch (err) { 
+                alert(err.message); 
+            }
         },
         openDeleteTask: (id) => {
             viewingId = id;
