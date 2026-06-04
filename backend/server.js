@@ -4,7 +4,7 @@ This file contains ALL the startup logic, including module loading,
 middleware setup, database connection, and socket listeners.
 
 Make sure that you have an existing node_modules file. If you don't have one, run this inside your terminal:
-npm i argon2 mysql2 socket.io cors nodemailer express
+npm install express socket.io mysql2 dotenv argon2 jsonwebtoken nodemailer cors
 ===============================================================*/
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '.', '.env') });
@@ -62,7 +62,6 @@ const {manageAccountAPI} = require("./UserMngmt_APIs/manage");
 const {otpAPI} = require("./UserMngmt_APIs/otp");
 const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
 const {loginAPI} = require("./UserMngmt_APIs/login");
-const {reportAPI} = require("./ReportMgmt_APIs/reportHandlers");
 const {reportAPI} = require("./ReportMngmt_APIs/reportHandlers");
 const {dashboardAPI} = require("./TaskMngmt_APIs/dashboardHandlers");
 
