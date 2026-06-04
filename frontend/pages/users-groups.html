@@ -101,15 +101,15 @@
                     </div>
                     <div class="table-wrap ph-24" style="padding-bottom: 1.5rem;">
                         <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Personnel</th>
-                                    <th>Email</th>
-                                    <th>Access Role</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
+							<thead>
+								<tr>
+									<th>Personnel</th>
+									<th>Email</th>
+									<th>Access Role</th>
+									<th>Groups</th> <th>Status</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
                             <tbody id="usersBody"></tbody>
                         </table>
                     </div>
@@ -347,6 +347,36 @@
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="window.Admin.closeModal('editGroupModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="window.Admin.saveGroupEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+	
+    <!-- MANAGE MEMBERS MODAL -->	
+	
+<div class="modal-backdrop" id="manageMembersModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <span class="modal-title">Manage Members: <span id="manageMembersGroupName" style="color: #3b82f6;"></span></span>
+                <button class="modal-close" onclick="window.Admin.closeModal('manageMembersModal')">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">
+                    Check the boxes next to the personnel you want to assign to this group. Leaders are automatically included.
+                </p>
+                
+                <div style="margin-bottom: 15px; position: relative;">
+                    <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
+                    <input type="text" id="memberSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterMembers()" style="padding-left: 30px; width: 100%;">
+                </div>
+
+                <div id="memberCheckboxList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                    </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('manageMembersModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.saveGroupMembers()">Save Members</button>
             </div>
         </div>
     </div>
