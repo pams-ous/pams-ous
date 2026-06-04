@@ -176,10 +176,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Report Type *</label>
-                        <select id="gen-type" class="form-control">
+                        <select id="gen-type" class="form-control" onchange="Reports.onTypeChange()">
                             <option value="Daily">Daily</option>
                             <option value="Weekly" selected>Weekly</option>
                             <option value="Annual">Annual</option>
+                            <option value="Custom">Custom Range</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -193,11 +194,11 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Period Start *</label>
-                        <input type="date" id="gen-start" class="form-control">
+                        <label class="form-label" id="label-start">Period Start *</label>
+                        <input type="date" id="gen-start" class="form-control" onchange="Reports.onDateChange()">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Period End *</label>
+                        <label class="form-label" id="label-end">Period End *</label>
                         <input type="date" id="gen-end" class="form-control">
                     </div>
                 </div>

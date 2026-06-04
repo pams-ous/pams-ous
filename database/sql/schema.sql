@@ -127,13 +127,13 @@ CREATE TABLE `Task_Updates` (
 DROP TABLE IF EXISTS `Report`;
 CREATE TABLE `Report` (
   `report_id` int NOT NULL AUTO_INCREMENT,
-  `report_type` enum('Daily','Weekly','Annual') DEFAULT NULL,
-  `generated_by` varchar(36) DEFAULT NULL,
-  `scope_type` enum('Individual','Group','All') DEFAULT NULL,
+  `report_type` enum('Daily','Weekly','Annual','Custom') NOT NULL,
+  `generated_by` varchar(36) NOT NULL,
+  `scope_type` enum('Individual','Group','All') NOT NULL,
   `scope_user_id` varchar(36) DEFAULT NULL,
   `scope_group_id` int DEFAULT NULL,
-  `period_start` datetime DEFAULT NULL,
-  `period_end` datetime DEFAULT NULL,
+  `period_start` datetime NOT NULL,
+  `period_end` datetime NOT NULL,
   `generated_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`report_id`),
   KEY `report-employees_idx` (`generated_by`),
