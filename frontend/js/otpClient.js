@@ -312,7 +312,7 @@
             onSubmit: async (code) => {
                 const res = await emitAndWait(socket, 'verifyLoginOtp', { email, code }, 'otpVerifyLog');
                 if (!res.success) throw new Error(res.rawData || 'Incorrect code.');
-                return { email: res.email || email, empName: res.empName || '' };
+                return { email: res.email || email, empName: res.empName || '', role: res.role, token: res.token };
             },
             onResend: async () => {
                 const res = await emitAndWait(socket, 'requestLoginOtp', { email }, 'otpRequestLog');

@@ -199,6 +199,8 @@ const setSession = (token, user) => {
     };
 
     // Build a mock session for the OTP path so the existing redirect logic still works.
+    // DEPRECATED: Now using real server-side role and token.
+    /*
     const mockUserFromOtp = (email, empName, type) => {
         const [firstName, ...rest] = (empName || '').split(' ').filter(Boolean);
         const lastName = rest.length ? rest[rest.length - 1] : '';
@@ -211,6 +213,7 @@ const setSession = (token, user) => {
             lastName
         };
     };
+    */
 
     const SIGNUP_FORM_IDS = new Set(['signupForm', 'adminSignupForm']);
 
@@ -280,7 +283,13 @@ const setSession = (token, user) => {
                 // ─── LOGIN: Email OTP mode (passwordless) ─────────────────────
                 if (authMode === 'otp') {
                     const otpResult = await window.PAMSOtp.runLoginOtp({ email: data.email });
-                    const user = mockUserFromOtp(data.email, otpResult.empName, type);
+                    const user = {
+                        id: 1, // We don't have the ID from the OTP flow yet, but we have role and token.
+                        email: otpResult.email,
+                        role: otpResult.role,
+                        firstName: (otpResult.empName || '').split(' ')[0] || 'User',
+                        lastName: (otpResult.empName || '').split(' ').slice(1).join(' ') || ''
+                    };
 
                     if (type === 'Personnel Sign-In' && user.role === 'ADMIN') {
                         alert('Administrator detected. Redirecting to the Admin Portal...');
@@ -292,7 +301,7 @@ const setSession = (token, user) => {
                         return;
                     }
 
-                    setSession('otp-session-token', user);
+                    setSession(otpResult.token, user);
                     alert(`${type} successful! Redirecting to dashboard...`);
                     window.location.href = '../pages/dashboard.html';
                     return;
