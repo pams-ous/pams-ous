@@ -1,5 +1,6 @@
 const { generateAndSendOtp, verifyOtp } = require("./otpService");
 const { getEmployeeDetails } = require("./dbChecks");
+const { generateToken } = require("./authUtil");
 
 async function otpAPI(io, db) {
     io.on("connection", (socket) => {
@@ -61,12 +62,17 @@ async function otpAPI(io, db) {
                     .filter(Boolean)
                     .join(" ");
 
+                const role = employee?.designation === 'Admin' ? 'ADMIN' : 'MEMBER';
+                const token = generateToken({ id: employee?.employee_id, email: email, role: role });
+
                 socket.emit("otpVerifyLog", {
                     success: true,
                     purpose: "login",
                     rawData: "Sign-in verified.",
                     email,
-                    empName
+                    empName,
+                    role,
+                    token
                 });
             } catch (err) {
                 console.log(err);
