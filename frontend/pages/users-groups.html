@@ -100,16 +100,29 @@
                         </button>
                     </div>
                     <div class="table-wrap ph-24" style="padding-bottom: 1.5rem;">
-                        <table class="data-table">
-							<thead>
-								<tr>
-									<th>Personnel</th>
-									<th>Email</th>
-									<th>Access Role</th>
-									<th>Groups</th> <th>Status</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
+                        <table class="data-table" aria-label="System users">
+                            <thead>
+                                <tr>
+                                    <th class="th-sort" tabindex="0" role="columnheader" aria-sort="none" data-col="name" aria-label="Sort by Personnel">
+                                        <span class="th-sort-inner">Personnel <i class="fa-solid fa-sort th-sort-icon" aria-hidden="true"></i></span>
+                                    </th>
+                                    <th class="th-sort" tabindex="0" role="columnheader" aria-sort="none" data-col="email" aria-label="Sort by Email">
+                                        <span class="th-sort-inner">Email <i class="fa-solid fa-sort th-sort-icon" aria-hidden="true"></i></span>
+                                    </th>
+                                    <th class="th-sort" tabindex="0" role="columnheader" aria-sort="none" data-col="role" aria-label="Sort by Access Role">
+                                        <span class="th-sort-inner">Access Role <i class="fa-solid fa-sort th-sort-icon" aria-hidden="true"></i></span>
+                                    </th>
+                                    <th class="th-sort" tabindex="0" role="columnheader" aria-sort="none" data-col="groups" aria-label="Sort by Groups">
+                                        <span class="th-sort-inner">Groups <i class="fa-solid fa-sort th-sort-icon" aria-hidden="true"></i></span>
+                                    </th>
+                                    <th class="th-sort" tabindex="0" role="columnheader" aria-sort="none" data-col="status" aria-label="Sort by Status">
+                                        <span class="th-sort-inner">Status <i class="fa-solid fa-sort th-sort-icon" aria-hidden="true"></i></span>
+                                    </th>
+                                    <th class="th-sort" tabindex="0" role="columnheader" aria-sort="none" data-col="actions" aria-label="Sort by Actions">
+                                        <span class="th-sort-inner">Actions <i class="fa-solid fa-sort th-sort-icon" aria-hidden="true"></i></span>
+                                    </th>
+                                </tr>
+                            </thead>
                             <tbody id="usersBody"></tbody>
                         </table>
                     </div>

@@ -2298,6 +2298,50 @@ body.sidebar-open .main {
   text-decoration: underline;
 }
 
+/* ─── COMPONENTS: SORTABLE TABLE HEADERS ───────────── */
+
+.th-sort {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.th-sort:hover {
+  color: var(--maroon);
+}
+
+.th-sort:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.th-sort-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Sort indicator arrow — hidden by default, shown when column is active */
+.th-sort-icon {
+  font-size: 10px;
+  color: var(--gray-500);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.th-sort:hover .th-sort-icon {
+  opacity: 0.5;
+}
+
+/* Active column: icon always visible */
+.th-sort[aria-sort="ascending"] .th-sort-icon,
+.th-sort[aria-sort="descending"] .th-sort-icon {
+  opacity: 1;
+  color: var(--maroon);
+}
+
 /* ─── COMPONENTS: USERS & GROUPS ───────────────────── */
 
 .panels {
