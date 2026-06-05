@@ -1852,6 +1852,11 @@ body.sidebar-open .main {
   border-color: var(--maroon);
 }
 
+.mt-view-tab:not(.active):hover {
+   background: var(--gray-100);
+   color: var(--maroon);
+}
+
 .mt-view-tab:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
