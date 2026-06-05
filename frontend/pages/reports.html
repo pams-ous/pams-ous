@@ -210,11 +210,16 @@
                     <div class="form-group">
                         <label class="form-label" id="label-start">Period Start *</label>
                         <input type="date" id="gen-start" class="form-control" onchange="Reports.onDateChange()">
+                        <select id="gen-year" class="form-control" style="display:none;" onchange="Reports.onDateChange()"></select>
                     </div>
                     <div class="form-group">
                         <label class="form-label" id="label-end">Period End *</label>
-                        <input type="date" id="gen-end" class="form-control">
+                        <input type="date" id="gen-end" class="form-control" onchange="Reports.onDateChange()">
                     </div>
+                </div>
+                <div id="gen-range-badge-wrap" class="report-range-banner" style="display:none;">
+                    <i class="fa-solid fa-calendar-check" style="color: var(--gray-500);"></i>
+                    <span id="gen-range-text">Period Covered: —</span>
                 </div>
 
                 <!-- Group Selection -->

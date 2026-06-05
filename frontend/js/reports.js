@@ -7,6 +7,26 @@
 (function () {
     const { requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
 
+    // Timezone-safe local date utilities
+    function parseLocalDate(dateStr) {
+        if (!dateStr) return null;
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return null;
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+        return new Date(y, m - 1, d);
+    }
+
+    function formatLocalDate(date) {
+        if (!date || isNaN(date.getTime())) return '';
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     let reports = [];
     let activeReportId = null;
     let reportToDelete = null;
@@ -532,13 +552,24 @@
     window.Reports = {
         openGenerateModal: async () => {
             const today = new Date();
-            const monday = new Date(today);
-            monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+            const todayStr = formatLocalDate(today);
 
             const startInput = document.getElementById('gen-start');
             const endInput = document.getElementById('gen-end');
-            if (startInput) startInput.value = monday.toISOString().slice(0, 10);
-            if (endInput) endInput.value = today.toISOString().slice(0, 10);
+            if (startInput) startInput.value = todayStr;
+            if (endInput) endInput.value = todayStr;
+
+            // Populate Year dropdown for Annual selection
+            const yearSelect = document.getElementById('gen-year');
+            if (yearSelect) {
+                const currentYear = today.getFullYear();
+                let options = '';
+                for (let y = currentYear; y >= currentYear - 10; y--) {
+                    options += `<option value="${y}">${y}</option>`;
+                }
+                yearSelect.innerHTML = options;
+                yearSelect.value = currentYear;
+            }
 
             try {
                 if (CONFIG.USE_MOCK_API) {
@@ -561,6 +592,7 @@
 
             window.Reports.clearPickedUser();
             window.Reports.onScopeChange();
+            window.Reports.onTypeChange();
             openModal('genModal');
         },
         closeModal: (id) => closeModal(id),
@@ -572,34 +604,42 @@
         onTypeChange: () => {
             const type = document.getElementById('gen-type').value;
             const startInput = document.getElementById('gen-start');
+            const yearSelect = document.getElementById('gen-year');
             const endInput = document.getElementById('gen-end');
             const labelStart = document.getElementById('label-start');
             const labelEnd = document.getElementById('label-end');
 
             if (!startInput || !endInput) return;
 
-            // Reset defaults
+            // Reset labels and visibility states
             labelStart.textContent = 'Period Start *';
             labelEnd.textContent = 'Period End *';
-            startInput.type = 'date';
-            endInput.type = 'date';
+            startInput.style.display = '';
+            if (yearSelect) yearSelect.style.display = 'none';
             endInput.disabled = false;
 
             if (type === 'Daily') {
-                labelEnd.textContent = 'End Date (Locked)';
+                labelStart.textContent = 'Select Date *';
+                labelEnd.textContent = 'Period End (Locked)';
                 endInput.disabled = true;
             } else if (type === 'Weekly') {
-                labelStart.textContent = 'Select Week (Any Day) *';
-                labelEnd.textContent = 'Calculated End Date';
+                labelStart.textContent = 'Select Week (Mon–Sun) *';
+                labelEnd.textContent = 'Period End (Locked)';
                 endInput.disabled = true;
             } else if (type === 'Annual') {
                 labelStart.textContent = 'Select Target Year *';
-                labelEnd.textContent = 'Full Year Range';
-                startInput.type = 'number';
-                startInput.value = new Date().getFullYear();
+                labelEnd.textContent = 'Period End (Locked)';
+                startInput.style.display = 'none';
+                if (yearSelect) yearSelect.style.display = '';
                 endInput.disabled = true;
             } else if (type === 'Custom') {
                 endInput.disabled = false;
+            }
+
+            // Ensure start selector has default current value when switching
+            const todayStr = formatLocalDate(new Date());
+            if (type !== 'Annual' && (!startInput.value || startInput.value.length === 4)) {
+                startInput.value = todayStr;
             }
 
             window.Reports.onDateChange();
@@ -607,34 +647,64 @@
         onDateChange: () => {
             const type = document.getElementById('gen-type').value;
             const startInput = document.getElementById('gen-start');
+            const yearSelect = document.getElementById('gen-year');
             const endInput = document.getElementById('gen-end');
 
-            if (!startInput.value) return;
+            const badgeWrap = document.getElementById('gen-range-badge-wrap');
+            const badgeText = document.getElementById('gen-range-text');
+
+            // Friendly month formatter
+            const formatFriendlyDate = (date) => {
+                if (!date || isNaN(date.getTime())) return '';
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+            };
+
+            const formatFriendlyDateStr = (dateStr) => {
+                const d = parseLocalDate(dateStr);
+                return d ? formatFriendlyDate(d) : '';
+            };
+
+            let rangeStr = '';
 
             if (type === 'Daily') {
+                if (!startInput.value) return;
                 endInput.value = startInput.value;
+                rangeStr = `Period Covered: ${formatFriendlyDateStr(startInput.value)}`;
             } else if (type === 'Weekly') {
-                const selectedDate = new Date(startInput.value);
+                if (!startInput.value) return;
+                const selectedDate = parseLocalDate(startInput.value);
+                if (!selectedDate) return;
+
                 const day = selectedDate.getDay();
-                const diffToMon = selectedDate.getDate() - day + (day === 0 ? -6 : 1);
-                const start = new Date(selectedDate.setDate(diffToMon));
+                const diffToMon = day === 0 ? -6 : 1 - day;
+                const start = new Date(selectedDate);
+                start.setDate(selectedDate.getDate() + diffToMon);
+                
                 const end = new Date(start);
                 end.setDate(start.getDate() + 6);
 
-                startInput.value = start.toISOString().slice(0, 10);
-                endInput.value = end.toISOString().slice(0, 10);
+                endInput.value = formatLocalDate(end);
+                rangeStr = `Period Covered: Mon, ${formatFriendlyDate(start)} – Sun, ${formatFriendlyDate(end)}`;
             } else if (type === 'Annual') {
-                const year = parseInt(startInput.value);
+                if (!yearSelect) return;
+                const year = parseInt(yearSelect.value, 10);
                 if (isNaN(year)) return;
-                const start = new Date(year, 0, 1);
+
                 const end = new Date(year, 11, 31);
-                
-                // We need to keep startInput as number for the user, 
-                // but for generating we will use these dates.
-                // However, generateReport uses .value.
-                // Better approach: store calculated dates in hidden fields or 
-                // just have generateReport handle it.
-                endInput.value = end.toISOString().slice(0, 10);
+                endInput.value = formatLocalDate(end);
+                rangeStr = `Period Covered: Full Year ${year}`;
+            } else if (type === 'Custom') {
+                rangeStr = '';
+            }
+
+            if (badgeWrap && badgeText) {
+                if (rangeStr) {
+                    badgeText.textContent = rangeStr;
+                    badgeWrap.style.display = 'block';
+                } else {
+                    badgeWrap.style.display = 'none';
+                }
             }
         },
         filterUserResults: () => {
@@ -689,14 +759,46 @@
         generateReport: async () => {
             const type = document.getElementById('gen-type').value;
             const scope = document.getElementById('gen-scope').value;
-            let start = document.getElementById('gen-start').value;
+
+            let start = '';
             let end = document.getElementById('gen-end').value;
+
+            if (type === 'Annual') {
+                const yearSelect = document.getElementById('gen-year');
+                const year = yearSelect ? yearSelect.value : new Date().getFullYear();
+                start = `${year}-01-01`;
+                end = `${year}-12-31`;
+            } else if (type === 'Weekly') {
+                const rawVal = document.getElementById('gen-start').value;
+                const selectedDate = parseLocalDate(rawVal);
+                if (selectedDate) {
+                    const day = selectedDate.getDay();
+                    const diffToMon = day === 0 ? -6 : 1 - day;
+                    const mon = new Date(selectedDate);
+                    mon.setDate(selectedDate.getDate() + diffToMon);
+                    start = formatLocalDate(mon);
+                } else {
+                    start = rawVal;
+                }
+            } else {
+                start = document.getElementById('gen-start').value;
+            }
 
             // --- 1. Basic Field Validation ---
             if (!type) { PAMS.toast('Please select a Report Type.', 'warning'); return; }
             if (!scope) { PAMS.toast('Please select a Scope.', 'warning'); return; }
             if (!start) { PAMS.toast('Please select the Start Date/Period.', 'warning'); return; }
-            if (!end && type !== 'Daily') { PAMS.toast('Please select the End Date.', 'warning'); return; }
+            if (!end) { PAMS.toast('Please select the End Date.', 'warning'); return; }
+
+            // Validate Custom Date Ranges (End must be after Start)
+            if (type === 'Custom') {
+                const startDate = parseLocalDate(start);
+                const endDate = parseLocalDate(end);
+                if (startDate && endDate && endDate < startDate) {
+                    PAMS.toast('End Date cannot be before Start Date.', 'warning');
+                    return;
+                }
+            }
 
             // --- 2. Dynamic Scope Validation ---
             let scopeValue = null;
@@ -706,13 +808,6 @@
             } else if (scope === 'Individual') {
                 scopeValue = document.getElementById('gen-user-email').value;
                 if (!scopeValue) { PAMS.toast('Please select an Employee for this report.', 'warning'); return; }
-            }
-
-            // --- 3. Handle Annual Year -> Date conversion ---
-            if (type === 'Annual' && start.length === 4) {
-                const year = parseInt(start);
-                start = `${year}-01-01`;
-                end = `${year}-12-31`;
             }
 
             const me = getUser();
