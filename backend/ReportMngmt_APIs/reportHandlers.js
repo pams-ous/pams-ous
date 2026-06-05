@@ -41,8 +41,15 @@ async function reportAPI(io, db) {
          */
         socket.on("getReportDetails", async (reportId) => {
             try {
+                // Fetch report dates to filter updates accurately
+                const [reportRows] = await db.query("SELECT period_start, period_end FROM Report WHERE report_id = ?", [reportId]);
+                if (reportRows.length === 0) {
+                    throw new Error("Report not found");
+                }
+                const { period_start, period_end } = reportRows[0];
+
                 const taskQuery = `
-                    SELECT t.title, t.priority,
+                    SELECT t.task_id, t.title, t.priority,
                            COALESCE(tu.status_change, t.status) AS historical_status,
                            COALESCE(tu.updated_text, 'No update logged during this period.') AS historical_notes,
                            COALESCE(CONCAT_WS(' ', e.first_name, e.last_name), g.group_name, 'Unassigned') AS assignee_name
@@ -54,6 +61,34 @@ async function reportAPI(io, db) {
                     WHERE re.report_id = ?;
                 `;
                 const [tasks] = await db.query(taskQuery, [reportId]);
+
+                // Fetch all updates for these tasks during the report period
+                const updatesQuery = `
+                    SELECT tu.task_id, tu.logged_at, tu.updated_text, tu.status_change,
+                           CONCAT_WS(' ', e.first_name, e.last_name) AS updated_by_name
+                    FROM Task_Updates tu
+                    LEFT JOIN Employees e ON tu.updated_by = e.employee_id
+                    WHERE tu.task_id IN (
+                        SELECT task_id FROM Report_Entries WHERE report_id = ?
+                    )
+                    AND tu.logged_at BETWEEN ? AND ?
+                    ORDER BY tu.logged_at DESC;
+                `;
+                const [updates] = await db.query(updatesQuery, [reportId, period_start, period_end]);
+
+                // Group updates by task_id
+                const updatesByTask = {};
+                updates.forEach(up => {
+                    if (!updatesByTask[up.task_id]) {
+                        updatesByTask[up.task_id] = [];
+                    }
+                    updatesByTask[up.task_id].push(up);
+                });
+
+                // Attach updates array to each task
+                tasks.forEach(t => {
+                    t.updates = updatesByTask[t.task_id] || [];
+                });
                 
                 socket.emit("reportLog", { 
                     success: true, 
@@ -61,6 +96,7 @@ async function reportAPI(io, db) {
                     data: tasks 
                 });
             } catch (err) {
+                console.error("Fetch report details failed:", err);
                 socket.emit("reportLog", { success: false, rawData: `Fetch details failed: ${err.message}` });
             }
         });
@@ -71,6 +107,10 @@ async function reportAPI(io, db) {
         socket.on("generateReport", async (data) => {
             const { reportType, scopeType, scopeValue, periodStart, periodEnd, generatedByEmail } = data;
             
+            // Normalize start and end date boundaries to include full days
+            const startDateTime = periodStart.includes(' ') || periodStart.includes('T') ? periodStart : `${periodStart} 00:00:00`;
+            const endDateTime = periodEnd.includes(' ') || periodEnd.includes('T') ? periodEnd : `${periodEnd} 23:59:59`;
+
             try {
                 const [userRows] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [generatedByEmail]);
                 const adminId = userRows[0]?.employee_id;
@@ -89,18 +129,30 @@ async function reportAPI(io, db) {
                 const [reportResult] = await db.query(
                     `INSERT INTO Report (report_type, generated_by, scope_type, scope_user_id, scope_group_id, period_start, period_end) 
                      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [reportType, adminId, scopeType, scopeUserId, scopeGroupId, periodStart, periodEnd]
+                    [reportType, adminId, scopeType, scopeUserId, scopeGroupId, startDateTime, endDateTime]
                 );
                 const reportId = reportResult.insertId;
 
-                let taskSql = "SELECT task_id FROM Tasks WHERE (due_date BETWEEN ? AND ? OR updated_at BETWEEN ? AND ?)";
-                let taskParams = [periodStart, periodEnd, periodStart, periodEnd];
+                // Identify tasks that were active, due, or created during this period
+                let taskSql = `
+                    SELECT DISTINCT t.task_id 
+                    FROM Tasks t
+                    LEFT JOIN Task_Updates tu ON t.task_id = tu.task_id
+                    WHERE ((t.due_date BETWEEN ? AND ?)
+                       OR (t.created_at BETWEEN ? AND ?)
+                       OR (tu.logged_at BETWEEN ? AND ?))
+                `;
+                let taskParams = [
+                    startDateTime, endDateTime,
+                    startDateTime, endDateTime,
+                    startDateTime, endDateTime
+                ];
 
                 if (scopeType === 'Group') {
-                    taskSql += " AND assigned_to_group = ?";
+                    taskSql += " AND t.assigned_to_group = ?";
                     taskParams.push(scopeGroupId);
                 } else if (scopeType === 'Individual') {
-                    taskSql += " AND assigned_to_user = ?";
+                    taskSql += " AND t.assigned_to_user = ?";
                     taskParams.push(scopeUserId);
                 }
 
@@ -109,7 +161,7 @@ async function reportAPI(io, db) {
                 for (const t of tasks) {
                     const [latestUpdate] = await db.query(
                         "SELECT update_id FROM Task_Updates WHERE task_id = ? AND logged_at <= ? ORDER BY logged_at DESC LIMIT 1",
-                        [t.task_id, periodEnd]
+                        [t.task_id, endDateTime]
                     );
                     const updateId = latestUpdate[0]?.update_id || null;
                     await db.query(

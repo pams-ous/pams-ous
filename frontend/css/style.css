@@ -3140,7 +3140,207 @@ body.sidebar-open .main {
     background-color: var(--maroon) !important;
     color: #fff !important;
   }
+
+  /* Force all task details rows to be displayed */
+  .task-details-row {
+    display: table-row !important;
+  }
+  .task-details-row.collapsed {
+    display: table-row !important;
+  }
+  .expand-icon {
+    display: none !important;
+  }
+  .task-details-wrapper {
+    padding: 12px 16px 16px 20px !important;
+    border-left: 2px solid var(--maroon) !important;
+  }
+  .timeline-content {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+  /* Ensure page breaks don't split a task and its details */
+  .task-main-row, .task-details-row {
+    page-break-inside: avoid;
+  }
 }
+
+/* ─── COLLAPSIBLE TASK TIMELINE STYLES ───────────────── */
+.task-main-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.task-main-row:hover {
+  background-color: #f8fafc !important;
+}
+
+.expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: var(--gray-400);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.task-main-row:hover .expand-icon {
+  color: var(--maroon);
+}
+
+.task-details-row {
+  background-color: #fafbfc;
+  transition: all 0.3s ease;
+}
+
+.task-details-row.collapsed {
+  display: none;
+}
+
+.task-details-wrapper {
+  padding: 16px 24px 24px 48px;
+  border-left: 3px solid var(--maroon);
+}
+
+/* Timeline Aesthetics */
+.report-task-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.report-task-timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timeline-header-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--gray-400);
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -22px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 2px solid var(--maroon);
+  box-shadow: 0 0 0 3px #fff;
+  z-index: 2;
+  transition: background-color 0.2s ease;
+}
+
+.timeline-item:hover .timeline-marker {
+  background-color: var(--maroon);
+}
+
+.timeline-content {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.timeline-content:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border-color: #cbd5e1;
+}
+
+.timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+.timeline-author {
+  font-weight: 600;
+  color: var(--gray-700);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gray-400);
+}
+
+.timeline-text {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Empty State Styling */
+.report-task-timeline.empty {
+  padding-left: 0;
+}
+.report-task-timeline.empty::before {
+  display: none;
+}
+
+.timeline-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  color: var(--gray-400);
+  text-align: center;
+  font-size: 13px;
+}
+
+.timeline-empty-state i {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: var(--gray-300);
+}
+
+.timeline-fallback-notes {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--gray-500);
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  max-width: 100%;
+}
+
 
 /* ─── TOAST NOTIFICATIONS ────────────────────────── */
 .pams-toast-container {

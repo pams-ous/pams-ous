@@ -14,6 +14,7 @@
     let allUsers = [];
     let searchQuery = '';
     let sortMode = 'date-desc';
+    let expandedTasks = new Set();
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -119,8 +120,28 @@
 
         if (CONFIG.USE_MOCK_API) {
             renderReportPreview([
-                { title: 'Process Student Appeals', assignee_name: 'Juan Dela Cruz', historical_status: 'IN PROGRESS', priority: 'URGENT' },
-                { title: 'Update Faculty Records', assignee_name: 'Maria Santos', historical_status: 'COMPLETED', priority: 'MEDIUM' }
+                {
+                    task_id: 101,
+                    title: 'Process Student Appeals',
+                    assignee_name: 'Juan Dela Cruz',
+                    historical_status: 'IN PROGRESS',
+                    priority: 'URGENT',
+                    updates: [
+                        { logged_at: '2026-05-20T10:00:00Z', updated_text: 'Reviewed initial batch of appeal forms.', status_change: 'in_progress', updated_by_name: 'Juan Dela Cruz' },
+                        { logged_at: '2026-05-22T15:30:00Z', updated_text: 'Met with committee to discuss exceptions.', status_change: 'in_progress', updated_by_name: 'Juan Dela Cruz' }
+                    ]
+                },
+                {
+                    task_id: 102,
+                    title: 'Update Faculty Records',
+                    assignee_name: 'Maria Santos',
+                    historical_status: 'COMPLETED',
+                    priority: 'MEDIUM',
+                    updates: [
+                        { logged_at: '2026-05-19T09:00:00Z', updated_text: 'Collected updated CVs from engineering department.', status_change: 'in_progress', updated_by_name: 'Maria Santos' },
+                        { logged_at: '2026-05-23T16:00:00Z', updated_text: 'All records updated in the portal. Marking as complete.', status_change: 'completed', updated_by_name: 'Maria Santos' }
+                    ]
+                }
             ]);
             return;
         }
@@ -220,10 +241,12 @@
         document.getElementById('previewTitle').textContent = `${report.report_type} Accomplishment Report`;
         document.getElementById('previewPeriod').textContent = `Period: ${fmtDate(report.period_start)} – ${fmtDate(report.period_end)} | Scope: ${report.scope_type}`;
         
+        expandedTasks.clear();
+
         // Calculate stats from snapshot data
         const stats = { total: tasks.length, completed: 0, inProgress: 0, pending: 0, cancelled: 0 };
         tasks.forEach(t => {
-            const s = (t.historical_status || "").toLowerCase();
+            const s = (t.historical_status || "").toLowerCase().replace('_', ' ');
             if (s === 'completed') stats.completed++;
             else if (s === 'in progress') stats.inProgress++;
             else if (s === 'pending') stats.pending++;
@@ -234,23 +257,95 @@
         document.getElementById('statCompleted').textContent = stats.completed;
         document.getElementById('statInProgress').textContent = stats.inProgress;
 
-        const statusMap = { 'COMPLETED': 'badge-completed', 'IN PROGRESS': 'badge-in_progress', 'PENDING': 'badge-pending', 'CANCELLED': 'badge-cancelled' };
+        const statusMap = { 
+            'COMPLETED': 'badge-completed', 
+            'IN PROGRESS': 'badge-in_progress', 
+            'IN_PROGRESS': 'badge-in_progress', 
+            'PENDING': 'badge-pending', 
+            'CANCELLED': 'badge-cancelled' 
+        };
         const prioMap = { 'URGENT': 'badge-urgent', 'HIGH': 'badge-urgent', 'MEDIUM': 'badge-in_progress', 'LOW': 'badge-pending' };
 
         const tbody = document.getElementById('taskBody');
         if (tbody) {
-            tbody.innerHTML = tasks.length === 0
-                ? '<tr><td colspan="4" class="log-empty">No tasks in this report.</td></tr>'
-                : tasks.map(t => `
-                    <tr>
-                        <td class="fw-600">${t.title}</td>
-                        <td>${t.assignee_name || '—'}</td>
-                        <td><span class="badge ${statusMap[t.historical_status.toUpperCase()] || ''}">${t.historical_status}</span></td>
-                        <td><span class="badge ${prioMap[t.priority.toUpperCase()] || ''}">${t.priority}</span></td>
-                    </tr>`).join('');
+            if (tasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="log-empty">No tasks in this report.</td></tr>';
+            } else {
+                tbody.innerHTML = tasks.map((t, idx) => {
+                    const taskId = t.task_id || `temp-${idx}`;
+                    const displayStatus = (t.historical_status || '').replace('_', ' ');
+                    return `
+                        <tr class="task-main-row" onclick="window.Reports.toggleTaskDetails('${taskId}')">
+                            <td class="fw-600">
+                                <span class="expand-icon" id="icon-${taskId}">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </span>
+                                ${t.title}
+                            </td>
+                            <td>${t.assignee_name || '—'}</td>
+                            <td><span class="badge ${statusMap[t.historical_status.toUpperCase()] || ''}">${displayStatus}</span></td>
+                            <td><span class="badge ${prioMap[t.priority.toUpperCase()] || ''}">${t.priority}</span></td>
+                        </tr>
+                        <tr class="task-details-row collapsed" id="details-${taskId}">
+                            <td colspan="4">
+                                <div class="task-details-wrapper">
+                                    ${renderTimeline(t)}
+                                </div>
+                            </td>
+                        </tr>`;
+                }).join('');
+            }
         }
 
         renderChart(stats);
+    }
+
+    function renderTimeline(task) {
+        if (!task.updates || task.updates.length === 0) {
+            return `
+                <div class="report-task-timeline empty">
+                    <div class="timeline-empty-state">
+                        <i class="fa-regular fa-comment-dots"></i>
+                        <span>No updates logged during this period.</span>
+                        <div class="timeline-fallback-notes">
+                            <strong>Latest Status Snapshot:</strong> ${task.historical_notes || 'No notes available.'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const statusMap = { 
+            'COMPLETED': 'badge-completed', 
+            'IN PROGRESS': 'badge-in_progress', 
+            'IN_PROGRESS': 'badge-in_progress', 
+            'PENDING': 'badge-pending', 
+            'CANCELLED': 'badge-cancelled' 
+        };
+
+        return `
+            <div class="report-task-timeline">
+                <div class="timeline-header-title">Status Updates Log</div>
+                ${task.updates.map(up => {
+                    const statusVal = (up.status_change || '').toUpperCase();
+                    const displayStatus = statusVal.replace('_', ' ');
+                    const statusBadge = statusVal ? `<span class="badge ${statusMap[statusVal] || ''}">${displayStatus}</span>` : '';
+                    return `
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-meta">
+                                    <span class="timeline-author"><i class="fa-solid fa-user-circle"></i> ${up.updated_by_name || 'System'}</span>
+                                    <span class="timeline-time"><i class="fa-regular fa-clock"></i> ${new Date(up.logged_at).toLocaleString()}</span>
+                                    ${statusBadge}
+                                </div>
+                                <div class="timeline-text">${up.updated_text || 'No description provided.'}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
     }
 
     function renderChart(stats) {
@@ -524,6 +619,21 @@
         },
         onSearch: (q) => { searchQuery = q || ''; renderHistory(); },
         onSort: (mode) => { sortMode = mode || 'date-desc'; renderHistory(); },
+        toggleTaskDetails: (taskId) => {
+            const detailsRow = document.getElementById(`details-${taskId}`);
+            const icon = document.getElementById(`icon-${taskId}`);
+            if (!detailsRow || !icon) return;
+
+            if (expandedTasks.has(taskId)) {
+                expandedTasks.delete(taskId);
+                detailsRow.classList.add('collapsed');
+                icon.querySelector('i').className = 'fa-solid fa-chevron-right';
+            } else {
+                expandedTasks.add(taskId);
+                detailsRow.classList.remove('collapsed');
+                icon.querySelector('i').className = 'fa-solid fa-chevron-down';
+            }
+        },
         print: () => window.print()
     };
 })();
