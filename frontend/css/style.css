@@ -4,7 +4,13 @@
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
+
+/* Hide print layout on screen */
+.print-only-report {
+  display: none;
+}
 
 .no-transition,
 .no-transition * {
@@ -3057,6 +3063,313 @@ body.sidebar-open .main {
   margin: 1rem 0;
 }
 
+@media print {
+  /* Hide all top-level body children by default to prevent overlays/non-report leaks */
+  body > * {
+    display: none !important;
+  }
+
+  /* Explicitly display and style only the print report container */
+  body > #printReportContainer {
+    display: block !important;
+    font-family: 'EB Garamond', Garamond, Georgia, serif !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+    color: #000 !important;
+  }
+
+  /* Reset body layout for full page printing */
+  body {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    width: 100% !important;
+    min-height: auto !important;
+  }
+
+  /* Document layout and margins */
+  @page {
+    size: auto;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+
+  .print-document {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  /* Institutional Letterhead Styling */
+  .print-letterhead {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 15px !important;
+    margin-bottom: 12px !important;
+    text-align: center !important;
+  }
+
+  .print-logo {
+    width: 60px !important;
+    height: 60px !important;
+    object-fit: contain !important;
+  }
+
+  .print-institution-details {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .print-inst-name {
+    font-size: 13pt !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    color: #58181F !important; /* Maroon color accent */
+  }
+
+  .print-inst-sub {
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    color: #444 !important;
+  }
+
+  .print-inst-office {
+    font-size: 9pt !important;
+    font-style: italic !important;
+    color: #666 !important;
+  }
+
+  /* Double-line divider under letterhead */
+  .print-divider {
+    border-top: 1px solid #000 !important;
+    border-bottom: 2px solid #000 !important;
+    height: 2px !important;
+    margin-bottom: 20px !important;
+  }
+
+  /* Document Title */
+  .print-doc-title {
+    font-size: 16pt !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    margin: 0 0 20px 0 !important;
+    letter-spacing: 0.5px !important;
+    color: #000 !important;
+  }
+
+  /* Metadata Info Box */
+  .print-metadata-grid {
+    display: flex !important;
+    justify-content: space-between !important;
+    margin-bottom: 25px !important;
+    padding: 10px 12px !important;
+    background-color: #fcfbf9 !important;
+    border: 1px solid #ddd !important;
+    font-size: 10.5pt !important;
+  }
+
+  .print-meta-col {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  /* Section Title (formal serif style) */
+  .print-section-title {
+    font-size: 12pt !important;
+    font-weight: 800 !important;
+    border-bottom: 1.5px solid #000 !important;
+    padding-bottom: 4px !important;
+    margin: 25px 0 12px 0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    page-break-after: avoid !important;
+  }
+
+  .print-section-sublabel {
+    font-weight: 700 !important;
+    margin-bottom: 6px !important;
+    font-size: 10pt !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    color: #444 !important;
+  }
+
+  /* Executive Summary Stats Table */
+  .print-stats-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 20px !important;
+    font-size: 10.5pt !important;
+  }
+
+  .print-stats-table th {
+    background-color: #f1ede4 !important;
+    border: 1px solid #ccc !important;
+    padding: 6px 10px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+  }
+
+  .print-stats-table td {
+    border: 1px solid #ccc !important;
+    padding: 8px 10px !important;
+    text-align: center !important;
+  }
+
+  .print-stat-green { color: #15803d !important; font-weight: 700 !important; }
+  .print-stat-blue { color: #1d4ed8 !important; font-weight: 700 !important; }
+  .print-stat-amber { color: #b45309 !important; font-weight: 700 !important; }
+  .print-stat-gray { color: #4b5563 !important; font-weight: 700 !important; }
+
+  /* Task Blocks */
+  .print-tasks-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .print-task-block {
+    border: 1px solid #ccc !important;
+    padding: 15px !important;
+    background: #fff !important;
+    page-break-inside: avoid !important; /* Ensure tasks do not split awkwardly across pages */
+  }
+
+  .print-task-title {
+    font-size: 12pt !important;
+    font-weight: 800 !important;
+    margin: 0 0 6px 0 !important;
+    color: #58181F !important;
+  }
+
+  .print-task-meta {
+    font-size: 9.5pt !important;
+    color: #444 !important;
+    margin-bottom: 8px !important;
+    border-bottom: 1px dashed #ddd !important;
+    padding-bottom: 6px !important;
+  }
+
+  .print-task-desc {
+    font-size: 10pt !important;
+    margin-bottom: 12px !important;
+    text-align: justify !important;
+  }
+
+  .print-task-updates {
+    margin-top: 10px !important;
+  }
+
+  /* Activity Logs Table */
+  .print-updates-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 5px !important;
+    font-size: 9pt !important;
+  }
+
+  .print-updates-table th {
+    background-color: #faf9f6 !important;
+    border-bottom: 1.5px solid #ccc !important;
+    padding: 4px 6px !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+  }
+
+  .print-updates-table td {
+    border-bottom: 1px solid #eee !important;
+    padding: 6px 6px !important;
+    vertical-align: top !important;
+  }
+
+  .print-timeline-empty {
+    font-size: 9.5pt !important;
+    font-style: italic !important;
+    color: #666 !important;
+    padding: 5px 0 !important;
+  }
+
+  /* Print badges */
+  .print-badge-inline {
+    display: inline-block !important;
+    padding: 1px 6px !important;
+    font-size: 8.5pt !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    border: 1px solid #ccc !important;
+    border-radius: 2px !important;
+  }
+
+  .print-status-completed {
+    border-color: #15803d !important;
+    background-color: #f0fdf4 !important;
+    color: #15803d !important;
+  }
+
+  .print-status-in_progress, .print-status-in-progress {
+    border-color: #1d4ed8 !important;
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+  }
+
+  .print-status-pending {
+    border-color: #b45309 !important;
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+  }
+
+  .print-status-cancelled {
+    border-color: #4b5563 !important;
+    background-color: #f9fafb !important;
+    color: #4b5563 !important;
+  }
+
+  /* Signatures Section */
+  .print-signatures-section {
+    display: flex !important;
+    justify-content: space-between !important;
+    margin-top: 50px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-signature-block {
+    width: 45% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .print-sig-line {
+    width: 80% !important;
+    border-top: 1px solid #000 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .print-sig-name {
+    font-weight: 700 !important;
+    font-size: 11pt !important;
+  }
+
+  .print-sig-role {
+    font-size: 9.5pt !important;
+    color: #555 !important;
+  }
+
+  .print-empty-state {
+    text-align: center !important;
+    padding: 20px !important;
+    border: 1px dashed #ccc !important;
+    font-style: italic !important;
+    color: #666 !important;
+  }
+}
+
 .terms-footer {
   margin-top: 2rem;
   padding-top: 1.25rem;
@@ -3109,61 +3422,6 @@ body.sidebar-open .main {
   }
 }
 
-@media print {
-
-  .sidebar,
-  .alert-banner,
-  .page-header,
-  .tb-ribbon,
-  .action-row,
-  .history-panel,
-  .modal-backdrop {
-    display: none !important;
-  }
-
-  .main {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-
-  .report-layout {
-    display: block;
-  }
-
-  .preview-panel {
-    box-shadow: none;
-    border: none;
-  }
-
-  .preview-header {
-    -webkit-print-color-adjust: exact;
-    background-color: var(--maroon) !important;
-    color: #fff !important;
-  }
-
-  /* Force all task details rows to be displayed */
-  .task-details-row {
-    display: table-row !important;
-  }
-  .task-details-row.collapsed {
-    display: table-row !important;
-  }
-  .expand-icon {
-    display: none !important;
-  }
-  .task-details-wrapper {
-    padding: 12px 16px 16px 20px !important;
-    border-left: 2px solid var(--maroon) !important;
-  }
-  .timeline-content {
-    box-shadow: none !important;
-    border: 1px solid #cbd5e1 !important;
-  }
-  /* Ensure page breaks don't split a task and its details */
-  .task-main-row, .task-details-row {
-    page-break-inside: avoid;
-  }
-}
 
 /* ─── COLLAPSIBLE TASK TIMELINE STYLES ───────────────── */
 .task-main-row {

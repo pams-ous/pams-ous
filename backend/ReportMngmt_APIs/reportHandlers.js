@@ -42,7 +42,7 @@ async function reportAPI(io, db) {
         socket.on("getReportDetails", async (reportId) => {
             try {
                 const taskQuery = `
-                    SELECT t.task_id, t.title, t.priority,
+                    SELECT t.task_id, t.title, t.priority, t.description,
                            COALESCE(tu.status_change, t.status) AS historical_status,
                            COALESCE(tu.updated_text, 'No update logged during this period.') AS historical_notes,
                            COALESCE(CONCAT_WS(' ', e.first_name, e.last_name), g.group_name, 'Unassigned') AS assignee_name

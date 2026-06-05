@@ -123,6 +123,7 @@
                 {
                     task_id: 101,
                     title: 'Process Student Appeals',
+                    description: 'Review and evaluate pending student appeal forms regarding grading, course credits, and retention policies, preparing recommendations for the registrar office.',
                     assignee_name: 'Juan Dela Cruz',
                     historical_status: 'IN PROGRESS',
                     priority: 'URGENT',
@@ -134,6 +135,7 @@
                 {
                     task_id: 102,
                     title: 'Update Faculty Records',
+                    description: 'Update the official database of faculty members for the current academic term, gathering and validating current Curriculum Vitae and teaching load profiles.',
                     assignee_name: 'Maria Santos',
                     historical_status: 'COMPLETED',
                     priority: 'MEDIUM',
@@ -298,6 +300,145 @@
         }
 
         renderChart(stats);
+        renderPrintReport(report, tasks, stats);
+    }
+
+    function renderPrintReport(report, tasks, stats) {
+        const container = document.getElementById('printReportContainer');
+        if (!container) return;
+
+        const statusMap = {
+            'COMPLETED': 'Completed',
+            'IN PROGRESS': 'In Progress',
+            'IN_PROGRESS': 'In Progress',
+            'PENDING': 'Pending',
+            'CANCELLED': 'Cancelled'
+        };
+
+        const taskBlocks = tasks.map((t, idx) => {
+            const displayStatus = statusMap[(t.historical_status || '').toUpperCase()] || t.historical_status || 'Pending';
+            const displayPriority = t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase() : 'Low';
+            
+            // Build updates logs
+            let updatesHTML = '';
+            if (!t.updates || t.updates.length === 0) {
+                updatesHTML = `<div class="print-timeline-empty">No updates logged during this period.</div>`;
+            } else {
+                updatesHTML = `
+                    <table class="print-updates-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%">Date & Time</th>
+                                <th style="width: 20%">User</th>
+                                <th style="width: 15%">Status</th>
+                                <th style="width: 40%">Activity Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${t.updates.map(up => {
+                                const upStatus = statusMap[(up.status_change || '').toUpperCase()] || up.status_change || '—';
+                                return `
+                                    <tr>
+                                        <td>${new Date(up.logged_at).toLocaleString()}</td>
+                                        <td>${up.updated_by_name || 'System'}</td>
+                                        <td><span class="print-badge-inline print-status-${(up.status_change || '').toLowerCase()}">${upStatus}</span></td>
+                                        <td>${up.updated_text || 'No description provided.'}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            return `
+                <div class="print-task-block">
+                    <h3 class="print-task-title">${idx + 1}. ${t.title}</h3>
+                    <div class="print-task-meta">
+                        <strong>Assignee:</strong> ${t.assignee_name || '—'} &nbsp;|&nbsp; 
+                        <strong>Priority:</strong> ${displayPriority} &nbsp;|&nbsp; 
+                        <strong>Current Status:</strong> <span class="print-badge-inline print-status-${(t.historical_status || '').toLowerCase()}">${displayStatus}</span>
+                    </div>
+                    <div class="print-task-desc">
+                        <strong>Description:</strong> ${t.description || 'No description provided.'}
+                    </div>
+                    <div class="print-task-updates">
+                        <div class="print-section-sublabel">Activity & Status Log:</div>
+                        ${updatesHTML}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="print-document">
+                <!-- Institutional Header -->
+                <div class="print-letterhead">
+                    <img class="print-logo" src="../assets/pup_ous_seal.webp" alt="PUP OUS Seal">
+                    <div class="print-institution-details">
+                        <div class="print-inst-name">POLYTECHNIC UNIVERSITY OF THE PHILIPPINES</div>
+                        <div class="print-inst-sub">OPEN UNIVERSITY SYSTEM</div>
+                        <div class="print-inst-office">Personnel Accomplishment Management System</div>
+                    </div>
+                </div>
+                
+                <div class="print-divider"></div>
+                
+                <!-- Document Title -->
+                <h1 class="print-doc-title">${report.report_type.toUpperCase()} ACCOMPLISHMENT REPORT</h1>
+                
+                <!-- Metadata Block -->
+                <div class="print-metadata-grid">
+                    <div class="print-meta-col">
+                        <div><strong>Report ID:</strong> #${report.report_id}</div>
+                        <div><strong>Reporting Period:</strong> ${fmtDate(report.period_start)} – ${fmtDate(report.period_end)}</div>
+                        <div><strong>Scope:</strong> ${report.scope_target || report.scope_type}</div>
+                    </div>
+                    <div class="print-meta-col">
+                        <div><strong>Date Generated:</strong> ${new Date(report.generated_at).toLocaleString()}</div>
+                        <div><strong>Generated By:</strong> ${report.generated_by_name || 'Admin'}</div>
+                    </div>
+                </div>
+
+                <!-- Executive Summary Statistics -->
+                <div class="print-section-title">EXECUTIVE SUMMARY STATISTICS</div>
+                <table class="print-stats-table">
+                    <thead>
+                        <tr>
+                            <th>Total Tasks</th>
+                            <th>Completed</th>
+                            <th>In Progress</th>
+                            <th>Pending</th>
+                            <th>Cancelled</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>${stats.total}</strong></td>
+                            <td class="print-stat-green">${stats.completed}</td>
+                            <td class="print-stat-blue">${stats.inProgress}</td>
+                            <td class="print-stat-amber">${stats.pending}</td>
+                            <td class="print-stat-gray">${stats.cancelled}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Detailed Accomplishments -->
+                <div class="print-section-title">DETAILED TASK ACCOMPLISHMENTS</div>
+                <div class="print-tasks-container">
+                    ${taskBlocks.length > 0 ? taskBlocks : '<div class="print-empty-state">No tasks recorded for this report.</div>'}
+                </div>
+
+                <!-- Footer Signatures -->
+                <div class="print-signatures-section">
+                    <div class="print-signature-block">
+                        <div class="print-sig-line"></div>
+                        <div class="print-sig-name">${report.generated_by_name || 'Admin'}</div>
+                        <div class="print-sig-role">Prepared By</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function renderTimeline(task) {
