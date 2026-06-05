@@ -1517,6 +1517,16 @@ body.sidebar-open .main {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.status-tab:not(.active):hover {
+   background: var(--gray-100);
+   color: var(--maroon);
+}
+
+.status-tab:not(.active):hover .cnt {
+   background: var(--red-bg);
+   color: var(--maroon);
+}
+
 /* Task Rows */
 .tb-list-wrap {
   padding: 1.5rem 2rem;
