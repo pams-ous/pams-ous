@@ -41,13 +41,6 @@ async function reportAPI(io, db) {
          */
         socket.on("getReportDetails", async (reportId) => {
             try {
-                // Fetch report dates to filter updates accurately
-                const [reportRows] = await db.query("SELECT period_start, period_end FROM Report WHERE report_id = ?", [reportId]);
-                if (reportRows.length === 0) {
-                    throw new Error("Report not found");
-                }
-                const { period_start, period_end } = reportRows[0];
-
                 const taskQuery = `
                     SELECT t.task_id, t.title, t.priority,
                            COALESCE(tu.status_change, t.status) AS historical_status,
@@ -62,19 +55,21 @@ async function reportAPI(io, db) {
                 `;
                 const [tasks] = await db.query(taskQuery, [reportId]);
 
-                // Fetch all updates for these tasks during the report period
+                // Fetch all updates for these tasks during the report period, up to the report's generation time
                 const updatesQuery = `
                     SELECT tu.task_id, tu.logged_at, tu.updated_text, tu.status_change,
                            CONCAT_WS(' ', e.first_name, e.last_name) AS updated_by_name
                     FROM Task_Updates tu
+                    JOIN Report r ON r.report_id = ?
                     LEFT JOIN Employees e ON tu.updated_by = e.employee_id
                     WHERE tu.task_id IN (
                         SELECT task_id FROM Report_Entries WHERE report_id = ?
                     )
-                    AND tu.logged_at BETWEEN ? AND ?
+                    AND tu.logged_at BETWEEN r.period_start AND r.period_end
+                    AND tu.logged_at <= r.generated_at
                     ORDER BY tu.logged_at DESC;
                 `;
-                const [updates] = await db.query(updatesQuery, [reportId, period_start, period_end]);
+                const [updates] = await db.query(updatesQuery, [reportId, reportId]);
 
                 // Group updates by task_id
                 const updatesByTask = {};
