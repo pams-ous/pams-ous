@@ -4,6 +4,8 @@
  * Standard: Socket.io Event-Driven Architecture + Audit-Proof Snapshots.
  */
 
+const { recordNotification } = require('../UserMngmt_APIs/notifications');
+
 async function reportAPI(io, db) {
     io.on("connection", (socket) => {
         console.log("Reports API: Admin connected.");
@@ -167,6 +169,17 @@ async function reportAPI(io, db) {
 
                 io.emit("reportGenerated", { reportId, title: `${reportType} Report Created`, by: generatedByEmail });
 
+                // GLOBAL NOTIFICATION: Notify everyone that a report was generated
+                const [adminRows] = await db.query("SELECT CONCAT_WS(' ', first_name, last_name) as name FROM Employees WHERE email = ?", [generatedByEmail]);
+                const adminName = adminRows[0]?.name || generatedByEmail;
+
+                await recordNotification(db, {
+                    kind: "report_generated",
+                    title: "Report Generated",
+                    body: `${adminName} generated a ${reportType} report snapshot.`,
+                    relatedUrl: null
+                });
+
                 socket.emit("reportLog", { 
                     success: true, 
                     stage: "generate", 
@@ -184,10 +197,29 @@ async function reportAPI(io, db) {
          */
         socket.on("deleteReport", async (reportId) => {
             try {
+                // To get the admin name for the notification, we might need the current socket's email
+                // In this Socket implementation, user identification is often handled via a custom property
+                // assigned during session registration (e.g., socket.userEmail)
+                const adminEmail = socket.userEmail;
+                let adminName = 'An administrator';
+                
+                if (adminEmail) {
+                    const [userRows] = await db.query("SELECT CONCAT_WS(' ', first_name, last_name) as name FROM Employees WHERE email = ?", [adminEmail]);
+                    if (userRows.length > 0) adminName = userRows[0].name;
+                }
+
                 await db.query("DELETE FROM Report WHERE report_id = ?", [reportId]);
                 
                 // Broadcast to all admins to sync their history list
                 io.emit("reportDeleted", reportId);
+
+                // GLOBAL NOTIFICATION: Notify everyone that a report was deleted
+                await recordNotification(db, {
+                    kind: "report_deleted",
+                    title: "Report Deleted",
+                    body: `${adminName} deleted a report snapshot.`,
+                    relatedUrl: null
+                });
 
                 socket.emit("reportLog", { 
                     success: true, 
