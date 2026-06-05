@@ -2,6 +2,8 @@ const {getEmployeeDetails} = require("./dbChecks");
 const { verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
 const { hash_password, validatePassword } = require("./passwordUtil");
+const { recordNotification } = require("./notifications");
+const { formatFullName } = require("./userUtils");
 
 async function getEmployeeData(db, data, socket, mode, state) {
 
@@ -109,9 +111,28 @@ async function manageAccountAPI(io, db, app) {
                 return;
             }
             const state = { accountFound: false };
-            const {email, empID} = await getEmployeeData(db, data, socket, "delete", state);
+            
+            // Need user details before deletion for notification
+            const { email } = data;
+            const userDetails = await getEmployeeDetails(db, email);
+            const deletedUserName = formatFullName(userDetails);
+            
+            const {empID} = await getEmployeeData(db, data, socket, "delete", state);
             
             if (empID !== undefined) {
+                // Notification: user x was deleted by Admin y
+                const token = socket.handshake.auth?.token;
+                const adminUser = verifyToken(token);
+                const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [adminUser.id]);
+                const adminName = formatFullName(adminData[0]);
+
+                await recordNotification(db, {
+                    kind: "user_deleted",
+                    title: "User Deleted",
+                    body: `${deletedUserName} was deleted by ${adminName}`,
+                    relatedUrl: null
+                });
+
                 socket.emit('managementLog', {
                     success: true,
                     rawData: `Deletion of ${email} by ${empID} successful.`
@@ -167,16 +188,29 @@ async function manageAccountAPI(io, db, app) {
     app.delete('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const userEmail = req.params.id;
         try {
-            const [user] = await db.query('SELECT employee_id FROM Employees WHERE email = ? LIMIT 1', [userEmail]);
+            const [user] = await db.query('SELECT employee_id, first_name, last_name, suffix FROM Employees WHERE email = ? LIMIT 1', [userEmail]);
             if (user.length === 0) {
                 return res.status(404).json({ success: false, message: "User not found with provided email" });
             }
-            const userId = user[0].employee_id;
+            const deletedUser = user[0];
+            const userId = deletedUser.employee_id;
 
             const [result] = await db.query('DELETE FROM Employees WHERE employee_id = ?', [userId]);
             if (result.affectedRows === 0) {
                 return res.status(404).json({ success: false, message: "User not found" });
             }
+
+            // Notification: user x was deleted by Admin y
+            const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
+            const adminName = formatFullName(adminData[0]);
+
+            await recordNotification(db, {
+                kind: "user_deleted",
+                title: "User Deleted",
+                body: `${formatFullName(deletedUser)} was deleted by ${adminName}`,
+                relatedUrl: null
+            });
+
             res.json({ success: true, message: "User deleted successfully" });
         } catch (err) {
             console.error("Delete Error:", err);

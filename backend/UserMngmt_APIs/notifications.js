@@ -20,16 +20,39 @@ function notificationsRouter(db) {
     const router = express.Router();
     router.use(authenticateToken);
 
+    // Ensure table has targeting columns (robust migration)
+    (async () => {
+        try {
+            const [columns] = await db.query("SHOW COLUMNS FROM Notifications");
+            const colNames = columns.map(c => c.Field);
+            
+            if (!colNames.includes('target_user_id')) {
+                await db.query(`ALTER TABLE Notifications ADD COLUMN target_user_id INT NULL`);
+            }
+            if (!colNames.includes('target_role')) {
+                await db.query(`ALTER TABLE Notifications ADD COLUMN target_role VARCHAR(50) NULL`);
+            }
+        } catch (e) {
+            console.error("Migration failed:", e.message);
+        }
+    })();
+
     // GET /api/notifications — Returns all notifications.
-    // Note: This is currently a global feed; all users see all notifications.
     router.get("/", async (req, res) => {
         try {
+            const userId = req.user.id;
+            const userRole = req.user.role; // 'ADMIN' or 'MEMBER'
+
             const [history] = await db.query(`
                 SELECT notification_id, notif_message, notif_date
                 FROM Notifications
+                WHERE 
+                    target_user_id IS NULL 
+                    OR target_user_id = ? 
+                    OR (target_role = 'Admin' AND ? = 'ADMIN')
                 ORDER BY notif_date DESC
                 LIMIT 50
-            `);
+            `, [userId, userRole]);
 
             // We still return a 'current' array for the frontend's expected structure (live tasks)
             const empId = req.user.id;
@@ -196,7 +219,7 @@ async function loadCurrent(db, employeeId) {
     });
 }
 
-async function recordNotification(db, { employeeId, kind, title, body, relatedUrl }) {
+async function recordNotification(db, { employeeId, kind, title, body, relatedUrl, targetUserId = null, targetRole = null }) {
     let message;
     if (kind === "user_approval") {
         // structured as: ACTION:APPROVE_USER | userId | role | email
@@ -208,8 +231,8 @@ async function recordNotification(db, { employeeId, kind, title, body, relatedUr
     
     try {
         await db.query(
-            `INSERT INTO Notifications (notif_message) VALUES (?)`,
-            [message]
+            `INSERT INTO Notifications (notif_message, target_user_id, target_role) VALUES (?, ?, ?)`,
+            [message, targetUserId, targetRole]
         );
     } catch (err) {
         console.warn("Notification persist failed:", err.message);
