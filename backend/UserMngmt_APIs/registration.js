@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { hash_password, verify_pass } = require("./passwordUtil");
+const { hash_password, verify_pass, validatePassword } = require("./passwordUtil");
 const { ifEmployeeExists } = require("./dbChecks");
 const { generateAndSendOtp, verifyOtp } = require("./otpService");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
@@ -36,6 +36,15 @@ async function handleRequest(db, socket, data) {
             success: false,
             stage: "request",
             rawData: "Passwords do not match."
+        });
+    }
+
+    const policy = validatePassword(tempPassword);
+    if (!policy.valid) {
+        return socket.emit("registrationLog", {
+            success: false,
+            stage: "request",
+            rawData: policy.message
         });
     }
 
@@ -183,6 +192,11 @@ async function regiUserAPI(io, db, app) {
         
         if (!email || !password || !firstName || !lastName) {
             return res.status(400).json({ success: false, message: "Email, Password, First Name, and Last Name are required" });
+        }
+
+        const policy = validatePassword(password);
+        if (!policy.valid) {
+            return res.status(400).json({ success: false, message: policy.message });
         }
 
         try {

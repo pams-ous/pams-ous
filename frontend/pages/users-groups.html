@@ -218,12 +218,16 @@
                     <label class="form-label">Password *</label>
                     <div class="password-field-wrap">
                         <input type="password" id="newUserPassword" class="form-control"
-                            placeholder="••••••••" required>
+                            placeholder="••••••••" required minlength="8"
+                            aria-describedby="newUserPassword-hint">
                         <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('newUserPassword', this)"
                             aria-label="Toggle password visibility">
                             <i class="fa-regular fa-eye-slash"></i>
                         </button>
                     </div>
+                    <small id="newUserPassword-hint" class="text-xs color-gray">
+                        At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.
+                    </small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Confirm Password *</label>
@@ -275,12 +279,16 @@
                 <div class="form-group">
                     <label class="form-label">New Password</label>
                     <div class="password-field-wrap">
-                        <input type="password" id="editUserPassword" class="form-control" placeholder="Min. 6 characters">
+                        <input type="password" id="editUserPassword" class="form-control"
+                            placeholder="••••••••" minlength="8" aria-describedby="editUserPassword-hint">
                         <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('editUserPassword', this)"
                             aria-label="Toggle password visibility">
                             <i class="fa-regular fa-eye-slash"></i>
                         </button>
                     </div>
+                    <small id="editUserPassword-hint" class="text-xs color-gray">
+                        At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.
+                    </small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Confirm New Password</label>
@@ -316,7 +324,11 @@
                 <input type="hidden" id="resetPassUserId">
                 <div class="form-group">
                     <label class="form-label">New Password</label>
-                    <input type="password" id="resetPassValue" class="form-control" placeholder="Min. 6 characters">
+                    <input type="password" id="resetPassValue" class="form-control"
+                        placeholder="••••••••" minlength="8" aria-describedby="resetPassValue-hint">
+                    <small id="resetPassValue-hint" class="text-xs color-gray">
+                        At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.
+                    </small>
                 </div>
             </div>
             <div class="modal-footer">

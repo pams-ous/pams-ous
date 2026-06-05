@@ -1,7 +1,7 @@
 const {getEmployeeDetails} = require("./dbChecks");
 const { verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
-const { hash_password } = require("./passwordUtil");
+const { hash_password, validatePassword } = require("./passwordUtil");
 
 async function getEmployeeData(db, data, socket, mode, state) {
 
@@ -189,6 +189,11 @@ async function manageAccountAPI(io, db, app) {
         const { email, newPassword } = req.body;
         if (!email || !newPassword) {
             return res.status(400).json({ success: false, message: "Email and new password are required" });
+        }
+
+        const policy = validatePassword(newPassword);
+        if (!policy.valid) {
+            return res.status(400).json({ success: false, message: policy.message });
         }
 
         try {

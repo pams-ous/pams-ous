@@ -115,13 +115,17 @@
                 <label class="form-label" for="signup-password">Password *</label>
                 <div class="password-field-wrap">
                     <input type="password" id="signup-password" name="password" class="form-control"
-                        placeholder="••••••••" required aria-required="true">
+                        placeholder="••••••••" required aria-required="true" minlength="8"
+                        aria-describedby="signup-password-hint">
                     <button type="button" class="pass-toggle"
                         onclick="togglePasswordVisibility('signup-password', this)"
                         aria-label="Toggle password visibility">
                         <i class="fa-regular fa-eye-slash"></i>
                     </button>
                 </div>
+                <small id="signup-password-hint" class="text-xs color-gray">
+                    At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.
+                </small>
             </div>
 
             <div class="form-group">

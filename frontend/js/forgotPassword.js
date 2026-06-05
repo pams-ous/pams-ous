@@ -86,8 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
             PAMS.toast('Passwords do not match.', 'warning');
             return;
         }
-        if (newPassword.length < 8) {
-            PAMS.toast('Password must be at least 8 characters long.', 'warning');
+        const pwCheck = PAMS.validatePassword(newPassword);
+        if (!pwCheck.valid) {
+            PAMS.toast(pwCheck.message, 'warning');
             return;
         }
 
