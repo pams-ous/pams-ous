@@ -378,6 +378,51 @@
             });
             renderList();
         },
-        exportVisibleTasks: () => alert('Export feature triggered (Mock)')
+        exportVisibleTasks: () => {
+            // Grab the exact list of tasks currently visible on the screen
+            const list = applyAllFilters();
+            
+            if (list.length === 0) {
+                alert("No tasks visible to export.");
+                return;
+            }
+
+            // 1. Create the CSV Header row
+            let csvContent = "ID,Title,Priority,Status,Assignee,Due Date,Assigned By\n";
+
+            // 2. Loop through the tasks and build the rows
+            list.forEach(t => {
+                // Helper to escape commas and quotes inside text fields (like titles)
+                const escape = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
+                
+                const row = [
+                    t.id,
+                    escape(t.title),
+                    t.priority,
+                    t.status,
+                    escape(t.assignee?.name || 'Unassigned'),
+                    t.dueDate ? t.dueDate.split('T')[0] : '', // Clean up the date format
+                    escape(t.assignedByName)
+                ];
+                
+                csvContent += row.join(",") + "\n";
+            });
+
+            // 3. Create a downloadable Blob (a raw data file in memory)
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            // 4. Create a hidden link, click it to trigger download, and remove it
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            
+            // Name the file dynamically based on today's date
+            const todayStr = new Date().toISOString().split('T')[0];
+            link.setAttribute("download", `PAMS_Task_Export_${todayStr}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 })();

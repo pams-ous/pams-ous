@@ -11,7 +11,16 @@ const getInitials = (fName, lName) => {
 module.exports = {
     getTasks: async (req, res) => {
         try {
-            const rawTasks = await Task.findAll();
+            // run auto reset first
+            await Task.autoResetStaleTasks();
+
+            // capture the query string sent by the admin checkbox (?completedSince=all)
+            const { completedSince } = req.query;
+            
+            // pass the option down into the model
+            const rawTasks = await Task.findAll({ 
+                showAllCompleted: completedSince === 'all' 
+            });
 
             const formattedTasks = rawTasks.map(t => {
                 let assigneeObj = null;
@@ -222,6 +231,15 @@ module.exports = {
             if (status) updatePayload.status = status.toLowerCase(); 
 
             const affectedRows = await Task.update(id, updatePayload);
+            
+            // failsafe. If an Admin directly forces a status change, log it so the daily wipe logic catches it
+            if (status && status.toLowerCase() !== currentStatus) {
+                const newStatus = status.toLowerCase();
+                if (newStatus === 'completed' || newStatus === 'cancelled') {
+                    await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
+                }
+            }
+
             res.status(200).json({ message: 'Task updated successfully' });
         } catch (error) {
             console.error('Error updating task:', error);

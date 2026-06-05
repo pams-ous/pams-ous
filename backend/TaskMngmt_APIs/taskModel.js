@@ -2,7 +2,39 @@
 const db = require('./db');
 
 module.exports = {
-    findAll: async () => {
+    findAll: async (options = {}) => {
+        const { showAllCompleted } = options;
+        
+        let whereClause = '';
+        
+        // If the admin hasn't checked the box, apply the daily wipe rule
+        if (!showAllCompleted) {
+            whereClause = `
+                WHERE t.status NOT IN ('completed', 'cancelled') 
+                OR (
+                    t.status IN ('completed', 'cancelled') 
+                    AND (
+                        -- Check if the status was actually changed to completed/cancelled TODAY in the history logs
+                        EXISTS (
+                            SELECT 1 FROM Task_Updates tu 
+                            WHERE tu.task_id = t.task_id 
+                            AND tu.status_change IN ('completed', 'cancelled')
+                            AND DATE(tu.logged_at) = CURDATE()
+                        )
+                        -- Safety fallback: If a task has no history logs at all, fall back to updated_at
+                        OR (
+                            DATE(t.updated_at) = CURDATE()
+                            AND NOT EXISTS (
+                                SELECT 1 FROM Task_Updates tu 
+                                WHERE tu.task_id = t.task_id 
+                                AND tu.status_change IN ('completed', 'cancelled')
+                            )
+                        )
+                    )
+                )
+            `;
+        }
+
         const query = `
             SELECT 
                 t.task_id as id, t.title, t.description, t.priority, t.status, 
@@ -17,6 +49,8 @@ module.exports = {
             LEFT JOIN Employees a ON t.assigned_to_user = a.employee_id
             LEFT JOIN Job_Groups g ON t.assigned_to_group = g.group_id
             LEFT JOIN Employees c ON t.assigned_by = c.employee_id
+            ${whereClause}
+            ORDER BY t.created_at DESC
         `;
         const [rows] = await db.query(query);
         return rows;
@@ -79,7 +113,7 @@ module.exports = {
     },
 
     logUpdate: async (taskId, userId, notes, statusChange) => {
-        // 1. Insert the history entry into Task_Updates
+        // Insert the history entry into Task_Updates
         const logQuery = `
             INSERT INTO Task_Updates (task_id, updated_by, updated_text, status_change)
             VALUES (?, ?, ?, ?)
@@ -88,7 +122,7 @@ module.exports = {
         const logStatus = statusChange ? statusChange.toLowerCase().replace(' ', '_') : null;
         await db.query(logQuery, [taskId, userId, notes, logStatus]);
 
-        // 2. If a status change was requested, update the main Tasks table status too
+        // If a status change was requested, update the main Tasks table status too
         if (statusChange) {
             // Normalize for Tasks enum (which uses spaces, e.g., 'in progress')
             const taskStatus = statusChange.toLowerCase().replace('_', ' ');
@@ -107,5 +141,17 @@ module.exports = {
         `;
         const [rows] = await db.query(query, [taskId]);
         return rows;
+    },
+
+    autoResetStaleTasks: async () => {
+        // finds all 'in progress' tasks older than 24 hours 
+        // and updates them to 'pending' automatically.
+        const query = `
+            UPDATE Tasks 
+            SET status = 'pending' 
+            WHERE status = 'in progress' 
+            AND created_at < NOW() - INTERVAL 24 HOUR
+        `;
+        await db.query(query);
     }
 };
