@@ -11,7 +11,16 @@ const getInitials = (fName, lName) => {
 module.exports = {
     getTasks: async (req, res) => {
         try {
-            const rawTasks = await Task.findAll();
+            // run auto reset first
+            await Task.autoResetStaleTasks();
+
+            // capture the query string sent by the admin checkbox (?completedSince=all)
+            const { completedSince } = req.query;
+            
+            // pass the option down into the model
+            const rawTasks = await Task.findAll({ 
+                showAllCompleted: completedSince === 'all' 
+            });
 
             const formattedTasks = rawTasks.map(t => {
                 let assigneeObj = null;
@@ -55,6 +64,10 @@ module.exports = {
             const userEmail = req.query.email;
             if (!userEmail) return res.status(400).json({ message: 'Email required' });
 
+            // 'completed' view opt-in; any other value (including absent) falls back to active
+            const { view } = req.query;
+            const showCompleted = view === 'completed';
+
             // 1. Find the logged-in employee (Returns ONLY the ID based on our debug log)
             const employee = await Task.findEmployeeByEmail(userEmail);
             if (!employee) return res.status(404).json({ message: 'User not found' });
@@ -65,13 +78,17 @@ module.exports = {
             // 2. Fetch all raw tasks
             const rawTasks = await Task.findAll();
 
-            // 3. Match tasks strictly by ID (and exclude closed statuses)
+            // 3. Match tasks strictly by ID, then apply the active/completed filter
             const myRawTasks = rawTasks.filter(t => {
                 const matchesUser = t.assigned_to_user === targetId;
-                
-                // Exclude tasks that are completed or cancelled
+
+                if (showCompleted) {
+                    // Return only completed tasks; cancelled is always excluded
+                    return matchesUser && t.status === 'completed';
+                }
+
+                // Default: exclude completed and cancelled (active tasks only)
                 const isClosed = t.status === 'completed' || t.status === 'cancelled';
-                
                 return matchesUser && !isClosed;
             });
 
@@ -201,11 +218,14 @@ module.exports = {
             }
 
             const currentStatus = existingTask.status.toLowerCase();
+            const isAssignee = existingTask.assigned_to_user === req.user.id;
             if (status) {
                 const targetStatus = status.toLowerCase();
 
-                // Lock Terminal States: Regular users cannot resurrect completed or cancelled tasks
-                if (!isAuthorizedModifier && (currentStatus === 'completed' || currentStatus === 'cancelled')) {
+                // Lock Terminal States: a finalized (completed/cancelled) task may only be
+                // reopened by an admin/chief OR by the task's own assignee (their My Tasks).
+                // Everyone else is blocked from resurrecting it.
+                if (!isAuthorizedModifier && !isAssignee && (currentStatus === 'completed' || currentStatus === 'cancelled')) {
                     return res.status(403).json({ message: 'Cannot modify a finalized or cancelled task.' });
                 }
             }
@@ -222,6 +242,15 @@ module.exports = {
             if (status) updatePayload.status = status.toLowerCase(); 
 
             const affectedRows = await Task.update(id, updatePayload);
+            
+            // failsafe. If an Admin directly forces a status change, log it so the daily wipe logic catches it
+            if (status && status.toLowerCase() !== currentStatus) {
+                const newStatus = status.toLowerCase();
+                if (newStatus === 'completed' || newStatus === 'cancelled') {
+                    await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
+                }
+            }
+
             res.status(200).json({ message: 'Task updated successfully' });
         } catch (error) {
             console.error('Error updating task:', error);

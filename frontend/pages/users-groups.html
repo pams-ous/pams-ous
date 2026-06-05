@@ -89,56 +89,90 @@
         </div>
 
         <div class="content ph-32">
-            <div class="panels">
 
-                <!-- Users Panel -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title"><i class="fa-solid fa-user-gear"></i> System Users</div>
-                        <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')">
-                            <i class="fa-solid fa-user-plus"></i> Add User
-                        </button>
-                    </div>
-                    <div class="table-wrap ph-24" style="padding-bottom: 1.5rem;">
-                        <table class="data-table">
-							<thead>
-								<tr>
-									<th>Personnel</th>
-									<th>Email</th>
-									<th>Access Role</th>
-									<th>Groups</th> <th>Status</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
-                            <tbody id="usersBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Groups Panel -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title"><i class="fa-solid fa-layer-group"></i> Groups</div>
-                        <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')">
-                            <i class="fa-solid fa-plus"></i> Add Group
-                        </button>
-                    </div>
-                    <div class="table-wrap ph-24" style="padding-bottom: 1.5rem;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Group Name</th>
-                                    <th class="text-center">Members</th>
-                                    <th>Leader</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="groupsBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
+            <!-- Tab bar -->
+            <div class="ug-tablist" role="tablist" aria-label="Users and Groups sections">
+                <button
+                    id="tab-users"
+                    class="ug-tab active"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="panel-users"
+                    tabindex="0">
+                    <i class="fa-solid fa-user-gear"></i> System Users
+                </button>
+                <button
+                    id="tab-groups"
+                    class="ug-tab"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="panel-groups"
+                    tabindex="-1">
+                    <i class="fa-solid fa-layer-group"></i> Groups
+                </button>
             </div>
+
+            <!-- System Users panel -->
+            <div
+                id="panel-users"
+                class="panel ug-tabpanel"
+                role="tabpanel"
+                aria-labelledby="tab-users"
+                tabindex="0">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fa-solid fa-user-gear"></i> System Users</div>
+                    <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')" aria-label="Add new user">
+                        <i class="fa-solid fa-user-plus"></i> Add User
+                    </button>
+                </div>
+                <div class="table-wrap ph-24">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th class="th-sort" data-col="name" role="columnheader" aria-sort="ascending" tabindex="0"><span class="th-sort-inner">Personnel <i class="fa-solid fa-sort-up th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="email" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Email <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="role" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Access Role <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="jobtitle" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Job Title <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="groups" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Groups <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="status" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Status <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="actions" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Actions <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Groups panel -->
+            <div
+                id="panel-groups"
+                class="panel ug-tabpanel"
+                role="tabpanel"
+                aria-labelledby="tab-groups"
+                tabindex="0"
+                hidden>
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fa-solid fa-layer-group"></i> Groups</div>
+                    <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')" aria-label="Add new group">
+                        <i class="fa-solid fa-plus"></i> Add Group
+                    </button>
+                </div>
+                <div class="table-wrap ph-24">
+                    <table class="data-table" id="groupsTable">
+                        <thead>
+                            <tr>
+                                <th class="th-sort" data-col="name" role="columnheader" aria-sort="ascending" tabindex="0"><span class="th-sort-inner">Group Name <i class="fa-solid fa-sort-up th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="desc" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Description <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="leader" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Leader <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="members" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Members <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <th class="th-sort" data-col="actions" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Actions <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="groupsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </main>
 

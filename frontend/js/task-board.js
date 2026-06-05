@@ -213,13 +213,13 @@
         const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < new Date(new Date().toDateString());
 
         return `
-        <div class="tb-row">
+        <div class="tb-row${isOverdue ? ' is-overdue' : ''}"${isOverdue ? ' aria-label="Overdue task"' : ''}>
             <div class="tb-row-main" onclick="window.TaskBoard.openView(${t.id})">
                 <div class="tb-row-top">
                     <span class="tb-title">${t.title}</span>
                     <span class="badge ${pCls}">${t.priority}</span>
                     <span class="badge ${sCls}">${t.status}</span>
-                    ${isOverdue ? '<span class="tb-flag">OVERDUE</span>' : ''}
+                    ${isOverdue ? '<span class="tb-flag" title="This task is past its due date"><i class="fa-solid fa-clock" aria-hidden="true"></i> OVERDUE</span>' : ''}
                 </div>
                 <div class="tb-desc">${t.description || ''}</div>
                 <div class="tb-meta">
@@ -229,6 +229,7 @@
                 </div>
             </div>
             <div class="tb-row-actions">
+                <button class="ribbon-btn complete" title="Mark as Completed" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED') ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
                 <button class="ribbon-btn ghost" onclick="window.TaskBoard.openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
                 <button class="ribbon-btn ghost" onclick="window.TaskBoard.openDeleteTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
             </div>
@@ -368,6 +369,22 @@
             try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); }
             catch (err) { alert(err.message); }
         },
+        completeTask: async (id) => {
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            if (CONFIG.USE_MOCK_API) {
+                t.status = 'COMPLETED';
+                renderList();
+                updateOverdueBanner();
+                return;
+            }
+            try {
+                await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
+                await loadAll();
+            } catch (err) {
+                alert(err.message);
+            }
+        },
         openEditFromView: () => { closeModal('viewModal'); window.TaskBoard.openEdit(viewingId); },
         openDeleteFromView: () => { closeModal('viewModal'); window.TaskBoard.openDeleteTask(viewingId); },
         closeModal: (id) => closeModal(id),
@@ -378,6 +395,51 @@
             });
             renderList();
         },
-        exportVisibleTasks: () => alert('Export feature triggered (Mock)')
+        exportVisibleTasks: () => {
+            // Grab the exact list of tasks currently visible on the screen
+            const list = applyAllFilters();
+            
+            if (list.length === 0) {
+                alert("No tasks visible to export.");
+                return;
+            }
+
+            // 1. Create the CSV Header row
+            let csvContent = "ID,Title,Priority,Status,Assignee,Due Date,Assigned By\n";
+
+            // 2. Loop through the tasks and build the rows
+            list.forEach(t => {
+                // Helper to escape commas and quotes inside text fields (like titles)
+                const escape = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
+                
+                const row = [
+                    t.id,
+                    escape(t.title),
+                    t.priority,
+                    t.status,
+                    escape(t.assignee?.name || 'Unassigned'),
+                    t.dueDate ? t.dueDate.split('T')[0] : '', // Clean up the date format
+                    escape(t.assignedByName)
+                ];
+                
+                csvContent += row.join(",") + "\n";
+            });
+
+            // 3. Create a downloadable Blob (a raw data file in memory)
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            // 4. Create a hidden link, click it to trigger download, and remove it
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            
+            // Name the file dynamically based on today's date
+            const todayStr = new Date().toISOString().split('T')[0];
+            link.setAttribute("download", `PAMS_Task_Export_${todayStr}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 })();

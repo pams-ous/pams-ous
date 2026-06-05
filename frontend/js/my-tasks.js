@@ -8,6 +8,7 @@
 
     let tasks = [];
     let deleteTarget = null;
+    let currentView = 'active'; // 'active' | 'completed'
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -16,20 +17,51 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
+        injectViewToggle();
         await loadTasks();
     });
+
+    function injectViewToggle() {
+        const panelHead = document.querySelector('.my-tasks-panel .panel-head');
+        if (!panelHead || document.getElementById('mtViewToggle')) return;
+
+        const toggle = document.createElement('div');
+        toggle.className = 'mt-view-toggle';
+        toggle.setAttribute('role', 'group');
+        toggle.setAttribute('aria-label', 'Task view selection');
+        toggle.id = 'mtViewToggle';
+        toggle.innerHTML = `
+            <button class="mt-view-tab active" id="mtTabActive" role="button" aria-pressed="true" onclick="window.MyTasks.switchView('active')">
+                <i class="fa-solid fa-list-check" aria-hidden="true"></i> Active
+            </button>
+            <button class="mt-view-tab" id="mtTabCompleted" role="button" aria-pressed="false" onclick="window.MyTasks.switchView('completed')">
+                <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Completed
+            </button>`;
+
+        // Insert the toggle before the search-wrap inside panel-head
+        const searchWrap = panelHead.querySelector('.search-wrap');
+        const container = searchWrap ? searchWrap.parentElement : panelHead;
+        container.insertBefore(toggle, searchWrap || null);
+    }
 
     async function loadTasks() {
         try {
             const me = getUser();
             if (CONFIG.USE_MOCK_API) {
-                tasks = [
+                const allMock = [
                     { id: 1, title: 'Process Student Appeals', priority: 'URGENT', status: 'IN PROGRESS', dueDate: '2026-05-25', updatedAt: '2026-05-27', assignedByName: 'Admin', description: 'Review the latest batch of appeals for the summer semester.' },
                     { id: 2, title: 'Update Faculty Records', priority: 'MEDIUM', status: 'PENDING', dueDate: '2026-06-01', updatedAt: '2026-05-26', assignedByName: 'Head', description: 'Verify employment certificates and update database.' },
                     { id: 3, title: 'Office Inventory', priority: 'LOW', status: 'COMPLETED', dueDate: '2026-05-15', updatedAt: '2026-05-14', assignedByName: 'System', description: 'Annual inventory of office equipment and supplies.' }
                 ];
+                tasks = currentView === 'completed'
+                    ? allMock.filter(t => t.status === 'COMPLETED')
+                    : allMock.filter(t => t.status !== 'COMPLETED');
             } else {
-                const { tasks: rows } = await apiFetch(`/tasks/me?email=${encodeURIComponent(me.email)}`);
+                const emailParam = `email=${encodeURIComponent(me.email)}`;
+                const url = currentView === 'completed'
+                    ? `/tasks/me?${emailParam}&view=completed`
+                    : `/tasks/me?${emailParam}`;
+                const { tasks: rows } = await apiFetch(url);
                 tasks = rows;
             }
             renderTasks();
@@ -46,42 +78,57 @@
 
         const today = new Date(new Date().toDateString());
 
-        const overdueCount = tasks.filter(t =>
-            t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today
-        ).length;
-
+        // Overdue banner: only relevant for the active view
         const banner = document.getElementById('alertBanner');
         const alertText = document.getElementById('alertText');
         if (banner && alertText) {
-            if (overdueCount > 0) {
-                alertText.textContent = `${overdueCount} task${overdueCount > 1 ? 's are' : ' is'} overdue.`;
-                banner.classList.remove('hidden');
+            if (currentView === 'active') {
+                const overdueCount = tasks.filter(t =>
+                    t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today
+                ).length;
+                if (overdueCount > 0) {
+                    alertText.textContent = `${overdueCount} task${overdueCount > 1 ? 's are' : ' is'} overdue.`;
+                    banner.classList.remove('hidden');
+                } else {
+                    banner.classList.add('hidden');
+                }
             } else {
                 banner.classList.add('hidden');
             }
         }
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="log-empty">No matching tasks found.</td></tr>';
+            const emptyMsg = currentView === 'completed'
+                ? 'No completed tasks yet.'
+                : 'No matching tasks found.';
+            tbody.innerHTML = `<tr><td colspan="7" class="log-empty">${emptyMsg}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = data.map((t, i) => {
-            const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today;
+            // Completed view: never show overdue highlight (also, isOverdue logic already
+            // excludes COMPLETED status, so this is belt-and-suspenders for safety).
+            const isOverdue = currentView === 'active'
+                && t.status !== 'COMPLETED' && t.status !== 'CANCELLED'
+                && new Date(t.dueDate) < today;
             const pCls = { URGENT: 'badge-urgent', HIGH: 'badge-urgent', MEDIUM: 'badge-in_progress', LOW: 'badge-pending' }[t.priority] || '';
             const sCls = 'badge-' + t.status.toLowerCase().replace(' ', '_');
+            const isTerminal = t.status === 'COMPLETED' || t.status === 'CANCELLED';
 
             return `
-            <tr class="${isOverdue ? 'task-overdue' : ''}">
+            <tr class="${isOverdue ? 'task-overdue' : ''}"${isOverdue ? ' aria-label="Overdue task"' : ''}>
                 <td>${i + 1}</td>
-                <td class="task-name">${t.title}${isOverdue ? '<span class="overdue-tag">OVERDUE</span>' : ''}</td>
+                <td class="task-name" title="${t.title.replace(/"/g, '&quot;')}">${t.title}${isOverdue ? '<span class="overdue-tag" title="This task is past its due date"><i class="fa-solid fa-clock" aria-hidden="true"></i> OVERDUE</span>' : ''}</td>
                 <td><span class="badge ${pCls}">${t.priority}</span></td>
                 <td><span class="badge ${sCls}">${t.status}</span></td>
-                <td>${fmtDate(t.dueDate)}</td>
-                <td>${fmtDate(t.updatedAt)}</td>
-                <td>
+                <td class="td-nowrap">${fmtDate(t.dueDate)}</td>
+                <td class="td-nowrap">${fmtDate(t.updatedAt)}</td>
+                <td class="td-nowrap">
                     <div class="flex gap-2">
-                        <button class="act-btn" title="View Details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-eye"></i></button>
+                        ${currentView === 'completed'
+                            ? `<button class="act-btn act-complete" title="Reopen (set to In Progress)" aria-label="Reopen task" onclick="window.MyTasks.reopenTask(${t.id})"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>`
+                            : `<button class="act-btn act-complete" title="Mark as Completed" aria-label="Mark task as completed" onclick="window.MyTasks.completeTask(${t.id})"${isTerminal ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>`}
+                        <button class="act-btn" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
                         <button class="act-btn act-delete" title="Remove" onclick="window.MyTasks.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </td>
@@ -195,6 +242,53 @@
                 closeModal('deleteModal');
                 await loadTasks();
             } catch (err) { alert(err.message); }
+        },
+        completeTask: async (id) => {
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            if (CONFIG.USE_MOCK_API) {
+                tasks = tasks.filter(x => x.id !== id);
+                renderTasks();
+                return;
+            }
+            try {
+                await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
+                await loadTasks();
+            } catch (err) {
+                alert(err.message);
+            }
+        },
+        reopenTask: async (id) => {
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            if (CONFIG.USE_MOCK_API) {
+                tasks = tasks.filter(x => x.id !== id); // leaves the Completed view once reopened
+                renderTasks();
+                return;
+            }
+            try {
+                await apiFetch(`/tasks/${id}`, 'PUT', { status: 'IN PROGRESS' });
+                await loadTasks();
+            } catch (err) {
+                alert(err.message);
+            }
+        },
+        switchView: async (view) => {
+            if (view === currentView) return;
+            currentView = view;
+
+            // Update toggle button states
+            const tabActive = document.getElementById('mtTabActive');
+            const tabCompleted = document.getElementById('mtTabCompleted');
+            if (tabActive && tabCompleted) {
+                const isActive = view === 'active';
+                tabActive.classList.toggle('active', isActive);
+                tabActive.setAttribute('aria-pressed', String(isActive));
+                tabCompleted.classList.toggle('active', !isActive);
+                tabCompleted.setAttribute('aria-pressed', String(!isActive));
+            }
+
+            await loadTasks();
         },
         scrollToTable: () => {
             const panel = document.querySelector('.panel');

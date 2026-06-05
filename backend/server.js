@@ -73,7 +73,7 @@ app.use(express.json());
 app.get('/api/admin/sync/users', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT e.employee_id as id, e.first_name, e.last_name, e.email, e.designation, e.active_status,
+            SELECT e.employee_id as id, e.first_name, e.last_name, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status,
             (
                 SELECT JSON_ARRAYAGG(g.group_name)
                 FROM Employees_Groups eg
@@ -81,6 +81,7 @@ app.get('/api/admin/sync/users', async (req, res) => {
                 WHERE eg.employee_id = e.employee_id
             ) as group_list
             FROM Employees e
+            LEFT JOIN Designations d ON e.job_title = d.designation_id
         `);
         const users = rows.map(r => {
             let parsedGroups = [];
@@ -90,7 +91,9 @@ app.get('/api/admin/sync/users', async (req, res) => {
             }
             return {
                 id: r.id, name: `${r.first_name} ${r.last_name}`, email: r.email,
-                role: r.designation === 'Admin' ? 'ADMIN' : 'MEMBER',
+                role: r.system_role === 'Admin' ? 'ADMIN' : 'MEMBER',
+                jobTitleId: r.job_title,
+                jobTitleName: r.designation_name,
                 activeStatus: r.active_status,
                 groups: parsedGroups 
             };

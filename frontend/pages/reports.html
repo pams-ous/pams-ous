@@ -108,6 +108,20 @@
                     <div class="section-label" style="border:none; margin-bottom:1rem;">
                         <i class="fa-solid fa-clock-rotate-left"></i> History
                     </div>
+                    <div class="history-controls">
+                        <div class="history-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="reportSearch" placeholder="Search reports…"
+                                autocomplete="off" oninput="Reports.onSearch(this.value)">
+                        </div>
+                        <select id="reportSort" class="history-sort" onchange="Reports.onSort(this.value)"
+                            title="Sort reports">
+                            <option value="date-desc">Newest</option>
+                            <option value="date-asc">Oldest</option>
+                            <option value="type">Type</option>
+                            <option value="scope">Scope</option>
+                        </select>
+                    </div>
                     <div id="historyList"></div>
                 </div>
 

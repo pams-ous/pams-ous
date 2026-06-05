@@ -48,6 +48,7 @@
 
   /* Status Colors */
   --red-bg: #fde8e8;
+  --red-bg-strong: #fca5a5;
   --red-border: #f5b8b8;
   --red-text: #b91c1c;
   --green-bg: #dcfce7;
@@ -1464,6 +1465,14 @@ body.sidebar-open .main {
   background: var(--gray-100);
 }
 
+/* Status badge — keeps the indicator dot inline (left) with its label,
+   on a single line, vertically centered, instead of wrapping above it. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 /* Status Tabs sub-navigation */
 .status-tabs {
   display: inline-flex;
@@ -1508,6 +1517,16 @@ body.sidebar-open .main {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.status-tab:not(.active):hover {
+   background: var(--gray-100);
+   color: var(--maroon);
+}
+
+.status-tab:not(.active):hover .cnt {
+   background: var(--red-bg);
+   color: var(--maroon);
+}
+
 /* Task Rows */
 .tb-list-wrap {
   padding: 1.5rem 2rem;
@@ -1533,6 +1552,12 @@ body.sidebar-open .main {
   border-left: 4px solid var(--maroon);
   border-radius: 8px;
   transition: var(--transition);
+}
+
+.tb-row.is-overdue {
+  background: var(--red-bg-strong);
+  border-color: var(--red-text);
+  border-left: 4px solid var(--red-danger);
 }
 
 .tb-row:hover {
@@ -1756,9 +1781,109 @@ body.sidebar-open .main {
   color: var(--red-text);
 }
 
+.act-complete {
+  background: var(--green-bg);
+  color: var(--green-text);
+  border-color: var(--green-text);
+  transition: var(--transition);
+}
+
+.act-complete:hover {
+  filter: brightness(0.88);
+}
+
+.act-complete:disabled,
+.act-complete[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ribbon-btn.complete {
+  background: var(--green-bg);
+  color: var(--green-text);
+  border: 1.5px solid var(--green-text);
+  transition: var(--transition);
+}
+
+.ribbon-btn.complete:hover {
+  filter: brightness(0.90);
+}
+
+.ribbon-btn.complete:disabled,
+.ribbon-btn.complete[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* My Tasks — view toggle (Active / Completed) */
+.mt-view-toggle {
+  display: inline-flex;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mt-view-tab {
+  background: var(--white);
+  border: none;
+  border-right: 1.5px solid var(--gray-200);
+  padding: .45rem 1rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gray-700);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.mt-view-tab:last-child {
+  border-right: none;
+}
+
+.mt-view-tab.active,
+.mt-view-tab[aria-pressed="true"] {
+  background: var(--maroon);
+  color: var(--white);
+  border-color: var(--maroon);
+}
+
+.mt-view-tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 /* Specialized Task Tables */
+
+/* ── MY TASKS: viewport-bounded panel with internal scroll ──
+   Offset breakdown: 24px (.content top padding) + ~80px (page-header + margin-bottom:24px)
+   + ~52px (.panel-head) + 24px (.content bottom padding) ≈ 180px.
+   Using 185px gives a small breathing gap; max/min-height mirror .ug-tabpanel. */
+.my-tasks-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 185px);
+  max-height: 860px;
+  min-height: 320px;
+}
+
+/* Scrollable table container — horizontal AND vertical scroll happen here,
+   not on .main (which has overflow-x: hidden). The .table-wrap itself has
+   overflow-x: auto so the horizontal scrollbar appears inside the panel. */
+.my-tasks-panel .table-wrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 1.5rem;
+}
+
 .task-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
 }
 
@@ -1769,6 +1894,12 @@ body.sidebar-open .main {
   text-align: left;
   font-size: 13px;
   font-weight: 500;
+  /* Sticky header — sticks within .table-wrap scroll container.
+     z-index: 1 keeps it above tbody rows but below modals (z-index: 2000).
+     Background matches existing maroon thead so rows don't bleed through. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .task-table td {
@@ -1803,34 +1934,47 @@ body.sidebar-open .main {
 .task-name {
   font-weight: 600;
   color: var(--text);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cells that must never wrap regardless of container width */
+.td-nowrap {
+  white-space: nowrap;
 }
 
 .task-overdue td {
-  background: #fee2e2 !important;
+  background: var(--red-bg-strong) !important;
 }
 
 .overdue-tag {
-  background: #dc2626;
-  color: #fff;
+  background: var(--red-text);
+  color: var(--white);
   font-size: 9px;
   font-weight: 800;
   padding: 1px 6px;
   border-radius: 4px;
   margin-left: 8px;
-  border: 1px solid #b91c1c;
+  border: 1px solid var(--red-border);
+  /* Prevent badge from dropping below the title text */
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Alert Banner */
 .alert-banner {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--red-bg);
+  color: var(--red-text);
   padding: 12px 32px;
   font-size: 13.5px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #fecaca;
+  border-bottom: 1px solid var(--red-border);
   z-index: 1000;
 }
 
@@ -2069,6 +2213,83 @@ body.sidebar-open .main {
   line-height: 1.5;
 }
 
+/* ===== Reports history: search + sort controls ===== */
+.history-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.history-search {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.history-search i {
+  position: absolute;
+  left: 10px;
+  font-size: 12px;
+  color: var(--gray-500);
+  pointer-events: none;
+}
+
+.history-search input {
+  width: 100%;
+  padding: 7px 10px 7px 30px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.history-search input:focus { border-color: var(--maroon); }
+
+.history-sort {
+  padding: 7px 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  background: var(--white);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.history-sort:focus { border-color: var(--maroon); }
+
+/* ===== Report type badges (Daily / Weekly / Annual / Custom) ===== */
+.report-type-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.rt-daily   { background: #fef3c7; color: #92400e; }
+.rt-weekly  { background: #dbeafe; color: #1e40af; }
+.rt-annual  { background: #ede9fe; color: #5b21b6; }
+.rt-custom  { background: #dcfce7; color: #166534; }
+.rt-default { background: var(--gray-200); color: var(--text); }
+
+/* Relative "x ago" timestamp on each report card */
+.report-card-time {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.report-card-time i { margin-right: 3px; }
+
 .preview-panel {
   background: var(--white);
   border-radius: 12px;
@@ -2298,27 +2519,137 @@ body.sidebar-open .main {
   text-decoration: underline;
 }
 
+/* ─── COMPONENTS: SORTABLE TABLE HEADERS ───────────── */
+
+.th-sort {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.th-sort:hover {
+  color: var(--maroon);
+}
+
+.th-sort:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.th-sort-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Sort indicator arrow — hidden by default, shown when column is active */
+.th-sort-icon {
+  font-size: 10px;
+  color: var(--gray-500);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.th-sort:hover .th-sort-icon {
+  opacity: 0.5;
+}
+
+/* Active column: icon always visible */
+.th-sort[aria-sort="ascending"] .th-sort-icon,
+.th-sort[aria-sort="descending"] .th-sort-icon {
+  opacity: 1;
+  color: var(--maroon);
+}
+
 /* ─── COMPONENTS: USERS & GROUPS ───────────────────── */
 
-.panels {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 24px;
-  align-items: start;
+/* Tab bar */
+.ug-tablist {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--gray-200);
+  padding-bottom: 0;
 }
 
-@media (max-width: 1200px) {
-  .panels {
-    grid-template-columns: 1fr;
-  }
+.ug-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  border-radius: var(--radius) var(--radius) 0 0;
+  transition: var(--transition);
+  white-space: nowrap;
 }
 
-.panels .panel-header {
+.ug-tab:hover {
+  color: var(--maroon);
+  background: var(--off-white);
+}
+
+.ug-tab.active {
+  color: var(--maroon);
+  border-bottom-color: var(--maroon);
+  background: var(--white);
+}
+
+.ug-tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Tab panels — each panel is viewport-bounded with internal scroll */
+.ug-tabpanel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 230px);
+  max-height: 860px;
+  min-height: 320px;
+  border-top: none;
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+}
+
+.ug-tabpanel[hidden] {
+  display: none;
+}
+
+/* Panel header (title + action button row) inside a tabpanel */
+.ug-tabpanel .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 22px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--gray-100);
+  flex-shrink: 0;
+}
+
+/* Scrollable table container — the scroll happens HERE, not on .main */
+.ug-tabpanel .table-wrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 1.5rem;
+}
+
+/* Sticky table header — sticks within .table-wrap scroll container.
+   z-index: 1 keeps it above tbody rows but below modals (z-index: 2000).
+   Background matches .data-table th (#f9fafb) so rows don't bleed through. */
+.ug-tabpanel .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f9fafb;
 }
 
 .td-name {

@@ -14,7 +14,8 @@ function buildPayload(data) {
         suffix: data.suffix || "",
         email: data.email || "",
         tempPassword: data.tempPassword || data.password || "",
-        tempConfPassword: data.tempConfPassword || data.confirmPassword || ""
+        tempConfPassword: data.tempConfPassword || data.confirmPassword || "",
+        designationId: data.designationId || null
     };
 }
 
@@ -57,7 +58,8 @@ async function handleRequest(db, socket, data) {
             lastName,
             suffix: payload.suffix,
             email,
-            passwordHash
+            passwordHash,
+            designationId: payload.designationId
         };
 
         await generateAndSendOtp(db, {
@@ -116,6 +118,10 @@ async function handleConfirm(db, socket, data) {
         }
 
         const uuid = crypto.randomUUID();
+
+        // Set default system role to Encoder for self-registration
+        const systemRole = 'Encoder';
+
         const query = `INSERT INTO Employees (
             employee_id,
             employee_code,
@@ -123,8 +129,10 @@ async function handleConfirm(db, socket, data) {
             last_name,
             middle_name,
             suffix, email,
+            job_title,
+            designation,
             password)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
 
         await db.query(query, [
             uuid,
@@ -134,6 +142,8 @@ async function handleConfirm(db, socket, data) {
             p.middleName,
             p.suffix,
             p.email,
+            p.designationId,
+            systemRole,
             p.passwordHash
         ]);
 
@@ -167,7 +177,7 @@ async function regiUserAPI(io, db, app) {
 
     // REST API: Add Direct User (Admin managed)
     app.post('/api/users', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const { code, firstName, lastName, middleName, suffix, email, role, password, designationName } = req.body;
+        const { code, firstName, lastName, middleName, suffix, email, role, password, designationId } = req.body;
         
         if (!email || !password || !firstName || !lastName) {
             return res.status(400).json({ success: false, message: "Email, Password, First Name, and Last Name are required" });
@@ -180,13 +190,15 @@ async function regiUserAPI(io, db, app) {
             }
 
             const hashedPassword = await hash_password(password);
-            const designation = designationName || (role === 'ADMIN' ? 'Admin' : 'Encoder');
             const employee_id = code ? code : crypto.randomUUID();
             const employee_code = code ? code : null;
 
+            // Use the role provided by the admin, defaulting to Encoder
+            const systemRole = role === 'ADMIN' ? 'Admin' : 'Encoder';
+
             await db.query(
-                'INSERT INTO Employees (employee_id, employee_code, first_name, last_name, middle_name, suffix, email, designation, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [employee_id, employee_code, firstName, lastName, middleName, suffix, email, designation, hashedPassword]
+                'INSERT INTO Employees (employee_id, employee_code, first_name, last_name, middle_name, suffix, email, job_title, designation, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [employee_id, employee_code, firstName, lastName, middleName, suffix, email, designationId, systemRole, hashedPassword]
             );
             res.json({ success: true, id: employee_id, message: "User added to SQL!" });
         } catch (err) {
