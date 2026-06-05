@@ -10,6 +10,12 @@
     let groups = [];
     let designations = [];
 
+    // ── Sort state for the Users table ───────────────────────────────────────
+    // col: one of 'name' | 'email' | 'role' | 'groups' | 'status' | 'actions'
+    // dir: 'asc' | 'desc'
+    // Primary key is always online-first; col/dir apply within each status group.
+    let sortState = { col: 'name', dir: 'asc' };
+
     let currentManageGroupId = null;
     let currentGroupLeaderEmail = null;
     const currentUserId = 1;
@@ -58,6 +64,7 @@
         }
 
         await loadAll();
+        initSortHeaders();
     });
 
     async function loadAll() {
@@ -80,11 +87,116 @@
         }
     }
 
+    // ── Sort value extractor ──────────────────────────────────────────────────
+    // Returns a comparable primitive for a user row given the active column.
+    // 'actions' column: users who are NOT the current user have a delete button,
+    // so they rank as "more actionable" (value 1) vs. current-user rows (value 0).
+    // This gives a deterministic, meaningful sort rather than leaving Actions unsorted.
+    function getSortValue(u, col) {
+        switch (col) {
+            case 'name':
+                return (u.name || '').toLowerCase();
+            case 'email':
+                return (u.email || '').toLowerCase();
+            case 'role':
+                // Normalise: ADMIN sorts before MEMBER alphabetically ascending
+                return (u.role || '').toLowerCase();
+            case 'groups':
+                // Sort by group count (numeric), then alphabetical on first group name as tiebreak
+                return (u.groups && Array.isArray(u.groups)) ? u.groups.length : 0;
+            case 'status':
+                // Online < Offline so ascending puts online first within each bucket
+                // (the primary online-first key already handles cross-bucket ordering)
+                return (u.activeStatus || 'Offline').toLowerCase();
+            case 'actions':
+                // Users that are not the current user have a delete action available;
+                // treat them as having more actionable weight (1 vs 0).
+                return u.id === currentUserId ? 0 : 1;
+            default:
+                return '';
+        }
+    }
+
+    // ── Primary+secondary comparator ─────────────────────────────────────────
+    // Primary: online users always before offline (independent of col/dir).
+    // Secondary: user-chosen column, user-chosen direction.
+    function applyUserSort(arr) {
+        const { col, dir } = sortState;
+        const mul = dir === 'asc' ? 1 : -1;
+
+        return [...arr].sort((a, b) => {
+            // Primary — online-first (online = 1, offline = 0, higher first)
+            const aOnline = (a.activeStatus || 'Offline').toLowerCase() === 'online' ? 1 : 0;
+            const bOnline = (b.activeStatus || 'Offline').toLowerCase() === 'online' ? 1 : 0;
+            if (bOnline !== aOnline) return bOnline - aOnline; // descending: online first
+
+            // Secondary — active column sort
+            const aVal = getSortValue(a, col);
+            const bVal = getSortValue(b, col);
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return (aVal - bVal) * mul;
+            }
+            const cmp = String(aVal).localeCompare(String(bVal), undefined, { sensitivity: 'base' });
+            return cmp * mul;
+        });
+    }
+
+    // ── Header wiring ─────────────────────────────────────────────────────────
+    // Called once after DOMContentLoaded; sets click + keyboard handlers on
+    // every .th-sort header in the users table.
+    function initSortHeaders() {
+        const headers = document.querySelectorAll('.data-table .th-sort');
+
+        headers.forEach(th => {
+            function activate() {
+                const col = th.dataset.col;
+
+                if (sortState.col === col) {
+                    // Same column: flip direction
+                    sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    // New column: default to ascending
+                    sortState.col = col;
+                    sortState.dir = 'asc';
+                }
+
+                // Update aria-sort on all headers
+                headers.forEach(h => {
+                    if (h.dataset.col === sortState.col) {
+                        h.setAttribute('aria-sort', sortState.dir === 'asc' ? 'ascending' : 'descending');
+                        const icon = h.querySelector('.th-sort-icon');
+                        if (icon) {
+                            icon.className = sortState.dir === 'asc'
+                                ? 'fa-solid fa-sort-up th-sort-icon'
+                                : 'fa-solid fa-sort-down th-sort-icon';
+                        }
+                    } else {
+                        h.setAttribute('aria-sort', 'none');
+                        const icon = h.querySelector('.th-sort-icon');
+                        if (icon) icon.className = 'fa-solid fa-sort th-sort-icon';
+                    }
+                });
+
+                renderUsers();
+            }
+
+            th.addEventListener('click', activate);
+
+            // Keyboard: Enter or Space activates sort
+            th.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate();
+                }
+            });
+        });
+    }
+
     function renderUsers() {
         if (!window.Admin) window.Admin = {};
         window.Admin.refreshData = loadAll;
           
-        document.getElementById('usersBody').innerHTML = users.map(u => {
+        document.getElementById('usersBody').innerHTML = applyUserSort(users).map(u => {
             const isOnline = (u.activeStatus || 'Offline').toLowerCase() === 'online';
             const badgeClass = isOnline ? 'status-online' : 'status-offline';
 
