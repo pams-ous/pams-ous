@@ -1464,6 +1464,14 @@ body.sidebar-open .main {
   background: var(--gray-100);
 }
 
+/* Status badge — keeps the indicator dot inline (left) with its label,
+   on a single line, vertically centered, instead of wrapping above it. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 /* Status Tabs sub-navigation */
 .status-tabs {
   display: inline-flex;
@@ -2344,27 +2352,91 @@ body.sidebar-open .main {
 
 /* ─── COMPONENTS: USERS & GROUPS ───────────────────── */
 
-.panels {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 32px;
-  align-items: start;
-}
-
-}
-
-.panels .panel-header {
+/* Tab bar */
+.ug-tablist {
   display: flex;
-  justify-content: flex-start;
-  gap: 20px;
-  align-items: center;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--gray-100);
+  gap: 4px;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--gray-200);
+  padding-bottom: 0;
 }
 
-.panels .table-wrap {
-  max-height: 380px;
+.ug-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  border-radius: var(--radius) var(--radius) 0 0;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.ug-tab:hover {
+  color: var(--maroon);
+  background: var(--off-white);
+}
+
+.ug-tab.active {
+  color: var(--maroon);
+  border-bottom-color: var(--maroon);
+  background: var(--white);
+}
+
+.ug-tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Tab panels — each panel is viewport-bounded with internal scroll */
+.ug-tabpanel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 230px);
+  max-height: 860px;
+  min-height: 320px;
+  border-top: none;
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+}
+
+.ug-tabpanel[hidden] {
+  display: none;
+}
+
+/* Panel header (title + action button row) inside a tabpanel */
+.ug-tabpanel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--gray-100);
+  flex-shrink: 0;
+}
+
+/* Scrollable table container — the scroll happens HERE, not on .main */
+.ug-tabpanel .table-wrap {
+  flex: 1;
+  overflow-x: auto;
   overflow-y: auto;
+  padding-bottom: 1.5rem;
+}
+
+/* Sticky table header — sticks within .table-wrap scroll container.
+   z-index: 1 keeps it above tbody rows but below modals (z-index: 2000).
+   Background matches .data-table th (#f9fafb) so rows don't bleed through. */
+.ug-tabpanel .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f9fafb;
 }
 
 .td-name {

@@ -11,10 +11,17 @@
     let designations = [];
 
     // ── Sort state for the Users table ───────────────────────────────────────
-    // col: one of 'name' | 'email' | 'role' | 'groups' | 'status' | 'actions'
+    // col: one of 'name' | 'email' | 'role' | 'jobtitle' | 'groups' | 'status' | 'actions'
     // dir: 'asc' | 'desc'
     // Primary key is always online-first; col/dir apply within each status group.
     let sortState = { col: 'name', dir: 'asc' };
+
+    // ── Sort state for the Groups table ──────────────────────────────────────
+    // col: one of 'name' | 'desc' | 'leader' | 'members' | 'actions'
+    // dir: 'asc' | 'desc'
+    // No online-first concept for groups; single-key sort only.
+    // Leader: blank / "Unassigned" always sorts to the end regardless of direction.
+    let groupSortState = { col: 'name', dir: 'asc' };
 
     let currentManageGroupId = null;
     let currentGroupLeaderEmail = null;
@@ -65,6 +72,8 @@
 
         await loadAll();
         initSortHeaders();
+        initGroupSortHeaders();
+        initTabs();
     });
 
     async function loadAll() {
@@ -101,6 +110,12 @@
             case 'role':
                 // Normalise: ADMIN sorts before MEMBER alphabetically ascending
                 return (u.role || '').toLowerCase();
+            case 'jobtitle': {
+                // Resolve the designation id stored on the user to its display name,
+                // so the column sorts alphabetically by the title the admin actually sees.
+                const d = designations.find(x => String(x.id) === String(u.jobTitleId));
+                return (d ? d.name : '').toLowerCase();
+            }
             case 'groups':
                 // Sort by group count (numeric), then alphabetical on first group name as tiebreak
                 return (u.groups && Array.isArray(u.groups)) ? u.groups.length : 0;
@@ -141,11 +156,10 @@
         });
     }
 
-    // ── Header wiring ─────────────────────────────────────────────────────────
-    // Called once after DOMContentLoaded; sets click + keyboard handlers on
-    // every .th-sort header in the users table.
+    // ── Header wiring — Users table ──────────────────────────────────────────
+    // Scoped to #usersTable to prevent accidentally wiring Groups headers here.
     function initSortHeaders() {
-        const headers = document.querySelectorAll('.data-table .th-sort');
+        const headers = document.querySelectorAll('#usersTable .th-sort');
 
         headers.forEach(th => {
             function activate() {
@@ -160,7 +174,7 @@
                     sortState.dir = 'asc';
                 }
 
-                // Update aria-sort on all headers
+                // Update aria-sort on all headers in this table
                 headers.forEach(h => {
                     if (h.dataset.col === sortState.col) {
                         h.setAttribute('aria-sort', sortState.dir === 'asc' ? 'ascending' : 'descending');
@@ -187,6 +201,158 @@
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     activate();
+                }
+            });
+        });
+    }
+
+    // ── Groups sort value extractor ───────────────────────────────────────────
+    // Returns a comparable primitive for a group row given the active column.
+    // Leader: empty / "Unassigned" always pushed to the end (returns a value
+    // that sorts last regardless of direction via a sentinel in applyGroupSort).
+    function getGroupSortValue(g, col) {
+        switch (col) {
+            case 'name':
+                return (g.name || '').toLowerCase();
+            case 'desc':
+                return (g.desc || '').toLowerCase();
+            case 'leader':
+                // Blank leaders are handled as a sentinel in applyGroupSort;
+                // return the name string here for non-blank rows.
+                return (g.leader || '').toLowerCase();
+            case 'members':
+                return typeof g.members === 'number' ? g.members : 0;
+            case 'actions':
+                // All rows have the same set of actions; treat as equal (value 0).
+                return 0;
+            default:
+                return '';
+        }
+    }
+
+    // ── Groups comparator ─────────────────────────────────────────────────────
+    // Single-key sort (no online-first concept for groups).
+    // Blank/Unassigned leaders are always pushed to the end, independent of dir.
+    function applyGroupSort(arr) {
+        const { col, dir } = groupSortState;
+        const mul = dir === 'asc' ? 1 : -1;
+
+        return [...arr].sort((a, b) => {
+            // Push blank leaders to end regardless of direction when sorting by leader
+            if (col === 'leader') {
+                const aBlank = !a.leader;
+                const bBlank = !b.leader;
+                if (aBlank && !bBlank) return 1;
+                if (!aBlank && bBlank) return -1;
+            }
+
+            const aVal = getGroupSortValue(a, col);
+            const bVal = getGroupSortValue(b, col);
+
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return (aVal - bVal) * mul;
+            }
+            const cmp = String(aVal).localeCompare(String(bVal), undefined, { sensitivity: 'base' });
+            return cmp * mul;
+        });
+    }
+
+    // ── Header wiring — Groups table ─────────────────────────────────────────
+    // Scoped to #groupsTable; uses groupSortState and renderGroups().
+    function initGroupSortHeaders() {
+        const headers = document.querySelectorAll('#groupsTable .th-sort');
+
+        headers.forEach(th => {
+            function activate() {
+                const col = th.dataset.col;
+
+                if (groupSortState.col === col) {
+                    groupSortState.dir = groupSortState.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    groupSortState.col = col;
+                    groupSortState.dir = 'asc';
+                }
+
+                // Update aria-sort on all headers in this table
+                headers.forEach(h => {
+                    if (h.dataset.col === groupSortState.col) {
+                        h.setAttribute('aria-sort', groupSortState.dir === 'asc' ? 'ascending' : 'descending');
+                        const icon = h.querySelector('.th-sort-icon');
+                        if (icon) {
+                            icon.className = groupSortState.dir === 'asc'
+                                ? 'fa-solid fa-sort-up th-sort-icon'
+                                : 'fa-solid fa-sort-down th-sort-icon';
+                        }
+                    } else {
+                        h.setAttribute('aria-sort', 'none');
+                        const icon = h.querySelector('.th-sort-icon');
+                        if (icon) icon.className = 'fa-solid fa-sort th-sort-icon';
+                    }
+                });
+
+                renderGroups();
+            }
+
+            th.addEventListener('click', activate);
+
+            // Keyboard: Enter or Space activates sort
+            th.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate();
+                }
+            });
+        });
+    }
+
+    // ── Tab switching ────────────────────────────────────────────────────────
+    // Implements the ARIA tabs pattern with roving tabindex and keyboard support.
+    // Both tabpanels remain in the DOM at all times so the sort engines wired
+    // to #usersTable and #groupsTable in initSortHeaders / initGroupSortHeaders
+    // are never destroyed.
+    function initTabs() {
+        const tabs = Array.from(document.querySelectorAll('.ug-tab[role="tab"]'));
+        const panels = tabs.map(t => document.getElementById(t.getAttribute('aria-controls')));
+
+        function activateTab(targetTab) {
+            tabs.forEach((tab, i) => {
+                const isTarget = tab === targetTab;
+                tab.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+                tab.setAttribute('tabindex', isTarget ? '0' : '-1');
+                tab.classList.toggle('active', isTarget);
+
+                if (isTarget) {
+                    panels[i].removeAttribute('hidden');
+                } else {
+                    panels[i].setAttribute('hidden', '');
+                }
+            });
+        }
+
+        tabs.forEach((tab, i) => {
+            tab.addEventListener('click', () => activateTab(tab));
+
+            tab.addEventListener('keydown', (e) => {
+                let next = null;
+
+                if (e.key === 'ArrowRight') {
+                    next = tabs[(i + 1) % tabs.length];
+                } else if (e.key === 'ArrowLeft') {
+                    next = tabs[(i - 1 + tabs.length) % tabs.length];
+                } else if (e.key === 'Home') {
+                    next = tabs[0];
+                } else if (e.key === 'End') {
+                    next = tabs[tabs.length - 1];
+                } else if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activateTab(tab);
+                    return;
+                }
+
+                if (next) {
+                    e.preventDefault();
+                    activateTab(next);
+                    next.focus();
                 }
             });
         });
@@ -263,20 +429,22 @@
         if (!tbody) return;
 
         if (groups.length === 0) {
+            // colspan=5: Group Name | Description | Leader | Members | Actions
             tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #6c757d; padding: 20px;">No groups have been created yet.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = groups.map(g => `
+        // Columns rendered in order: name | desc | leader | members | actions
+        tbody.innerHTML = applyGroupSort(groups).map(g => `
             <tr>
-                <td style="font-weight: 600; color: #2d2d2d;">${g.name || '—'}</td>
-                <td style="color: #6c757d; font-size: 0.85rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${g.desc || ''}">${g.desc || '—'}</td>
+                <td class="td-name">${g.name || '—'}</td>
+                <td class="td-email" style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${g.desc || ''}">${g.desc || '—'}</td>
                 <td>${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${g.leader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}</td>
                 <td style="text-align: center;"><span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;"><i class="fas fa-users" style="margin-right: 4px; color: #6b7280;"></i> ${g.members || 0}</span></td>
                 <td class="td-actions">
-                    <button class="action-btn view" onclick="window.Admin.openManageMembers(${g.id})" title="Manage Members"><i class="fas fa-users-cog"></i></button>
-                    <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${(g.name || '').replace(/'/g, "\\'")}')" title="Delete group"><i class="fas fa-trash"></i></button>
+                    <button class="action-btn view" onclick="window.Admin.openManageMembers(${g.id})" title="Manage Members" aria-label="Manage members of ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-users-cog"></i></button>
+                    <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group" aria-label="Edit group ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-pen"></i></button>
+                    <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${(g.name || '').replace(/'/g, "\\'")}')" title="Delete group" aria-label="Delete group ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
