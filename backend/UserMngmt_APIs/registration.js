@@ -119,8 +119,10 @@ async function handleConfirm(db, socket, data) {
 
         const uuid = crypto.randomUUID();
 
-        // Set default system role to Encoder for self-registration
-        const systemRole = 'Encoder';
+        // Set system role based on designation ID
+        // 1: Head, 2: Chief - Admission, 3: Chief - Records -> Admin
+        // 4: Encoder/Staff -> Encoder
+        const systemRole = [1, 2, 3].includes(Number(p.designationId)) ? 'Admin' : 'Encoder';
 
         const query = `INSERT INTO Employees (
             employee_id,

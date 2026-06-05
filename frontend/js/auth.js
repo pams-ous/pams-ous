@@ -66,7 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtnId: 'showAdminLogin',
         signupBtnId: 'showAdminSignup',
         loginFormId: 'adminLoginForm',
-        signupFormId: 'adminSignupForm'
+        signupFormId: 'adminSignupForm',
+        onSignup: () => loadDesignations()
     });
 
 const setSession = (token, user) => {
@@ -79,8 +80,11 @@ const setSession = (token, user) => {
     };
 
     const loadDesignations = async () => {
-        const sel = document.getElementById('signup-designation');
-        if (!sel || sel.options.length > 1) return;
+        const selects = document.querySelectorAll('select[name="designationIds"]');
+        if (selects.length === 0) return;
+
+        const needsLoading = Array.from(selects).some(sel => sel.options.length <= 1);
+        if (!needsLoading) return;
 
         const fallback = [
             { id: 4, name: 'Encoder / Administrative Staff' },
@@ -89,23 +93,26 @@ const setSession = (token, user) => {
             { id: 1, name: 'Head' }
         ];
 
-        if (CONFIG.USE_MOCK_API) {
-            sel.innerHTML = fallback.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-            return;
+        let designations = fallback;
+
+        if (!CONFIG.USE_MOCK_API) {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/designations/public`);
+                const data = await response.json();
+                if (response.ok && data.length > 0) {
+                    designations = data;
+                } else {
+                    throw new Error('No designations found');
+                }
+            } catch (error) {
+                console.warn('Could not fetch designations, using fallback list.');
+            }
         }
 
-        try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/api/designations/public`);
-            const data = await response.json();
-            if (response.ok && data.length > 0) {
-                sel.innerHTML = data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-            } else {
-                throw new Error('No designations found');
-            }
-        } catch (error) {
-            console.warn('Could not fetch designations, using fallback list.');
-            sel.innerHTML = fallback.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-        }
+        const optionsHtml = designations.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        selects.forEach(sel => {
+            sel.innerHTML = optionsHtml;
+        });
     };
 
     /**
@@ -262,18 +269,29 @@ const setSession = (token, user) => {
             try {
                 // ─── REGISTRATION (OTP REQUIRED) ──────────────────────────────
                 if (isSignup) {
-                    await window.PAMSOtp.runRegistrationOtp({
-                        formData: {
-                            tempEmpCode: data.employeeCode,
-                            firstName: data.firstName,
-                            middleName: data.middleName,
-                            lastName: data.lastName,
-                            suffix: data.suffix,
-                            email: data.email,
-                            tempPassword: data.password,
-                            tempConfPassword: data.confirmPassword,
-                            designationId: data.designationIds ? data.designationIds[0] : null
+                    const regPayload = {
+                        tempEmpCode: data.employeeCode,
+                        firstName: data.firstName,
+                        middleName: data.middleName,
+                        lastName: data.lastName,
+                        suffix: data.suffix,
+                        email: data.email,
+                        tempPassword: data.password,
+                        tempConfPassword: data.confirmPassword,
+                        designationId: data.designationIds ? data.designationIds[0] : null
+                    };
+
+                    // If signing up via Admin portal, assign ADMIN role for designations 1, 2, 3
+                    if (formId === 'adminSignupForm') {
+                        if ([1, 2, 3].includes(regPayload.designationId)) {
+                            regPayload.role = 'ADMIN';
+                        } else {
+                            regPayload.role = 'MEMBER';
                         }
+                    }
+
+                    await window.PAMSOtp.runRegistrationOtp({
+                        formData: regPayload
                     });
                     PAMS.toast(`${type} successful! You can now sign in.`, 'success');
                     const backToLogin = formId === 'adminSignupForm' ? showAdminLoginBtn : showLoginBtn;

@@ -102,9 +102,10 @@
                     placeholder="personnel@pup.edu.ph" required aria-required="true">
             </div>
 
-            <div class="form-group">
+            <!-- Designation dropdown hidden for personnel, since they have one job title according to the PUP OUS Personnel hierarchy which is Administrative Staff. -->
+            <div class="form-group hidden">
                 <label class="form-label" for="signup-designation">Designation *</label>
-                <select id="signup-designation" name="designationIds" class="form-control" required
+                <select id="signup-designation" name="designationIds" class="form-control"
                     aria-required="true">
                     <option value="">Loading designations...</option>
                 </select>
