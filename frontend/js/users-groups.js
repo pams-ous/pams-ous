@@ -492,6 +492,7 @@
 
             if (!firstName || !lastName || !email || !password) { PAMS.toast('First Name, Last Name, Email, and Password are required.', 'warning'); return; }
             if (password !== confirmPass) { PAMS.toast('Passwords do not match.', 'warning'); return; }
+            { const c = PAMS.validatePassword(password); if (!c.valid) { PAMS.toast(c.message, 'warning'); return; } }
 
             try {
                 await apiFetch('/users', 'POST', { code, firstName, lastName, middleName, suffix, email, role, password, designationId });
@@ -510,7 +511,7 @@
             const email = document.getElementById('editUserEmail').value;
             const pass = document.getElementById('editUserPassword').value;
             const confirmPass = document.getElementById('confirmEditUserPassword').value;
-            if (pass.length < 6) { PAMS.toast('Password must be at least 6 characters.', 'warning'); return; }
+            { const c = PAMS.validatePassword(pass); if (!c.valid) { PAMS.toast(c.message, 'warning'); return; } }
             if (pass !== confirmPass) { PAMS.toast('Passwords do not match.', 'warning'); return; }
 
             try {
@@ -530,7 +531,7 @@
         confirmResetPassword: async () => {
             const id = document.getElementById('resetPassUserId').value;
             const pass = document.getElementById('resetPassValue').value;
-            if (pass.length < 6) { PAMS.toast('Password must be at least 6 characters.', 'warning'); return; }
+            { const c = PAMS.validatePassword(pass); if (!c.valid) { PAMS.toast(c.message, 'warning'); return; } }
             try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); PAMS.toast('Password reset successfully!', 'success'); } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         deleteUser: async (email, name) => {

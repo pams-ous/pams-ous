@@ -61,9 +61,12 @@ const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
 const {loginAPI} = require("./UserMngmt_APIs/login");
 const {reportAPI} = require("./ReportMngmt_APIs/reportHandlers");
 const {dashboardAPI} = require("./TaskMngmt_APIs/dashboardHandlers");
+const { notificationsRouter } = require("./UserMngmt_APIs/notifications");
 
 const taskRoutes = require('./TaskMngmt_APIs/taskRoutes');
 app.use(express.json());
+
+app.use("/api/notifications", notificationsRouter(db));
 
 // ==========================================
 // 🚀 NEW SYSTEM SYNC ROUTES (NO COLLISIONS)

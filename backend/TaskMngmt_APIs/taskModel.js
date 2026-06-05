@@ -63,7 +63,7 @@ module.exports = {
     },
 
     findEmployeeByEmail: async (email) => {
-        const [rows] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [email]);
+        const [rows] = await db.query('SELECT employee_id, first_name, last_name FROM Employees WHERE email = ?', [email]);
         return rows[0] || null;
     },
 
@@ -152,6 +152,7 @@ module.exports = {
             WHERE status = 'in progress' 
             AND created_at < NOW() - INTERVAL 24 HOUR
         `;
-        await db.query(query);
+        const [result] = await db.query(query);
+        return result.affectedRows;
     }
 };

@@ -1,5 +1,5 @@
 const { getEmployeeDetails } = require("./dbChecks");
-const { hash_password } = require("./passwordUtil");
+const { hash_password, validatePassword } = require("./passwordUtil");
 const { generateAndSendOtp, verifyOtp } = require("./otpService");
 
 async function handleRequest(db, socket, data) {
@@ -57,11 +57,12 @@ async function handleConfirm(db, socket, data) {
             rawData: "Passwords do not match."
         });
     }
-    if (String(newPassword).length < 8) {
+    const policy = validatePassword(newPassword);
+    if (!policy.valid) {
         return socket.emit("passwordResetLog", {
             success: false,
             stage: "confirm",
-            rawData: "Password must be at least 8 characters long."
+            rawData: policy.message
         });
     }
 

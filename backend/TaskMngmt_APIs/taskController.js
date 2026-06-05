@@ -2,6 +2,8 @@
 //
 
 const Task = require('./taskModel');
+const db = require('./db');
+const { recordNotification } = require('../UserMngmt_APIs/notifications');
 
 const getInitials = (fName, lName) => {
     if (!fName && !lName) return '?';
@@ -12,7 +14,15 @@ module.exports = {
     getTasks: async (req, res) => {
         try {
             // run auto reset first
-            await Task.autoResetStaleTasks();
+            const resetCount = await Task.autoResetStaleTasks();
+            if (resetCount > 0) {
+                await recordNotification(db, {
+                    kind: "system_reset",
+                    title: "Tasks Auto-Reset",
+                    body: `${resetCount} stale task(s) have been moved back to Pending.`,
+                    relatedUrl: null
+                });
+            }
 
             // capture the query string sent by the admin checkbox (?completedSince=all)
             const { completedSince } = req.query;
@@ -159,12 +169,22 @@ module.exports = {
 
             let assignedToUser = null;
             let assignedToGroup = null;
+            let targetName = 'Unknown';
         
             if (assigneeEmail) {
                 const employee = await Task.findEmployeeByEmail(assigneeEmail);
-                if (employee) assignedToUser = employee.employee_id;
+                if (employee) {
+                    assignedToUser = employee.employee_id;
+                    targetName = `${employee.first_name} ${employee.last_name}`.trim();
+                }
             } else if (groupId) {
                 assignedToGroup = parseInt(groupId);
+                const [groupRows] = await db.query('SELECT group_name FROM Job_Groups WHERE group_id = ?', [assignedToGroup]);
+                if (groupRows.length > 0) {
+                    targetName = groupRows[0].group_name;
+                } else {
+                    targetName = `Group ID ${groupId}`;
+                }
             }
             
             console.log("Decoded Token User Object:", req.user);
@@ -186,6 +206,14 @@ module.exports = {
                 assignedBy: creatorId,
                 assignedToUser: assignedToUser,
                 assignedToGroup: assignedToGroup
+            });
+
+            // GLOBAL NOTIFICATION: Notify everyone about the new task
+            await recordNotification(db, {
+                kind: "task_created",
+                title: "New Task Created",
+                body: `Task "${title.trim()}" was assigned to ${targetName}.`,
+                relatedUrl: null
             });
 
             res.status(201).json({ message: 'Task created successfully', taskId: newTaskId });
@@ -249,6 +277,16 @@ module.exports = {
                 if (newStatus === 'completed' || newStatus === 'cancelled') {
                     await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
                 }
+                
+                if (newStatus === 'completed') {
+                    const task = await Task.findById(id);
+                    await recordNotification(db, {
+                        kind: "task_completed",
+                        title: "Task Completed",
+                        body: `Task "${task.title}" has been marked as completed.`,
+                        relatedUrl: null
+                    });
+                }
             }
 
             res.status(200).json({ message: 'Task updated successfully' });
@@ -261,11 +299,23 @@ module.exports = {
     deleteTask: async (req, res) => {
         try {
             const { id } = req.params;
-            const affectedRows = await Task.delete(id);
+            
+            const task = await Task.findById(id);
+            if (!task) {
+                return res.status(404).json({ message: 'Task not found' });
+            }
 
+            const affectedRows = await Task.delete(id);
             if (affectedRows === 0) {
                 return res.status(404).json({ message: 'Task not found' });
             }
+
+            await recordNotification(db, {
+                kind: "task_deleted",
+                title: "Task Deleted",
+                body: `Task "${task.title}" has been removed from the system.`,
+                relatedUrl: null
+            });
 
             res.status(200).json({ message: 'Task deleted successfully' });
         } catch (error) {
@@ -286,6 +336,15 @@ module.exports = {
             if (!employee) return res.status(404).json({ message: 'User not found' });
 
             await Task.logUpdate(taskId, employee.employee_id, notes, statusChange);
+
+            const task = await Task.findById(taskId);
+            await recordNotification(db, {
+                kind: "task_log_update",
+                title: "Task Updated",
+                body: `Log update for "${task?.title || 'Task'}": ${notes}`,
+                relatedUrl: null
+            });
+
             res.status(200).json({ message: 'Update logged successfully' });
         } catch (error) {
             console.error('Error logging task update:', error);

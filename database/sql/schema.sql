@@ -167,3 +167,14 @@ CREATE TABLE `Report_Entries` (
 
 -- Turn checks back on
 SET FOREIGN_KEY_CHECKS = 1;
+
+--
+-- Table structure for table `Notifications`
+--
+DROP TABLE IF EXISTS `Notifications`;
+CREATE TABLE `Notifications` (
+  `notification_id` int NOT NULL AUTO_INCREMENT,
+  `notif_message` varchar(512) NOT NULL,
+  `notif_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`notification_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

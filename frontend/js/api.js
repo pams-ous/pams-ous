@@ -100,6 +100,27 @@ window.PAMS = (function () {
     };
 
     /**
+     * Password Policy (kept in sync with backend passwordUtil.js PASSWORD_POLICY)
+     * Minimum 8 chars, with an uppercase letter, a lowercase letter, a number, and a symbol.
+     */
+    const PASSWORD_POLICY = {
+        minLength: 8,
+        hint: 'At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.',
+        message: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.'
+    };
+
+    const validatePassword = (pw) => {
+        const value = typeof pw === 'string' ? pw : '';
+        const valid =
+            value.length >= PASSWORD_POLICY.minLength &&
+            /[A-Z]/.test(value) &&
+            /[a-z]/.test(value) &&
+            /[0-9]/.test(value) &&
+            /[^A-Za-z0-9]/.test(value);
+        return { valid, message: valid ? null : PASSWORD_POLICY.message };
+    };
+
+    /**
      * Formatting Utilities
      */
     const fmtDate = (iso) => {
@@ -135,6 +156,7 @@ window.PAMS = (function () {
         requireAuth, logout,
         authUrl, pageUrl, fmtDate, fmtHeaderDate,
         getUsers, getGroups, getDesignations,
+        validatePassword, PASSWORD_POLICY,
         socket: null
     };
 })();

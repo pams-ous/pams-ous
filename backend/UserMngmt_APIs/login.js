@@ -33,12 +33,18 @@ function loginAPI(express, db, io, app) {
             return socket.emit('login_backendLog', { success: false, rawData: `Enter the password!`});
         }
 
-        const query = `SELECT password FROM employees WHERE email = ? LIMIT 1;`;
+        const query = `SELECT password, approval_status FROM employees WHERE email = ? LIMIT 1;`;
 
         try {
             const [records] = await db.query(query, [email]);
             if (records && records.length > 0) {
-                const hashedPw = records[0].password;
+                const userRecord = records[0];
+                const hashedPw = userRecord.password;
+                const approvalStatus = userRecord.approval_status;
+
+                if (approvalStatus === 'PENDING') {
+                    return socket.emit('login_backendLog', { success: false, rawData: `Your account is pending admin approval.`});
+                }
 
                 let validPw = await verify_pass(rawPw, hashedPw);
                 
@@ -153,10 +159,15 @@ function loginAPI(express, db, io, app) {
         }
 
         try {
-            const [records] = await db.query('SELECT employee_id, password, designation, first_name, last_name FROM employees WHERE email = ? LIMIT 1;', [email]);
+            const [records] = await db.query('SELECT employee_id, password, designation, first_name, last_name, approval_status FROM employees WHERE email = ? LIMIT 1;', [email]);
             
             if (records && records.length > 0) {
                 const userRecord = records[0];
+
+                if (userRecord.approval_status === 'PENDING') {
+                    return res.status(403).json({ success: false, message: 'Your account is pending admin approval.' });
+                }
+
                 let validPw = await verify_pass(password, userRecord.password);
                 
                 if (validPw) {

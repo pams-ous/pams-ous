@@ -246,8 +246,9 @@ const setSession = (token, user) => {
                     PAMS.toast('Passwords do not match.', 'warning');
                     return;
                 }
-                if (data.password.length < 8) {
-                    PAMS.toast('Password must be at least 8 characters long.', 'warning');
+                const pwCheck = PAMS.validatePassword(data.password);
+                if (!pwCheck.valid) {
+                    PAMS.toast(pwCheck.message, 'warning');
                     return;
                 }
                 if (data.designationIds) {
