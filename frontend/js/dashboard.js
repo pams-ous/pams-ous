@@ -70,6 +70,10 @@
         const barCtxEl = document.getElementById('barChart');
         if (barCtxEl) {
             const barCtx = barCtxEl.getContext('2d');
+            const groupCount = s.byGroup.length;
+            // Adjust bar thickness dynamically based on number of groups, with a hard cap of 45px
+            const computedMaxBarThickness = groupCount <= 1 ? 30 : (groupCount === 2 ? 38 : 45);
+
             barChart = new Chart(barCtx, {
                 type: 'bar',
                 data: {
@@ -88,6 +92,11 @@
                     scales: {
                         x: { stacked: true, grid: { display: false } },
                         y: { stacked: true, beginAtZero: true, grid: { color: '#f3f4f6' } }
+                    },
+                    datasets: {
+                        bar: {
+                            maxBarThickness: computedMaxBarThickness
+                        }
                     }
                 }
             });
