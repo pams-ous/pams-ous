@@ -1771,6 +1771,82 @@ body.sidebar-open .main {
   color: var(--red-text);
 }
 
+.act-complete {
+  background: var(--green-bg);
+  color: var(--green-text);
+  border-color: var(--green-text);
+  transition: var(--transition);
+}
+
+.act-complete:hover {
+  filter: brightness(0.88);
+}
+
+.act-complete:disabled,
+.act-complete[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ribbon-btn.complete {
+  background: var(--green-bg);
+  color: var(--green-text);
+  border: 1.5px solid var(--green-text);
+  transition: var(--transition);
+}
+
+.ribbon-btn.complete:hover {
+  filter: brightness(0.90);
+}
+
+.ribbon-btn.complete:disabled,
+.ribbon-btn.complete[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* My Tasks — view toggle (Active / Completed) */
+.mt-view-toggle {
+  display: inline-flex;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mt-view-tab {
+  background: var(--white);
+  border: none;
+  border-right: 1.5px solid var(--gray-200);
+  padding: .45rem 1rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gray-700);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.mt-view-tab:last-child {
+  border-right: none;
+}
+
+.mt-view-tab.active,
+.mt-view-tab[aria-pressed="true"] {
+  background: var(--maroon);
+  color: var(--white);
+  border-color: var(--maroon);
+}
+
+.mt-view-tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 /* Specialized Task Tables */
 
 /* ── MY TASKS: viewport-bounded panel with internal scroll ──

@@ -229,6 +229,7 @@
                 </div>
             </div>
             <div class="tb-row-actions">
+                <button class="ribbon-btn complete" title="Mark as Completed" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED') ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
                 <button class="ribbon-btn ghost" onclick="window.TaskBoard.openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
                 <button class="ribbon-btn ghost" onclick="window.TaskBoard.openDeleteTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
             </div>
@@ -367,6 +368,22 @@
             }
             try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); }
             catch (err) { alert(err.message); }
+        },
+        completeTask: async (id) => {
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            if (CONFIG.USE_MOCK_API) {
+                t.status = 'COMPLETED';
+                renderList();
+                updateOverdueBanner();
+                return;
+            }
+            try {
+                await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
+                await loadAll();
+            } catch (err) {
+                alert(err.message);
+            }
         },
         openEditFromView: () => { closeModal('viewModal'); window.TaskBoard.openEdit(viewingId); },
         openDeleteFromView: () => { closeModal('viewModal'); window.TaskBoard.openDeleteTask(viewingId); },

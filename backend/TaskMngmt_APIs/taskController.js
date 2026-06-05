@@ -64,6 +64,10 @@ module.exports = {
             const userEmail = req.query.email;
             if (!userEmail) return res.status(400).json({ message: 'Email required' });
 
+            // 'completed' view opt-in; any other value (including absent) falls back to active
+            const { view } = req.query;
+            const showCompleted = view === 'completed';
+
             // 1. Find the logged-in employee (Returns ONLY the ID based on our debug log)
             const employee = await Task.findEmployeeByEmail(userEmail);
             if (!employee) return res.status(404).json({ message: 'User not found' });
@@ -74,13 +78,17 @@ module.exports = {
             // 2. Fetch all raw tasks
             const rawTasks = await Task.findAll();
 
-            // 3. Match tasks strictly by ID (and exclude closed statuses)
+            // 3. Match tasks strictly by ID, then apply the active/completed filter
             const myRawTasks = rawTasks.filter(t => {
                 const matchesUser = t.assigned_to_user === targetId;
-                
-                // Exclude tasks that are completed or cancelled
+
+                if (showCompleted) {
+                    // Return only completed tasks; cancelled is always excluded
+                    return matchesUser && t.status === 'completed';
+                }
+
+                // Default: exclude completed and cancelled (active tasks only)
                 const isClosed = t.status === 'completed' || t.status === 'cancelled';
-                
                 return matchesUser && !isClosed;
             });
 
@@ -210,11 +218,14 @@ module.exports = {
             }
 
             const currentStatus = existingTask.status.toLowerCase();
+            const isAssignee = existingTask.assigned_to_user === req.user.id;
             if (status) {
                 const targetStatus = status.toLowerCase();
 
-                // Lock Terminal States: Regular users cannot resurrect completed or cancelled tasks
-                if (!isAuthorizedModifier && (currentStatus === 'completed' || currentStatus === 'cancelled')) {
+                // Lock Terminal States: a finalized (completed/cancelled) task may only be
+                // reopened by an admin/chief OR by the task's own assignee (their My Tasks).
+                // Everyone else is blocked from resurrecting it.
+                if (!isAuthorizedModifier && !isAssignee && (currentStatus === 'completed' || currentStatus === 'cancelled')) {
                     return res.status(403).json({ message: 'Cannot modify a finalized or cancelled task.' });
                 }
             }
