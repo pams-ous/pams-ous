@@ -213,13 +213,13 @@
         const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < new Date(new Date().toDateString());
 
         return `
-        <div class="tb-row">
+        <div class="tb-row${isOverdue ? ' is-overdue' : ''}"${isOverdue ? ' aria-label="Overdue task"' : ''}>
             <div class="tb-row-main" onclick="window.TaskBoard.openView(${t.id})">
                 <div class="tb-row-top">
                     <span class="tb-title">${t.title}</span>
                     <span class="badge ${pCls}">${t.priority}</span>
                     <span class="badge ${sCls}">${t.status}</span>
-                    ${isOverdue ? '<span class="tb-flag">OVERDUE</span>' : ''}
+                    ${isOverdue ? '<span class="tb-flag" title="This task is past its due date"><i class="fa-solid fa-clock" aria-hidden="true"></i> OVERDUE</span>' : ''}
                 </div>
                 <div class="tb-desc">${t.description || ''}</div>
                 <div class="tb-meta">

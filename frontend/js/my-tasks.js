@@ -72,14 +72,14 @@
             const sCls = 'badge-' + t.status.toLowerCase().replace(' ', '_');
 
             return `
-            <tr class="${isOverdue ? 'task-overdue' : ''}">
+            <tr class="${isOverdue ? 'task-overdue' : ''}"${isOverdue ? ' aria-label="Overdue task"' : ''}>
                 <td>${i + 1}</td>
-                <td class="task-name">${t.title}${isOverdue ? '<span class="overdue-tag">OVERDUE</span>' : ''}</td>
+                <td class="task-name" title="${t.title.replace(/"/g, '&quot;')}">${t.title}${isOverdue ? '<span class="overdue-tag" title="This task is past its due date"><i class="fa-solid fa-clock" aria-hidden="true"></i> OVERDUE</span>' : ''}</td>
                 <td><span class="badge ${pCls}">${t.priority}</span></td>
                 <td><span class="badge ${sCls}">${t.status}</span></td>
-                <td>${fmtDate(t.dueDate)}</td>
-                <td>${fmtDate(t.updatedAt)}</td>
-                <td>
+                <td class="td-nowrap">${fmtDate(t.dueDate)}</td>
+                <td class="td-nowrap">${fmtDate(t.updatedAt)}</td>
+                <td class="td-nowrap">
                     <div class="flex gap-2">
                         <button class="act-btn" title="View Details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-eye"></i></button>
                         <button class="act-btn act-delete" title="Remove" onclick="window.MyTasks.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>

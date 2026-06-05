@@ -48,6 +48,7 @@
 
   /* Status Colors */
   --red-bg: #fde8e8;
+  --red-bg-strong: #fca5a5;
   --red-border: #f5b8b8;
   --red-text: #b91c1c;
   --green-bg: #dcfce7;
@@ -1543,6 +1544,12 @@ body.sidebar-open .main {
   transition: var(--transition);
 }
 
+.tb-row.is-overdue {
+  background: var(--red-bg-strong);
+  border-color: var(--red-text);
+  border-left: 4px solid var(--red-danger);
+}
+
 .tb-row:hover {
   box-shadow: var(--shadow);
   transform: translateX(2px);
@@ -1765,8 +1772,32 @@ body.sidebar-open .main {
 }
 
 /* Specialized Task Tables */
+
+/* ── MY TASKS: viewport-bounded panel with internal scroll ──
+   Offset breakdown: 24px (.content top padding) + ~80px (page-header + margin-bottom:24px)
+   + ~52px (.panel-head) + 24px (.content bottom padding) ≈ 180px.
+   Using 185px gives a small breathing gap; max/min-height mirror .ug-tabpanel. */
+.my-tasks-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 185px);
+  max-height: 860px;
+  min-height: 320px;
+}
+
+/* Scrollable table container — horizontal AND vertical scroll happen here,
+   not on .main (which has overflow-x: hidden). The .table-wrap itself has
+   overflow-x: auto so the horizontal scrollbar appears inside the panel. */
+.my-tasks-panel .table-wrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 1.5rem;
+}
+
 .task-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
 }
 
@@ -1777,6 +1808,12 @@ body.sidebar-open .main {
   text-align: left;
   font-size: 13px;
   font-weight: 500;
+  /* Sticky header — sticks within .table-wrap scroll container.
+     z-index: 1 keeps it above tbody rows but below modals (z-index: 2000).
+     Background matches existing maroon thead so rows don't bleed through. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .task-table td {
@@ -1811,34 +1848,47 @@ body.sidebar-open .main {
 .task-name {
   font-weight: 600;
   color: var(--text);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cells that must never wrap regardless of container width */
+.td-nowrap {
+  white-space: nowrap;
 }
 
 .task-overdue td {
-  background: #fee2e2 !important;
+  background: var(--red-bg-strong) !important;
 }
 
 .overdue-tag {
-  background: #dc2626;
-  color: #fff;
+  background: var(--red-text);
+  color: var(--white);
   font-size: 9px;
   font-weight: 800;
   padding: 1px 6px;
   border-radius: 4px;
   margin-left: 8px;
-  border: 1px solid #b91c1c;
+  border: 1px solid var(--red-border);
+  /* Prevent badge from dropping below the title text */
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Alert Banner */
 .alert-banner {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--red-bg);
+  color: var(--red-text);
   padding: 12px 32px;
   font-size: 13.5px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #fecaca;
+  border-bottom: 1px solid var(--red-border);
   z-index: 1000;
 }
 
