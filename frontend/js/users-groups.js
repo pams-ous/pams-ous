@@ -92,6 +92,10 @@
                 ? u.groups.map(gName => `<span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; display: inline-block; margin: 2px;">${gName}</span>`).join('') 
                 : '<span style="color:#9ca3af; font-style:italic; font-size: 0.8rem;">Unassigned</span>';
 
+            const jobTitleOptions = designations.map(d => 
+                `<option value="${d.id}" ${u.jobTitleId == d.id ? 'selected' : ''}>${d.name}</option>`
+            ).join('');
+
             return `
             <tr>
               <td class="td-name">${u.name || '—'}</td>
@@ -105,6 +109,16 @@
                     style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
                     <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
                     <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
+                </select>
+              </td>
+              <td>
+                <select 
+                    class="form-control" 
+                    onchange="window.Admin.changeJobTitle('${u.email}', this.value)"
+                    data-user-email="${u.email}" 
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
+                    <option value="">— Select Title —</option>
+                    ${jobTitleOptions}
                 </select>
               </td>
               
@@ -160,10 +174,10 @@
         const sel = document.getElementById(id);
         if (!sel) return;
         const sorted = [...designations].sort((a, b) => (a.hierarchy_position || 100) - (b.hierarchy_position || 100));
-        sel.innerHTML = sorted.map(d => `<option value="${d.name}" ${selectedId == d.name ? 'selected' : ''}>${d.name}</option>`).join('');
+        sel.innerHTML = sorted.map(d => `<option value="${d.id}" ${selectedId == d.id ? 'selected' : ''}>${d.name}</option>`).join('');
         if (!selectedId) {
             const def = sorted.find(d => d.is_default);
-            if (def) sel.value = String(def.name);
+            if (def) sel.value = String(def.id);
         }
     }
 
@@ -194,13 +208,13 @@
             const role = document.getElementById('newUserRole').value;
             const password = document.getElementById('newUserPassword').value;
             const confirmPass = document.getElementById('confirmNewUserPassword').value;
-            const designationName = document.getElementById('newUserDesignation').value;
+            const designationId = document.getElementById('newUserDesignation').value;
 
             if (!firstName || !lastName || !email || !password) { alert('First Name, Last Name, Email, and Password are required.'); return; }
             if (password !== confirmPass) { alert('Passwords do not match.'); return; }
 
             try {
-                await apiFetch('/users', 'POST', { code, firstName, lastName, middleName, suffix, email, role, password, designationName });
+                await apiFetch('/users', 'POST', { code, firstName, lastName, middleName, suffix, email, role, password, designationId });
                 window.Admin.closeModal('addUserModal');
                 await loadAll(); 
             } catch (error) { alert(`Failed to add user: ${error.message}`); }
@@ -245,6 +259,9 @@
         },
         changeRole: async (email, newRole) => {
             try { await apiFetch(`/users/${email}`, 'PUT', { role: newRole }); await loadAll(); } catch (err) { alert(`Failed to change role: ${err.message}. Reverting...`); await loadAll(); }
+        },
+        changeJobTitle: async (email, jobId) => {
+            try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); } catch (err) { alert(`Failed to change job title: ${err.message}. Reverting...`); await loadAll(); }
         },
 
         addGroup: async () => {

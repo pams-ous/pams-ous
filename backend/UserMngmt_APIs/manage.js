@@ -145,6 +145,23 @@ async function manageAccountAPI(io, db, app) {
         }
     });
 
+    // REST API: Update User Job Title
+    app.put('/api/users/job-title', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
+        const { email, jobTitleId } = req.body;
+        if (!email || jobTitleId === undefined) {
+            return res.status(400).json({ success: false, message: "Email and Job Title ID are required" });
+        }
+        try {
+            const idNum = parseInt(jobTitleId, 10);
+            const [result] = await db.query('UPDATE Employees SET job_title = ? WHERE email = ?', [idNum, email]);
+            if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "User not found" });
+            res.json({ success: true, message: "Job title updated successfully" });
+        } catch (err) {
+            console.error("Update Job Title Error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    });
+
     // REST API: Delete User
 
     app.delete('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {

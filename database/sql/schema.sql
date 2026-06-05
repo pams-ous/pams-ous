@@ -21,14 +21,17 @@ CREATE TABLE `Employees` (
   `last_name` varchar(45) NOT NULL,
   `middle_name` varchar(45) DEFAULT NULL,
   `suffix` varchar(45) DEFAULT NULL,
-  `designation` varchar(80) NOT NULL DEFAULT 'Encoder',
+  `job_title` int DEFAULT NULL,
+  `designation` enum('Encoder','Admin') NOT NULL DEFAULT 'Encoder',
   `email` varchar(45) NOT NULL,
   `password` varchar(255) NOT NULL,
   `active_status` enum('Online','Offline') NOT NULL DEFAULT 'Offline',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `otp` int DEFAULT NULL,
-  PRIMARY KEY (`employee_id`)
+  PRIMARY KEY (`employee_id`),
+  KEY `fk_employee_job_title` (`job_title`),
+  CONSTRAINT `fk_employee_job_title` FOREIGN KEY (`job_title`) REFERENCES `Designations` (`designation_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
