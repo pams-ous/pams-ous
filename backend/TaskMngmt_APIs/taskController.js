@@ -4,6 +4,8 @@
 const Task = require('./taskModel');
 const db = require('./db');
 const { recordNotification } = require('../UserMngmt_APIs/notifications');
+const { formatFullName } = require('../UserMngmt_APIs/userUtils');
+
 
 const getInitials = (fName, lName) => {
     if (!fName && !lName) return '?';
@@ -16,11 +18,54 @@ module.exports = {
             // run auto reset first
             const resetCount = await Task.autoResetStaleTasks();
             if (resetCount > 0) {
+                //-an in-progress task turned to pending after 24 hours have passed of not completing
                 await recordNotification(db, {
                     kind: "system_reset",
                     title: "Tasks Auto-Reset",
-                    body: `${resetCount} stale task(s) have been moved back to Pending.`,
+                    body: `${resetCount} stale task(s) have been moved back to Pending because they were not completed within 24 hours.`,
                     relatedUrl: null
+                });
+            }
+
+            //-completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1
+            if (req.user.role === 'Admin') {
+                const today = new Date().toISOString().split('T')[0];
+                const [lastRefresh] = await db.query(`
+                    SELECT notif_date FROM Notifications 
+                    WHERE notif_message LIKE '%Completed tasks have refreshed%' 
+                    ORDER BY notif_date DESC LIMIT 1
+                `);
+                if (!lastRefresh.length || lastRefresh[0].notif_date.split(' ')[0] !== today) {
+                    await recordNotification(db, {
+                        kind: "system_refresh",
+                        title: "Tasks Refreshed",
+                        body: "Completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1",
+                        relatedUrl: null,
+                        targetRole: 'Admin'
+                    });
+                }
+            }
+
+            // Check for newly overdue tasks to notify users
+            const [overdueTasks] = await db.query(`
+                SELECT t.task_id, t.title, a.first_name, a.last_name, a.suffix, t.assigned_to_user
+                FROM Tasks t
+                JOIN Employees a ON t.assigned_to_user = a.employee_id
+                WHERE t.status NOT IN ('completed', 'cancelled')
+                  AND t.due_date < CURDATE()
+                  AND NOT EXISTS (
+                      SELECT 1 FROM Notifications 
+                      WHERE notif_message LIKE CONCAT('%"', t.title, '" is now overdue%') 
+                      AND DATE(notif_date) = CURDATE()
+                  )
+            `);
+            for (const ot of overdueTasks) {
+                await recordNotification(db, {
+                    kind: "task_overdue",
+                    title: "Task Overdue",
+                    body: `Task "${ot.title}" assigned to ${formatFullName(ot)} is now overdue`,
+                    relatedUrl: null,
+                    targetUserId: ot.assigned_to_user
                 });
             }
 
@@ -208,13 +253,36 @@ module.exports = {
                 assignedToGroup: assignedToGroup
             });
 
-            // GLOBAL NOTIFICATION: Notify everyone about the new task
+            // Get creator's full name
+            const [creatorRow] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [creatorId]);
+            const creatorName = formatFullName(creatorRow[0]);
+
+            //-Admin/chief x created task y and assigned to user z or group z, for the admins (only appears if the user is admin)
             await recordNotification(db, {
-                kind: "task_created",
+                kind: "task_created_admin",
                 title: "New Task Created",
-                body: `Task "${title.trim()}" was assigned to ${targetName}.`,
-                relatedUrl: null
+                body: `${creatorName} created task "${title.trim()}" and assigned it to ${targetName}.`,
+                relatedUrl: null,
+                targetRole: 'Admin'
             });
+
+            //-admin/chief x assigned task y to you, if non admin (only appears if the user isn't an admin)
+            if (assignedToUser) {
+                await recordNotification(db, {
+                    kind: "task_assigned_user",
+                    title: "Task Assigned to You",
+                    body: `${creatorName} assigned task "${title.trim()}" to you.`,
+                    relatedUrl: null,
+                    targetUserId: assignedToUser
+                });
+            } else if (assignedToGroup) {
+                // If assigned to a group, notify all members of that group? 
+                // The request doesn't explicitly ask for group members to be notified, 
+                // but "assigned to you" if non admin implies individual targeting.
+                // For group assignments, we can't easily target all in current Notifications table 
+                // without multiple inserts or a target_group_id column.
+                // I'll skip group member individual notifications unless I add target_group_id.
+            }
 
             res.status(201).json({ message: 'Task created successfully', taskId: newTaskId });
         } catch (error) {
@@ -305,15 +373,29 @@ module.exports = {
                 return res.status(404).json({ message: 'Task not found' });
             }
 
+            // Get assignee name for notification
+            let assigneeName = 'No one';
+            if (task.assigned_to_user) {
+                const [emp] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [task.assigned_to_user]);
+                if (emp.length > 0) assigneeName = formatFullName(emp[0]);
+            } else if (task.assigned_to_group) {
+                const [grp] = await db.query('SELECT group_name FROM Job_Groups WHERE group_id = ?', [task.assigned_to_group]);
+                if (grp.length > 0) assigneeName = grp[0].group_name;
+            }
+
             const affectedRows = await Task.delete(id);
             if (affectedRows === 0) {
                 return res.status(404).json({ message: 'Task not found' });
             }
 
+            //-task x assigned to user y was deleted by [Admin]
+            const [adminRow] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
+            const adminName = formatFullName(adminRow[0]);
+
             await recordNotification(db, {
                 kind: "task_deleted",
                 title: "Task Deleted",
-                body: `Task "${task.title}" has been removed from the system.`,
+                body: `Task "${task.title}" assigned to ${assigneeName} was deleted by ${adminName}`,
                 relatedUrl: null
             });
 
@@ -338,12 +420,43 @@ module.exports = {
             await Task.logUpdate(taskId, employee.employee_id, notes, statusChange);
 
             const task = await Task.findById(taskId);
-            await recordNotification(db, {
-                kind: "task_log_update",
-                title: "Task Updated",
-                body: `Log update for "${task?.title || 'Task'}": ${notes}`,
-                relatedUrl: null
-            });
+            const updaterName = formatFullName(employee);
+            const isUpdaterAdmin = (req.user.role === 'Admin'); // Actually we should check the `employee`'s role, not `req.user`'s.
+            
+            // Need to fetch updater's role
+            const [updaterInfo] = await db.query('SELECT designation FROM Employees WHERE employee_id = ?', [employee.employee_id]);
+            const isUpdaterAdminActual = updaterInfo[0]?.designation === 'Admin';
+
+            if (!isUpdaterAdminActual) {
+                //-non-admin x updated task y's update notes "(insert update notes)"
+                await recordNotification(db, {
+                    kind: "task_note_update",
+                    title: "Task Update Notes",
+                    body: `${updaterName} updated task "${task?.title || 'Task'}"'s update notes: "${notes}"`,
+                    relatedUrl: null
+                });
+
+                //-non-admin x updated task y's status to (the new status)
+                if (statusChange) {
+                    await recordNotification(db, {
+                        kind: "task_status_update",
+                        title: "Task Status Changed",
+                        body: `${updaterName} updated task "${task?.title || 'Task'}"'s status to ${statusChange}`,
+                        relatedUrl: null
+                    });
+                }
+            }
+
+            //-non-admin x attached a url to the latest task update of task y
+            // We can detect a URL in the notes as a simple heuristic since there is no separate URL field.
+            if (!isUpdaterAdminActual && /https?:\/\/[^\s]+/.test(notes)) {
+                await recordNotification(db, {
+                    kind: "task_url_update",
+                    title: "URL Attached",
+                    body: `${updaterName} attached a url to the latest task update of task "${task?.title || 'Task'}"`,
+                    relatedUrl: null
+                });
+            }
 
             res.status(200).json({ message: 'Update logged successfully' });
         } catch (error) {

@@ -3,6 +3,8 @@ const { hash_password, verify_pass, validatePassword } = require("./passwordUtil
 const { ifEmployeeExists } = require("./dbChecks");
 const { generateAndSendOtp, verifyOtp } = require("./otpService");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
+const { recordNotification } = require("./notifications");
+const { formatFullName } = require("./userUtils");
 
 function buildPayload(data) {
     const tempEmpCode = data.tempEmpCode || data.empCode || data.employeeCode;
@@ -245,8 +247,21 @@ async function regiUserAPI(io, db, app) {
                 [employee_id, employee_code, firstName, lastName, middleName, suffix, email, designationId, systemRole, hashedPassword, approvalStatus]
             );
 
+            // Notification: A new user x was added as (designation) by Admin y
+            const [designationRow] = await db.query('SELECT name FROM Designations WHERE designation_id = ?', [designationId]);
+            const designationName = designationRow[0]?.name || systemRole;
+            
+            const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
+            const adminName = formatFullName(adminData[0]);
+
+            await recordNotification(db, {
+                kind: "user_added",
+                title: "New User Added",
+                body: `A new user ${formatFullName({first_name: firstName, last_name: lastName, suffix})} was added as ${designationName} by ${adminName}`,
+                relatedUrl: null
+            });
+
             if (approvalStatus === 'PENDING') {
-                const { recordNotification } = require("./notifications");
                 await recordNotification(db, {
                     kind: "user_approval",
                     title: systemRole,
