@@ -12,6 +12,8 @@
     let reportToDelete = null;
     let chart;
     let allUsers = [];
+    let searchQuery = '';
+    let sortMode = 'date-desc';
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -131,6 +133,51 @@
     /**
      * UI Rendering
      */
+    // Relative "x ago" timestamp for the report list (e.g. "2 hours ago").
+    function timeAgo(dateStr) {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const secs = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (secs < 45) return 'just now';
+        // Largest matching unit wins, so "90 mins" reads as "1 hour ago".
+        const units = [
+            ['year', 31536000], ['month', 2592000], ['week', 604800],
+            ['day', 86400], ['hour', 3600], ['minute', 60]
+        ];
+        for (const [name, size] of units) {
+            const v = Math.floor(secs / size);
+            if (v >= 1) return `${v} ${name}${v > 1 ? 's' : ''} ago`;
+        }
+        return 'just now';
+    }
+
+    // Maps a report type to its colored badge class.
+    function typeBadgeClass(type) {
+        const map = { daily: 'rt-daily', weekly: 'rt-weekly', annual: 'rt-annual', custom: 'rt-custom' };
+        return map[(type || '').toLowerCase()] || 'rt-default';
+    }
+
+    // Applies the active search query + sort mode to the report list.
+    // Non-destructive: never mutates `reports` (selectReport still looks up by id there).
+    function getDisplayedReports() {
+        const q = searchQuery.trim().toLowerCase();
+        const list = q
+            ? reports.filter(r =>
+                (r.report_type || '').toLowerCase().includes(q) ||
+                (r.scope_type || '').toLowerCase().includes(q) ||
+                (r.scope_target || '').toLowerCase().includes(q) ||
+                (r.generated_by_name || '').toLowerCase().includes(q))
+            : reports.slice();
+
+        switch (sortMode) {
+            case 'date-asc': list.sort((a, b) => new Date(a.generated_at) - new Date(b.generated_at)); break;
+            case 'type':     list.sort((a, b) => (a.report_type || '').localeCompare(b.report_type || '')); break;
+            case 'scope':    list.sort((a, b) => (a.scope_type || '').localeCompare(b.scope_type || '')); break;
+            default:         list.sort((a, b) => new Date(b.generated_at) - new Date(a.generated_at)); break;
+        }
+        return list;
+    }
+
     function renderHistory() {
         const list = document.getElementById('historyList');
         if (!list) return;
@@ -140,16 +187,27 @@
             return;
         }
 
-        list.innerHTML = reports.map(r => `
+        const displayed = getDisplayedReports();
+        if (displayed.length === 0) {
+            list.innerHTML = '<div class="log-empty">No reports match your search.</div>';
+            return;
+        }
+
+        list.innerHTML = displayed.map(r => `
             <div class="report-card ${r.report_id === activeReportId ? 'active' : ''}" onclick="window.Reports.selectReport(${r.report_id})">
                 <button class="report-delete-btn" title="Delete Report" onclick="window.Reports.openDeleteModal(event, ${r.report_id})">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
-                <div class="report-card-title"><i class="fa-solid fa-file-invoice"></i> ${r.report_type} Report</div>
+                <div class="report-card-title">
+                    <i class="fa-solid fa-file-invoice"></i>
+                    <span class="report-type-badge ${typeBadgeClass(r.report_type)}">${r.report_type}</span>
+                </div>
                 <div class="report-card-meta">
                     <strong>Scope:</strong> ${r.scope_target || r.scope_type}<br>
                     <strong>Period:</strong> ${fmtDate(r.period_start)} – ${fmtDate(r.period_end)}<br>
-                    <span style="display:block; margin-top:4px; opacity:0.8;">Generated: ${new Date(r.generated_at).toLocaleDateString()} by ${r.generated_by_name || 'Admin'}</span>
+                    <span class="report-card-time" title="Generated ${new Date(r.generated_at).toLocaleString()}">
+                        <i class="fa-regular fa-clock"></i> ${timeAgo(r.generated_at)} · by ${r.generated_by_name || 'Admin'}
+                    </span>
                 </div>
             </div>
         `).join('');
@@ -464,6 +522,8 @@
                 PAMS.socket.emit('deleteReport', reportToDelete);
             }
         },
+        onSearch: (q) => { searchQuery = q || ''; renderHistory(); },
+        onSort: (mode) => { sortMode = mode || 'date-desc'; renderHistory(); },
         print: () => window.print()
     };
 })();
