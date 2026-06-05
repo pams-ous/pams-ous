@@ -76,7 +76,7 @@ app.use("/api/notifications", notificationsRouter(db));
 app.get('/api/admin/sync/users', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT e.employee_id as id, e.first_name, e.last_name, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status,
+            SELECT e.employee_id as id, e.first_name, e.last_name, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status, e.approval_status,
             (
                 SELECT JSON_ARRAYAGG(g.group_name)
                 FROM Employees_Groups eg
@@ -98,10 +98,19 @@ app.get('/api/admin/sync/users', async (req, res) => {
                 jobTitleId: r.job_title,
                 jobTitleName: r.designation_name,
                 activeStatus: r.active_status,
+                approvalStatus: r.approval_status,
                 groups: parsedGroups 
             };
         });
         res.json({ users });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/sync/users/:id/approve', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        await db.query("UPDATE Employees SET approval_status = 'APPROVED' WHERE employee_id = ?", [userId]);
+        res.json({ success: true, message: "User approved successfully" });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -411,6 +411,10 @@
               </td>
               
               <td class="td-actions">
+                ${u.approvalStatus === 'PENDING' ? `
+                <button class="action-btn approve" onclick="window.Admin.approveUser('${u.id}')" title="Approve User" style="color: #16a34a;">
+                  <i class="fas fa-check"></i>
+                </button>` : ''}
                 <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.email}')" title="Edit user">
                   <i class="fas fa-pen"></i>
                 </button>
@@ -537,6 +541,13 @@
         deleteUser: async (email, name) => {
             if (!confirm(`Delete user "${name}"?`)) return;
             try { await apiFetch(`/users/${email}`, 'DELETE'); await loadAll(); } catch (err) { PAMS.toast(err.message, 'error'); }
+        },
+        approveUser: async (userId) => {
+            try { 
+                await apiFetch(`/admin/sync/users/${userId}/approve`, 'POST'); 
+                PAMS.toast('User approved successfully!', 'success');
+                await loadAll(); 
+            } catch (err) { PAMS.toast(`Failed to approve user: ${err.message}`, 'error'); }
         },
         changeRole: async (email, newRole) => {
             try { await apiFetch(`/users/${email}`, 'PUT', { role: newRole }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change role: ${err.message}. Reverting...`, 'error'); await loadAll(); }

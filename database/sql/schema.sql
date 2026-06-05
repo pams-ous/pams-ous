@@ -26,6 +26,7 @@ CREATE TABLE `Employees` (
   `email` varchar(45) NOT NULL,
   `password` varchar(255) NOT NULL,
   `active_status` enum('Online','Offline') NOT NULL DEFAULT 'Offline',
+  `approval_status` enum('PENDING','APPROVED') DEFAULT 'PENDING',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `otp` int DEFAULT NULL,

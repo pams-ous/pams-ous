@@ -132,6 +132,13 @@ async function handleConfirm(db, socket, data) {
         // 1: Head, 2: Chief - Admission, 3: Chief - Records -> Admin
         // 4: Encoder/Staff -> Encoder
         const systemRole = [1, 2, 3].includes(Number(p.designationId)) ? 'Admin' : 'Encoder';
+        
+        let approvalStatus = 'APPROVED';
+        if (systemRole === 'Admin') {
+            const [adminCountRow] = await db.query("SELECT COUNT(*) as count FROM Employees WHERE designation = 'Admin'");
+            const adminCount = adminCountRow[0]?.count || 0;
+            approvalStatus = adminCount === 0 ? 'APPROVED' : 'PENDING';
+        }
 
         const query = `INSERT INTO Employees (
             employee_id,
@@ -142,8 +149,9 @@ async function handleConfirm(db, socket, data) {
             suffix, email,
             job_title,
             designation,
-            password)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+            password,
+            approval_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
 
         await db.query(query, [
             uuid,
@@ -155,13 +163,26 @@ async function handleConfirm(db, socket, data) {
             p.email,
             p.designationId,
             systemRole,
-            p.passwordHash
+            p.passwordHash,
+            approvalStatus
         ]);
+
+        if (approvalStatus === 'PENDING') {
+            const { recordNotification } = require("./notifications");
+            await recordNotification(db, {
+                kind: "user_approval",
+                title: systemRole,
+                body: p.email,
+                relatedUrl: uuid
+            });
+        }
 
         socket.emit("registrationLog", {
             success: true,
             stage: "confirm",
-            rawData: "Account verified and created successfully!",
+            rawData: approvalStatus === 'PENDING' 
+                ? "Account created! It is now pending admin approval." 
+                : "Account verified and created successfully!",
             email: p.email
         });
     } catch (err) {
@@ -211,12 +232,29 @@ async function regiUserAPI(io, db, app) {
 
             // Use the role provided by the admin, defaulting to Encoder
             const systemRole = role === 'ADMIN' ? 'Admin' : 'Encoder';
+            
+            let approvalStatus = 'APPROVED';
+            if (systemRole === 'Admin') {
+                const [adminCountRow] = await db.query("SELECT COUNT(*) as count FROM Employees WHERE designation = 'Admin'");
+                const adminCount = adminCountRow[0]?.count || 0;
+                approvalStatus = adminCount === 0 ? 'APPROVED' : 'PENDING';
+            }
 
             await db.query(
-                'INSERT INTO Employees (employee_id, employee_code, first_name, last_name, middle_name, suffix, email, job_title, designation, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [employee_id, employee_code, firstName, lastName, middleName, suffix, email, designationId, systemRole, hashedPassword]
+                'INSERT INTO Employees (employee_id, employee_code, first_name, last_name, middle_name, suffix, email, job_title, designation, password, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [employee_id, employee_code, firstName, lastName, middleName, suffix, email, designationId, systemRole, hashedPassword, approvalStatus]
             );
-            res.json({ success: true, id: employee_id, message: "User added to SQL!" });
+
+            if (approvalStatus === 'PENDING') {
+                const { recordNotification } = require("./notifications");
+                await recordNotification(db, {
+                    kind: "user_approval",
+                    title: systemRole,
+                    body: email,
+                    relatedUrl: employee_id
+                });
+            }
+            res.json({ success: true, id: employee_id, message: approvalStatus === 'PENDING' ? "User created and pending approval!" : "User added to SQL!" });
         } catch (err) {
             console.error("Admin Add User Error:", err);
             res.status(500).json({ error: err.message });
