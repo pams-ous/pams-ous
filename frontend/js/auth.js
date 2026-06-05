@@ -259,7 +259,7 @@ const setSession = (token, user) => {
             // Login-side: OTP mode needs only email; nothing else can be missing.
             if (!isSignup && authMode === 'otp') {
                 if (!data.email) {
-                    alert('Please enter your email to receive a code.');
+                    PAMS.toast('Please enter your email to receive a code.', 'warning');
                     return;
                 }
             }
@@ -312,18 +312,22 @@ const setSession = (token, user) => {
                     };
 
                     if (type === 'Personnel Sign-In' && user.role === 'ADMIN') {
-                        alert('Administrator detected. Redirecting to the Admin Portal...');
-                        window.location.href = 'admin-login.html';
+                        PAMS.showLoader('Administrator Detected', 'Redirecting to the Admin Portal...');
+                        setTimeout(() => {
+                            window.location.href = 'admin-login.html';
+                        }, 1200);
                         return;
                     }
                     if (type === 'Admin Access' && user.role !== 'ADMIN') {
-                        alert('Access Denied: This portal is for administrators only.');
+                        PAMS.toast('Access Denied: This portal is for administrators only.', 'error');
                         return;
                     }
 
                     setSession(otpResult.token, user);
-                    alert(`${type} successful! Redirecting to dashboard...`);
-                    window.location.href = '../pages/dashboard.html';
+                    PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
+                    setTimeout(() => {
+                        window.location.href = '../pages/dashboard.html';
+                    }, 1200);
                     return;
                 }
 
@@ -331,29 +335,33 @@ const setSession = (token, user) => {
                 const result = await performAuthRequest(endpoint, data);
 
                 if (type === 'Personnel Sign-In' && result.user?.role === 'ADMIN') {
-                    alert('Administrator detected. Redirecting to the Admin Portal...');
-                    window.location.href = 'admin-login.html';
+                    PAMS.showLoader('Administrator Detected', 'Redirecting to the Admin Portal...');
+                    setTimeout(() => {
+                        window.location.href = 'admin-login.html';
+                    }, 1200);
                     return;
                 }
                 if (type === 'Admin Access' && result.user?.role !== 'ADMIN') {
-                    alert('Access Denied: This portal is for administrators only.');
+                    PAMS.toast('Access Denied: This portal is for administrators only.', 'error');
                     return;
                 }
 
                 if (result.token) {
                     setSession(result.token, result.user);
-                    alert(`${type} successful! Redirecting to dashboard...`);
-                    window.location.href = '../pages/dashboard.html';
+                    PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
+                    setTimeout(() => {
+                        window.location.href = '../pages/dashboard.html';
+                    }, 1200);
                 } else if (result.success) {
-                    alert(`${type} successful!`);
+                    PAMS.toast(`${type} successful!`, 'success');
                 } else {
-                    alert(`Error: ${result.message}`);
+                    PAMS.toast(`Error: ${result.message}`, 'error');
                 }
             } catch (error) {
                 if (error && error.message === 'cancelled') {
                     // User closed the OTP modal — silently abort.
                 } else {
-                    alert(`Error: ${error.message || error}`);
+                    PAMS.toast(`Error: ${error.message || error}`, 'error');
                 }
             } finally {
                 submitBtn.disabled = false;

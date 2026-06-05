@@ -147,7 +147,7 @@ window.PAMS_UI = (function () {
                         await PAMS.apiFetch('/notifications/clear', 'POST');
                         loadNotifications();
                     } catch (err) {
-                        alert('Failed to clear notifications: ' + err.message);
+                        PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
                     }
                 });
             };
@@ -177,7 +177,7 @@ window.PAMS_UI = (function () {
                 await PAMS.apiFetch(`/notifications/${notifId}/${action}`, 'POST');
                 loadNotifications(); // Refresh list
             } catch (err) {
-                alert('Action failed: ' + err.message);
+                PAMS.toast('Action failed: ' + err.message, 'error');
             }
         };
 
