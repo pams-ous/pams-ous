@@ -25,6 +25,14 @@ const togglePasswordVisibility = (inputId, btn) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // If the user is already authenticated, and we are on an auth/login page, auto-redirect to the dashboard
+    const isAuthPage = /\/auth\//.test(location.pathname) || location.pathname.endsWith('index.html');
+    if (isAuthPage && typeof PAMS !== 'undefined' && PAMS.getToken()) {
+        const depth = location.pathname.split('/').length - 2;
+        const prefix = depth > 0 ? '../'.repeat(depth) : '';
+        window.location.replace(prefix + 'pages/dashboard.html');
+        return;
+    }
 
     // 1. UI Toggle Logic — wires a Sign In / Sign Up pair of tabs to the matching forms.
     const wireSignInSignupTabs = ({ loginBtnId, signupBtnId, loginFormId, signupFormId, onSignup }) => {
@@ -75,7 +83,7 @@ const setSession = (token, user) => {
         PAMS.setUser(user);
         
         if (user && user.email) {
-            sessionStorage.setItem('PAMS_userEmail', user.email);
+            localStorage.setItem('PAMS_userEmail', user.email);
         }
     };
 
@@ -314,7 +322,7 @@ const setSession = (token, user) => {
                     if (type === 'Personnel Sign-In' && user.role === 'ADMIN') {
                         PAMS.showLoader('Administrator Detected', 'Redirecting to the Admin Portal...');
                         setTimeout(() => {
-                            window.location.href = 'admin-login.html';
+                            window.location.replace('admin-login.html');
                         }, 1200);
                         return;
                     }
@@ -326,7 +334,7 @@ const setSession = (token, user) => {
                     setSession(otpResult.token, user);
                     PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
                     setTimeout(() => {
-                        window.location.href = '../pages/dashboard.html';
+                        window.location.replace('../pages/dashboard.html');
                     }, 1200);
                     return;
                 }
@@ -337,7 +345,7 @@ const setSession = (token, user) => {
                 if (type === 'Personnel Sign-In' && result.user?.role === 'ADMIN') {
                     PAMS.showLoader('Administrator Detected', 'Redirecting to the Admin Portal...');
                     setTimeout(() => {
-                        window.location.href = 'admin-login.html';
+                        window.location.replace('admin-login.html');
                     }, 1200);
                     return;
                 }
@@ -350,7 +358,7 @@ const setSession = (token, user) => {
                     setSession(result.token, result.user);
                     PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
                     setTimeout(() => {
-                        window.location.href = '../pages/dashboard.html';
+                        window.location.replace('../pages/dashboard.html');
                     }, 1200);
                 } else if (result.success) {
                     PAMS.toast(`${type} successful!`, 'success');

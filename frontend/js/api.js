@@ -9,12 +9,12 @@ window.PAMS = (function () {
     /**
      * Session Management
      */
-    const getToken = () => sessionStorage.getItem('authToken');
-    const setToken = (t) => t ? sessionStorage.setItem('authToken', t) : sessionStorage.removeItem('authToken');
+    const getToken = () => localStorage.getItem('authToken');
+    const setToken = (t) => t ? localStorage.setItem('authToken', t) : localStorage.removeItem('authToken');
     const getUser = () => {
-        try { return JSON.parse(sessionStorage.getItem('user') || 'null'); } catch { return null; }
+        try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
     };
-    const setUser = (u) => u ? sessionStorage.setItem('user', JSON.stringify(u)) : sessionStorage.removeItem('user');
+    const setUser = (u) => u ? localStorage.setItem('user', JSON.stringify(u)) : localStorage.removeItem('user');
 
     /**
      * Navigation Helpers
@@ -38,13 +38,13 @@ window.PAMS = (function () {
      */
     const requireAuth = () => {
         if (!getToken()) {
-            window.location.href = authUrl('index.html');
+            window.location.replace(authUrl('index.html'));
             return false;
         }
         return true;
     };
 
-    const logout = async () => {
+    const performLogout = async () => {
         const user = getUser();
         const email = user?.email || localStorage.getItem('PAMS_userEmail');
 
@@ -64,8 +64,53 @@ window.PAMS = (function () {
 
         setToken(null);
         setUser(null);
-        sessionStorage.removeItem('PAMS_userEmail');
-        window.location.href = authUrl('index.html');
+        localStorage.removeItem('PAMS_userEmail');
+        window.location.replace(authUrl('index.html'));
+    };
+
+    const logout = () => {
+        // Check if the modal already exists in the DOM
+        let modal = document.getElementById('logoutConfirmationModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.className = 'modal-backdrop';
+            modal.id = 'logoutConfirmationModal';
+            modal.innerHTML = `
+                <div class="modal modal-sm">
+                    <div class="modal-header">
+                        <span class="modal-title">Sign Out</span>
+                        <button type="button" class="modal-close" id="logoutModalClose"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="confirm-body">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <p>Are you sure you want to sign out?</p>
+                        <p class="text-xs color-gray mt-2">You will need to sign in again to access the portal.</p>
+                    </div>
+                    <div class="modal-footer is-centered">
+                        <button type="button" class="btn-cancel" id="logoutModalCancel">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="logoutModalConfirm">Sign Out</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Bind close/cancel actions
+            const closeModal = () => modal.classList.remove('open');
+            document.getElementById('logoutModalClose').addEventListener('click', closeModal);
+            document.getElementById('logoutModalCancel').addEventListener('click', closeModal);
+            document.getElementById('logoutModalConfirm').addEventListener('click', () => {
+                closeModal();
+                performLogout();
+            });
+
+            // Close when clicking directly on the backdrop overlay
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+        
+        // Open/display the modal
+        modal.classList.add('open');
     };
 
     /**
@@ -88,6 +133,17 @@ window.PAMS = (function () {
         try {
             const response = await fetch(url, options);
             const data = await response.json().catch(() => ({}));
+
+            if (response.status === 401 || (response.status === 403 && data.message === 'Invalid or expired token')) {
+                // Avoid recursion if we are already in the process of logging out
+                if (!endpoint.includes('/auth/logout')) {
+                    setToken(null);
+                    setUser(null);
+                    localStorage.removeItem('PAMS_userEmail');
+                    window.location.replace(authUrl('index.html'));
+                }
+                throw new Error(data.message || 'Session expired');
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || `Request failed (${response.status})`);
@@ -151,9 +207,22 @@ window.PAMS = (function () {
     };
 
 
+    const verifySessionIntegrity = async () => {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            await apiFetch('/auth/verify-session', 'GET');
+        } catch (error) {
+            console.warn('Session integrity check failed:', error);
+            logout();
+        }
+    };
+
+
     return {
         apiFetch, getToken, setToken, getUser, setUser,
-        requireAuth, logout,
+        requireAuth, logout, verifySessionIntegrity,
         authUrl, pageUrl, fmtDate, fmtHeaderDate,
         getUsers, getGroups, getDesignations,
         validatePassword, PASSWORD_POLICY,
@@ -170,15 +239,30 @@ document.addEventListener('DOMContentLoaded', () => {
             transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
         }); 
         PAMS.socket = socket; // Store socket in PAMS object
-        const savedEmail = sessionStorage.getItem('PAMS_userEmail');
+        const savedEmail = localStorage.getItem('PAMS_userEmail');
         
         if (savedEmail) {
             socket.emit('register_session', savedEmail);
         }
 
-        // Ensure user is marked offline when tab/window is closed
-        window.addEventListener('beforeunload', () => {
-            socket.emit('logout');
-        });
+
+    }
+
+    // Automatically check session validity on pages inside the protected OUS portal
+    if (PAMS.getToken() && PAMS.verifySessionIntegrity && /\/pages\//.test(location.pathname)) {
+        PAMS.verifySessionIntegrity();
+    }
+});
+
+// Synchronize authentication logouts/changes across multiple open tabs
+window.addEventListener('storage', (event) => {
+    if (event.key === 'authToken') {
+        if (!event.newValue) {
+            // Token was cleared (user logged out in another tab)
+            window.location.replace(PAMS.authUrl('index.html'));
+        } else {
+            // Token was updated or refreshed
+            window.location.reload();
+        }
     }
 });

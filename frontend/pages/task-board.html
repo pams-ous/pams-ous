@@ -364,19 +364,19 @@
     <!-- DELETE MODAL -->
     <div class="modal-backdrop" id="deleteModal">
         <div class="modal modal-sm">
-            <div class="modal-header" style="background: var(--red-text);">
+            <div class="modal-header">
                 <span class="modal-title">Delete Task</span>
                 <button class="modal-close" onclick="TaskBoard.closeModal('deleteModal')"><i
                         class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
-                <p style="font-size:14px; color: var(--text); line-height:1.5;">
-                    Are you sure you want to delete <strong id="delete-name"></strong>? This action cannot be undone.
-                </p>
+            <div class="confirm-body">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Are you sure you want to delete <br><strong id="delete-name"></strong>?</p>
+                <p class="text-xs color-gray mt-2">This action cannot be undone.</p>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer is-centered">
                 <button class="btn-cancel" onclick="TaskBoard.closeModal('deleteModal')">Cancel</button>
-                <button class="btn-danger" onclick="TaskBoard.doDelete()">Delete Task</button>
+                <button class="btn btn-danger" onclick="TaskBoard.doDelete()">Delete Task</button>
             </div>
         </div>
     </div>

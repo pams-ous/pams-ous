@@ -151,6 +151,10 @@ function loginAPI(express, db, io, app) {
         }
     });
 
+    app.get('/api/auth/verify-session', authenticateToken, (req, res) => {
+        res.json({ success: true, user: req.user });
+    });
+
     app.post('/api/auth/login', async (req, res) => {
         const { email, password } = req.body;
         

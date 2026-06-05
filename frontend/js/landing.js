@@ -5,5 +5,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Main Landing Page Initialized');
 
-    // Potential future logic: Check for existing session and redirect automatically
+    // Check for existing session and redirect automatically
+    if (typeof PAMS !== 'undefined' && PAMS.getToken()) {
+        window.location.replace('pages/dashboard.html');
+    }
 });

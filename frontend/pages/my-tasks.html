@@ -184,16 +184,17 @@
     <!-- DELETE CONFIRMATION MODAL -->
     <div class="modal-backdrop" id="deleteModal">
         <div class="modal modal-sm">
-            <div class="modal-header" style="background: var(--red-text);">
+            <div class="modal-header">
                 <span class="modal-title">Remove Task</span>
                 <button class="modal-close" onclick="window.MyTasks.closeModal('deleteModal')"><i
                         class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="confirm-body">
-                <i class="fa-solid fa-trash-can"></i>
+                <i class="fa-solid fa-triangle-exclamation"></i>
                 <p>Are you sure you want to remove <br><strong id="deleteTaskName"></strong>?</p>
+                <p class="text-xs color-gray mt-2">This action cannot be undone.</p>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer is-centered">
                 <button class="btn-cancel" onclick="window.MyTasks.closeModal('deleteModal')">Cancel</button>
                 <button class="btn btn-danger" onclick="window.MyTasks.confirmDelete()">Remove</button>
             </div>
