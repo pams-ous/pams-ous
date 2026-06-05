@@ -133,8 +133,7 @@ function loginAPI(express, db, io, app) {
     });
 
     // --- 3. SUB-MODULE ROUTE DELEGATIONS ---
-    const taskRoutes = require('../TaskMngmt_APIs/taskRoutes');
-    app.use('/api/tasks', taskRoutes);
+    // Task routes are now managed centrally in server.js to avoid duplication.
 
 // --- 4. EXPRESS REST API ROUTING HANDLERS ---
     app.post('/api/auth/logout', async (req, res) => {
