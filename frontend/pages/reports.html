@@ -176,10 +176,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Report Type *</label>
-                        <select id="gen-type" class="form-control">
+                        <select id="gen-type" class="form-control" onchange="Reports.onTypeChange()">
                             <option value="Daily">Daily</option>
                             <option value="Weekly" selected>Weekly</option>
                             <option value="Annual">Annual</option>
+                            <option value="Custom">Custom Range</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -193,11 +194,11 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Period Start *</label>
-                        <input type="date" id="gen-start" class="form-control">
+                        <label class="form-label" id="label-start">Period Start *</label>
+                        <input type="date" id="gen-start" class="form-control" onchange="Reports.onDateChange()">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Period End *</label>
+                        <label class="form-label" id="label-end">Period End *</label>
                         <input type="date" id="gen-end" class="form-control">
                     </div>
                 </div>
@@ -230,6 +231,25 @@
                 <button class="btn btn-primary" onclick="Reports.generateReport()">
                     <i class="fa-solid fa-file-circle-check"></i> Generate
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE REPORT CONFIRMATION MODAL -->
+    <div class="modal-backdrop" id="deleteReportModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Delete Report</span>
+                <button class="modal-close" onclick="window.Reports.closeModal('deleteReportModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="confirm-body">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Are you sure you want to permanently delete this report?</p>
+                <p class="text-xs color-gray mt-2">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer is-centered">
+                <button class="btn-cancel" onclick="window.Reports.closeModal('deleteReportModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="window.Reports.confirmDelete()">Delete Permanently</button>
             </div>
         </div>
     </div>

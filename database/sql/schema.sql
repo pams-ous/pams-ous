@@ -21,14 +21,17 @@ CREATE TABLE `Employees` (
   `last_name` varchar(45) NOT NULL,
   `middle_name` varchar(45) DEFAULT NULL,
   `suffix` varchar(45) DEFAULT NULL,
-  `designation` varchar(80) NOT NULL DEFAULT 'Encoder',
+  `job_title` int DEFAULT NULL,
+  `designation` enum('Encoder','Admin') NOT NULL DEFAULT 'Encoder',
   `email` varchar(45) NOT NULL,
   `password` varchar(255) NOT NULL,
   `active_status` enum('Online','Offline') NOT NULL DEFAULT 'Offline',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `otp` int DEFAULT NULL,
-  PRIMARY KEY (`employee_id`)
+  PRIMARY KEY (`employee_id`),
+  KEY `fk_employee_job_title` (`job_title`),
+  CONSTRAINT `fk_employee_job_title` FOREIGN KEY (`job_title`) REFERENCES `Designations` (`designation_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -127,13 +130,13 @@ CREATE TABLE `Task_Updates` (
 DROP TABLE IF EXISTS `Report`;
 CREATE TABLE `Report` (
   `report_id` int NOT NULL AUTO_INCREMENT,
-  `report_type` enum('Daily','Weekly','Annual') DEFAULT NULL,
-  `generated_by` varchar(36) DEFAULT NULL,
-  `scope_type` enum('Individual','Group','All') DEFAULT NULL,
+  `report_type` enum('Daily','Weekly','Annual','Custom') NOT NULL,
+  `generated_by` varchar(36) NOT NULL,
+  `scope_type` enum('Individual','Group','All') NOT NULL,
   `scope_user_id` varchar(36) DEFAULT NULL,
   `scope_group_id` int DEFAULT NULL,
-  `period_start` datetime DEFAULT NULL,
-  `period_end` datetime DEFAULT NULL,
+  `period_start` datetime NOT NULL,
+  `period_end` datetime NOT NULL,
   `generated_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`report_id`),
   KEY `report-employees_idx` (`generated_by`),

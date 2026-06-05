@@ -271,7 +271,8 @@ const setSession = (token, user) => {
                             suffix: data.suffix,
                             email: data.email,
                             tempPassword: data.password,
-                            tempConfPassword: data.confirmPassword
+                            tempConfPassword: data.confirmPassword,
+                            designationId: data.designationIds ? data.designationIds[0] : null
                         }
                     });
                     alert(`${type} successful! You can now sign in.`);

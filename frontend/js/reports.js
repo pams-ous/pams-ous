@@ -9,6 +9,7 @@
 
     let reports = [];
     let activeReportId = null;
+    let reportToDelete = null;
     let chart;
     let allUsers = [];
 
@@ -73,12 +74,22 @@
                     alert(result.rawData || "Report generated successfully!");
                     loadReports(); // Refresh the list
                     break;
+
+                case 'delete':
+                    closeModal('deleteReportModal');
+                    loadReports();
+                    break;
             }
         });
 
         // Listen for real-time broadcasts
         PAMS.socket.on('reportGenerated', (data) => {
             loadReports(); 
+        });
+
+        PAMS.socket.on('reportDeleted', (id) => {
+            if (activeReportId === id) activeReportId = null;
+            loadReports();
         });
     }
 
@@ -131,6 +142,9 @@
 
         list.innerHTML = reports.map(r => `
             <div class="report-card ${r.report_id === activeReportId ? 'active' : ''}" onclick="window.Reports.selectReport(${r.report_id})">
+                <button class="report-delete-btn" title="Delete Report" onclick="window.Reports.openDeleteModal(event, ${r.report_id})">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
                 <div class="report-card-title"><i class="fa-solid fa-file-invoice"></i> ${r.report_type} Report</div>
                 <div class="report-card-meta">
                     <strong>Scope:</strong> ${r.scope_target || r.scope_type}<br>
@@ -261,6 +275,74 @@
             document.getElementById('gen-group-wrap').style.display = scope === 'Group' ? 'flex' : 'none';
             document.getElementById('gen-user-wrap').style.display = scope === 'Individual' ? 'flex' : 'none';
         },
+        onTypeChange: () => {
+            const type = document.getElementById('gen-type').value;
+            const startInput = document.getElementById('gen-start');
+            const endInput = document.getElementById('gen-end');
+            const labelStart = document.getElementById('label-start');
+            const labelEnd = document.getElementById('label-end');
+
+            if (!startInput || !endInput) return;
+
+            // Reset defaults
+            labelStart.textContent = 'Period Start *';
+            labelEnd.textContent = 'Period End *';
+            startInput.type = 'date';
+            endInput.type = 'date';
+            endInput.disabled = false;
+
+            if (type === 'Daily') {
+                labelEnd.textContent = 'End Date (Locked)';
+                endInput.disabled = true;
+            } else if (type === 'Weekly') {
+                labelStart.textContent = 'Select Week (Any Day) *';
+                labelEnd.textContent = 'Calculated End Date';
+                endInput.disabled = true;
+            } else if (type === 'Annual') {
+                labelStart.textContent = 'Select Target Year *';
+                labelEnd.textContent = 'Full Year Range';
+                startInput.type = 'number';
+                startInput.value = new Date().getFullYear();
+                endInput.disabled = true;
+            } else if (type === 'Custom') {
+                endInput.disabled = false;
+            }
+
+            window.Reports.onDateChange();
+        },
+        onDateChange: () => {
+            const type = document.getElementById('gen-type').value;
+            const startInput = document.getElementById('gen-start');
+            const endInput = document.getElementById('gen-end');
+
+            if (!startInput.value) return;
+
+            if (type === 'Daily') {
+                endInput.value = startInput.value;
+            } else if (type === 'Weekly') {
+                const selectedDate = new Date(startInput.value);
+                const day = selectedDate.getDay();
+                const diffToMon = selectedDate.getDate() - day + (day === 0 ? -6 : 1);
+                const start = new Date(selectedDate.setDate(diffToMon));
+                const end = new Date(start);
+                end.setDate(start.getDate() + 6);
+
+                startInput.value = start.toISOString().slice(0, 10);
+                endInput.value = end.toISOString().slice(0, 10);
+            } else if (type === 'Annual') {
+                const year = parseInt(startInput.value);
+                if (isNaN(year)) return;
+                const start = new Date(year, 0, 1);
+                const end = new Date(year, 11, 31);
+                
+                // We need to keep startInput as number for the user, 
+                // but for generating we will use these dates.
+                // However, generateReport uses .value.
+                // Better approach: store calculated dates in hidden fields or 
+                // just have generateReport handle it.
+                endInput.value = end.toISOString().slice(0, 10);
+            }
+        },
         filterUserResults: () => {
             const q = (document.getElementById('gen-user-search').value || '').trim().toLowerCase();
             const box = document.getElementById('gen-user-results');
@@ -313,9 +395,31 @@
         generateReport: async () => {
             const type = document.getElementById('gen-type').value;
             const scope = document.getElementById('gen-scope').value;
-            const start = document.getElementById('gen-start').value;
-            const end = document.getElementById('gen-end').value;
-            if (!start || !end) { alert('Please set the period.'); return; }
+            let start = document.getElementById('gen-start').value;
+            let end = document.getElementById('gen-end').value;
+
+            // --- 1. Basic Field Validation ---
+            if (!type) { alert('Please select a Report Type.'); return; }
+            if (!scope) { alert('Please select a Scope.'); return; }
+            if (!start) { alert('Please select the Start Date/Period.'); return; }
+            if (!end && type !== 'Daily') { alert('Please select the End Date.'); return; }
+
+            // --- 2. Dynamic Scope Validation ---
+            let scopeValue = null;
+            if (scope === 'Group') {
+                scopeValue = document.getElementById('gen-group').value;
+                if (!scopeValue) { alert('Please select a Group for this report.'); return; }
+            } else if (scope === 'Individual') {
+                scopeValue = document.getElementById('gen-user-email').value;
+                if (!scopeValue) { alert('Please select an Employee for this report.'); return; }
+            }
+
+            // --- 3. Handle Annual Year -> Date conversion ---
+            if (type === 'Annual' && start.length === 4) {
+                const year = parseInt(start);
+                start = `${year}-01-01`;
+                end = `${year}-12-31`;
+            }
 
             const me = getUser();
             const body = { 
@@ -324,11 +428,8 @@
                 periodStart: start, 
                 periodEnd: end, 
                 generatedByEmail: me.email,
-                scopeValue: null
+                scopeValue
             };
-
-            if (scope === 'Group') body.scopeValue = document.getElementById('gen-group').value;
-            if (scope === 'Individual') body.scopeValue = document.getElementById('gen-user-email').value;
 
             if (CONFIG.USE_MOCK_API) {
                 const newId = reports.length + 1;
@@ -345,6 +446,24 @@
             }
         },
         selectReport: (id) => selectReport(id),
+        openDeleteModal: (event, id) => {
+            if (event) event.stopPropagation();
+            reportToDelete = id;
+            openModal('deleteReportModal');
+        },
+        confirmDelete: () => {
+            if (!reportToDelete) return;
+            if (CONFIG.USE_MOCK_API) {
+                reports = reports.filter(r => r.report_id !== reportToDelete);
+                if (activeReportId === reportToDelete) activeReportId = null;
+                closeModal('deleteReportModal');
+                renderHistory();
+                return;
+            }
+            if (PAMS.socket) {
+                PAMS.socket.emit('deleteReport', reportToDelete);
+            }
+        },
         print: () => window.print()
     };
 })();
