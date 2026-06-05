@@ -205,7 +205,7 @@
             const notes = document.getElementById('log-notes')?.value.trim();
             const statusChange = document.getElementById('log-new-status')?.value;
 
-            if (!taskId || !notes) { alert('Please select a task and provide update notes.'); return; }
+            if (!taskId || !notes) { PAMS.toast('Please select a task and provide update notes.', 'warning'); return; }
 
             if (CONFIG.USE_MOCK_API) {
                 const t = tasks.find(x => x.id == taskId);
@@ -222,7 +222,7 @@
                 await apiFetch('/tasks/updates', 'POST', { taskId, email: getUser().email, notes, statusChange: statusChange || null });
                 closeModal('logUpdateModal');
                 await loadTasks();
-            } catch (err) { alert(err.message); }
+            } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         openDeleteTask: (id) => {
             deleteTarget = id;
@@ -241,7 +241,7 @@
                 await apiFetch(`/tasks/${deleteTarget}`, 'DELETE');
                 closeModal('deleteModal');
                 await loadTasks();
-            } catch (err) { alert(err.message); }
+            } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         completeTask: async (id) => {
             const t = tasks.find(x => x.id === id);
@@ -255,7 +255,7 @@
                 await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
                 await loadTasks();
             } catch (err) {
-                alert(err.message);
+                PAMS.toast(err.message, 'error');
             }
         },
         reopenTask: async (id) => {
@@ -270,7 +270,7 @@
                 await apiFetch(`/tasks/${id}`, 'PUT', { status: 'IN PROGRESS' });
                 await loadTasks();
             } catch (err) {
-                alert(err.message);
+                PAMS.toast(err.message, 'error');
             }
         },
         switchView: async (view) => {

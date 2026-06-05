@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Successfully updated user ${userEmail} to ${newRole}`);
             } catch (error) {
                 console.error('Error updating role:', error);
-                alert(`Failed to update role: ${error.message}`);
+                PAMS.toast(`Failed to update role: ${error.message}`, 'error');
                 dropdown.value = previousRole; // Revert UI on failure
             } finally {
                 dropdown.disabled = false;

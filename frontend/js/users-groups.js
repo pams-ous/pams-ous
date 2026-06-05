@@ -490,14 +490,14 @@
             const confirmPass = document.getElementById('confirmNewUserPassword').value;
             const designationId = document.getElementById('newUserDesignation').value;
 
-            if (!firstName || !lastName || !email || !password) { alert('First Name, Last Name, Email, and Password are required.'); return; }
-            if (password !== confirmPass) { alert('Passwords do not match.'); return; }
+            if (!firstName || !lastName || !email || !password) { PAMS.toast('First Name, Last Name, Email, and Password are required.', 'warning'); return; }
+            if (password !== confirmPass) { PAMS.toast('Passwords do not match.', 'warning'); return; }
 
             try {
                 await apiFetch('/users', 'POST', { code, firstName, lastName, middleName, suffix, email, role, password, designationId });
                 window.Admin.closeModal('addUserModal');
                 await loadAll(); 
-            } catch (error) { alert(`Failed to add user: ${error.message}`); }
+            } catch (error) { PAMS.toast(`Failed to add user: ${error.message}`, 'error'); }
         },
         openEditUser: (email) => {
             document.getElementById('editUserEmail').value = email;
@@ -510,16 +510,16 @@
             const email = document.getElementById('editUserEmail').value;
             const pass = document.getElementById('editUserPassword').value;
             const confirmPass = document.getElementById('confirmEditUserPassword').value;
-            if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
-            if (pass !== confirmPass) { alert('Passwords do not match.'); return; }
+            if (pass.length < 6) { PAMS.toast('Password must be at least 6 characters.', 'warning'); return; }
+            if (pass !== confirmPass) { PAMS.toast('Passwords do not match.', 'warning'); return; }
 
             try {
                 await apiFetch('/users/update-password', 'POST', { email, newPassword: pass });
-                closeModal('editUserModal'); alert('Password updated successfully!');
-            } catch (err) { alert(`Error: ${err.message}`); }
+                closeModal('editUserModal'); PAMS.toast('Password updated successfully!', 'success');
+            } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         toggleUser: async (id) => {
-            try { await apiFetch(`/users/${id}/toggle-status`, 'PATCH'); await loadAll(); } catch (err) { alert(err.message); }
+            try { await apiFetch(`/users/${id}/toggle-status`, 'PATCH'); await loadAll(); } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         openResetPassword: (id, name) => {
             document.getElementById('resetPassUserId').value = id;
@@ -530,26 +530,26 @@
         confirmResetPassword: async () => {
             const id = document.getElementById('resetPassUserId').value;
             const pass = document.getElementById('resetPassValue').value;
-            if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
-            try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); alert('Success!'); } catch (err) { alert(err.message); }
+            if (pass.length < 6) { PAMS.toast('Password must be at least 6 characters.', 'warning'); return; }
+            try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); PAMS.toast('Password reset successfully!', 'success'); } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         deleteUser: async (email, name) => {
             if (!confirm(`Delete user "${name}"?`)) return;
-            try { await apiFetch(`/users/${email}`, 'DELETE'); await loadAll(); } catch (err) { alert(err.message); }
+            try { await apiFetch(`/users/${email}`, 'DELETE'); await loadAll(); } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         changeRole: async (email, newRole) => {
-            try { await apiFetch(`/users/${email}`, 'PUT', { role: newRole }); await loadAll(); } catch (err) { alert(`Failed to change role: ${err.message}. Reverting...`); await loadAll(); }
+            try { await apiFetch(`/users/${email}`, 'PUT', { role: newRole }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change role: ${err.message}. Reverting...`, 'error'); await loadAll(); }
         },
         changeJobTitle: async (email, jobId) => {
-            try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); } catch (err) { alert(`Failed to change job title: ${err.message}. Reverting...`); await loadAll(); }
+            try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change job title: ${err.message}. Reverting...`, 'error'); await loadAll(); }
         },
 
         addGroup: async () => {
             const name = document.getElementById('newGroupName').value.trim();
             const desc = document.getElementById('newGroupDesc').value.trim();
             const leader = document.getElementById('newGroupLeader').value;
-            if (!name) { alert('Group name required.'); return; }
-            try { await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); window.Admin.closeModal('addGroupModal'); await loadAll(); } catch (err) { alert(`Error: ${err.message}`); }
+            if (!name) { PAMS.toast('Group name required.', 'warning'); return; }
+            try { await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); window.Admin.closeModal('addGroupModal'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         openEditGroup: (id) => {
             const g = groups.find(x => x.id === id);
@@ -565,11 +565,11 @@
             const name = document.getElementById('editGroupName').value.trim();
             const desc = document.getElementById('editGroupDesc').value.trim();
             const leader = document.getElementById('editGroupLeader').value;
-            try { await apiFetch(`/admin/sync/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader }); window.Admin.closeModal('editGroupModal'); await loadAll(); } catch (err) { alert(`Error: ${err.message}`); }
+            try { await apiFetch(`/admin/sync/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader }); window.Admin.closeModal('editGroupModal'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         deleteGroup: async (id, name) => {
             if (!confirm(`Delete group "${name}"?`)) return;
-            try { await apiFetch(`/admin/sync/groups/${id}`, 'DELETE'); await loadAll(); } catch (err) { alert(`Error: ${err.message}`); }
+            try { await apiFetch(`/admin/sync/groups/${id}`, 'DELETE'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
 
         openManageMembers: async (id) => {
@@ -588,7 +588,7 @@
                 const currentMemberEmails = res.members || []; 
                 window.Admin.renderMemberCheckboxes(currentMemberEmails);
                 openModal('manageMembersModal');
-            } catch (err) { alert(`Could not load members: ${err.message}`); }
+            } catch (err) { PAMS.toast(`Could not load members: ${err.message}`, 'error'); }
         },
         renderMemberCheckboxes: (currentMemberEmails) => {
             const container = document.getElementById('memberCheckboxList');
@@ -622,7 +622,7 @@
                 await apiFetch(`/admin/sync/groups/${currentManageGroupId}/members`, 'PUT', { members: checkedEmails });
                 window.Admin.closeModal('manageMembersModal');
                 await loadAll(); 
-            } catch (err) { alert(`Failed to save members: ${err.message}`); }
+            } catch (err) { PAMS.toast(`Failed to save members: ${err.message}`, 'error'); }
         }
     };
 })();

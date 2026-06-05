@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cooldownResend(CONFIG.OTP.RESEND_COOLDOWN_SECONDS || 30);
             document.getElementById('reset-code').focus();
         } catch (err) {
-            alert(`Error: ${err.message || err}`);
+            PAMS.toast(`Error: ${err.message || err}`, 'error');
         } finally {
             unlockButton(submitBtn);
         }
@@ -83,11 +83,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmPassword = document.getElementById('reset-confirm-password').value;
 
         if (newPassword !== confirmPassword) {
-            alert('Passwords do not match.');
+            PAMS.toast('Passwords do not match.', 'warning');
             return;
         }
         if (newPassword.length < 8) {
-            alert('Password must be at least 8 characters long.');
+            PAMS.toast('Password must be at least 8 characters long.', 'warning');
             return;
         }
 
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             show(doneStep);
             setHint('Password reset complete.');
         } catch (err) {
-            alert(`Error: ${err.message || err}`);
+            PAMS.toast(`Error: ${err.message || err}`, 'error');
         } finally {
             unlockButton(submitBtn);
         }
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await window.PAMSOtp.runPasswordResetRequest({ email: resetEmail });
                 cooldownResend(CONFIG.OTP.RESEND_COOLDOWN_SECONDS || 30);
             } catch (err) {
-                alert(`Error: ${err.message || err}`);
+                PAMS.toast(`Error: ${err.message || err}`, 'error');
                 resendBtn.disabled = false;
                 resendBtn.textContent = original;
             }

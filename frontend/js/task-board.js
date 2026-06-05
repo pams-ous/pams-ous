@@ -273,7 +273,7 @@
 
             // --- 1. Client-Side Validation ---
             if (!titleVal || !priorityVal || !dueVal || !assigneeVal) {
-                alert("Please fill in all required fields: Task Title, Priority, Due Date, and Assign To.");
+                PAMS.toast("Please fill in all required fields: Task Title, Priority, Due Date, and Assign To.", "warning");
                 return; // Stops the function immediately so the task isn't created
             }
 
@@ -302,7 +302,7 @@
                 closeModal('newTaskModal'); 
                 await loadAll(); 
             } catch (err) { 
-                alert(err.message); 
+                PAMS.toast(err.message, 'error'); 
             }
         },
         openView: (id) => {
@@ -351,7 +351,7 @@
                 closeModal('editModal'); 
                 await loadAll(); 
             } catch (err) { 
-                alert(err.message); 
+                PAMS.toast(err.message, 'error'); 
             }
         },
         openDeleteTask: (id) => {
@@ -367,7 +367,7 @@
                 closeModal('deleteModal'); renderList(); return;
             }
             try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); }
-            catch (err) { alert(err.message); }
+            catch (err) { PAMS.toast(err.message, 'error'); }
         },
         completeTask: async (id) => {
             const t = tasks.find(x => x.id === id);
@@ -382,7 +382,7 @@
                 await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
                 await loadAll();
             } catch (err) {
-                alert(err.message);
+                PAMS.toast(err.message, 'error');
             }
         },
         openEditFromView: () => { closeModal('viewModal'); window.TaskBoard.openEdit(viewingId); },
@@ -400,7 +400,7 @@
             const list = applyAllFilters();
             
             if (list.length === 0) {
-                alert("No tasks visible to export.");
+                PAMS.toast("No tasks visible to export.", "warning");
                 return;
             }
 

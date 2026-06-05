@@ -236,11 +236,11 @@ const setSession = (token, user) => {
             // Signup-side validation
             if (isSignup) {
                 if (data.password !== data.confirmPassword) {
-                    alert('Error: Passwords do not match.');
+                    PAMS.toast('Passwords do not match.', 'warning');
                     return;
                 }
                 if (data.password.length < 8) {
-                    alert('Error: Password must be at least 8 characters long.');
+                    PAMS.toast('Password must be at least 8 characters long.', 'warning');
                     return;
                 }
                 if (data.designationIds) {
@@ -275,7 +275,7 @@ const setSession = (token, user) => {
                             designationId: data.designationIds ? data.designationIds[0] : null
                         }
                     });
-                    alert(`${type} successful! You can now sign in.`);
+                    PAMS.toast(`${type} successful! You can now sign in.`, 'success');
                     const backToLogin = formId === 'adminSignupForm' ? showAdminLoginBtn : showLoginBtn;
                     backToLogin && backToLogin.click();
                     return;

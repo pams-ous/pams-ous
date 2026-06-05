@@ -55,7 +55,7 @@
         PAMS.socket.on('reportLog', (result) => {
             if (!result.success) {
                 console.error("Report API Error:", result.rawData);
-                alert(`Report Error: ${result.rawData || 'Unknown error'}`);
+                PAMS.toast(`Report Error: ${result.rawData || 'Unknown error'}`, 'error');
                 return;
             }
 
@@ -73,7 +73,7 @@
                     break;
 
                 case 'generate':
-                    alert(result.rawData || "Report generated successfully!");
+                    PAMS.toast(result.rawData || "Report generated successfully!", 'success');
                     loadReports(); // Refresh the list
                     break;
 
@@ -457,19 +457,19 @@
             let end = document.getElementById('gen-end').value;
 
             // --- 1. Basic Field Validation ---
-            if (!type) { alert('Please select a Report Type.'); return; }
-            if (!scope) { alert('Please select a Scope.'); return; }
-            if (!start) { alert('Please select the Start Date/Period.'); return; }
-            if (!end && type !== 'Daily') { alert('Please select the End Date.'); return; }
+            if (!type) { PAMS.toast('Please select a Report Type.', 'warning'); return; }
+            if (!scope) { PAMS.toast('Please select a Scope.', 'warning'); return; }
+            if (!start) { PAMS.toast('Please select the Start Date/Period.', 'warning'); return; }
+            if (!end && type !== 'Daily') { PAMS.toast('Please select the End Date.', 'warning'); return; }
 
             // --- 2. Dynamic Scope Validation ---
             let scopeValue = null;
             if (scope === 'Group') {
                 scopeValue = document.getElementById('gen-group').value;
-                if (!scopeValue) { alert('Please select a Group for this report.'); return; }
+                if (!scopeValue) { PAMS.toast('Please select a Group for this report.', 'warning'); return; }
             } else if (scope === 'Individual') {
                 scopeValue = document.getElementById('gen-user-email').value;
-                if (!scopeValue) { alert('Please select an Employee for this report.'); return; }
+                if (!scopeValue) { PAMS.toast('Please select an Employee for this report.', 'warning'); return; }
             }
 
             // --- 3. Handle Annual Year -> Date conversion ---
