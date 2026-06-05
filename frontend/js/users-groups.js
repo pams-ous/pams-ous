@@ -602,7 +602,7 @@
                 <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
                     <input type="checkbox" class="member-checkbox" value="${u.email}" ${isChecked ? 'checked' : ''} ${isLeader ? 'disabled title="Leader is automatically a member"' : ''} style="margin-right: 10px;">
                     <div style="flex-grow: 1;">
-                        <div style="font-weight: 500; color: ${isLeader ? '#3b82f6' : '#333'}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
+                        <div style="font-weight: 500; color: ${isLeader ? '#ffd700' : '#333'}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
                         <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
                     </div>
                 </label>`;
