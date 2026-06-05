@@ -3,6 +3,20 @@
  * Purpose: Handles the global UI "Chrome" (Sidebar, Notifications, RBAC UI).
  */
 
+window.togglePasswordVisibility = function (inputId, button) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+
+    const icon = button.querySelector('i');
+    if (icon) {
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    }
+};
+
 window.PAMS_UI = (function () {
 
     /**

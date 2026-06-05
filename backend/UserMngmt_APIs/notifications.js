@@ -20,23 +20,6 @@ function notificationsRouter(db) {
     const router = express.Router();
     router.use(authenticateToken);
 
-    // Ensure table has targeting columns (robust migration)
-    (async () => {
-        try {
-            const [columns] = await db.query("SHOW COLUMNS FROM Notifications");
-            const colNames = columns.map(c => c.Field);
-            
-            if (!colNames.includes('target_user_id')) {
-                await db.query(`ALTER TABLE Notifications ADD COLUMN target_user_id INT NULL`);
-            }
-            if (!colNames.includes('target_role')) {
-                await db.query(`ALTER TABLE Notifications ADD COLUMN target_role VARCHAR(50) NULL`);
-            }
-        } catch (e) {
-            console.error("Migration failed:", e.message);
-        }
-    })();
-
     // GET /api/notifications — Returns all notifications.
     router.get("/", async (req, res) => {
         try {
@@ -46,35 +29,54 @@ function notificationsRouter(db) {
             const [history] = await db.query(`
                 SELECT notification_id, notif_message, notif_date
                 FROM Notifications
-                WHERE 
-                    target_user_id IS NULL 
-                    OR target_user_id = ? 
-                    OR (target_role = 'Admin' AND ? = 'ADMIN')
                 ORDER BY notif_date DESC
-                LIMIT 50
-            `, [userId, userRole]);
+                LIMIT 100
+            `);
 
-            // We still return a 'current' array for the frontend's expected structure (live tasks)
+            // Filter notifications in memory since we cannot use targeting columns in the schema
+            const filteredHistory = history.filter(r => {
+                const msg = r.notif_message;
+                if (msg.startsWith("TARGET:USER|")) {
+                    const parts = msg.split("||");
+                    const targetId = parts[0].split("|")[1];
+                    return targetId === String(userId);
+                }
+                if (msg.startsWith("TARGET:ROLE|")) {
+                    const parts = msg.split("||");
+                    const targetRole = parts[0].split("|")[1];
+                    return targetRole.toUpperCase() === userRole.toUpperCase();
+                }
+                return true;
+            });
+
             const empId = req.user.id;
             const current = await loadCurrent(db, empId);
 
             res.json({
                 current,
-                history: history.map(r => {
+                history: filteredHistory.map(r => {
                     const msg = r.notif_message;
                     let title = "System Notification";
                     let body = msg;
                     let kind = "info";
 
-                    if (msg.startsWith("ACTION:APPROVE_USER|")) {
+                    let cleanMsg = msg;
+                    if (msg.startsWith("TARGET:USER|") || msg.startsWith("TARGET:ROLE|")) {
+                        const parts = msg.split("||");
+                        cleanMsg = parts.slice(1).join("||");
+                    }
+
+                    if (cleanMsg.startsWith("ACTION:APPROVE_USER|")) {
                         kind = "approval";
-                        const parts = msg.split("|");
+                        const parts = cleanMsg.split("|");
                         title = `Account Request (${parts[2] || 'User'})`;
                         body = `Approval request for ${parts[3] || 'Unknown email'}`;
-                    } else if (msg.includes("||")) {
-                        const [extractedTitle, extractedBody] = msg.split("||");
+                    } else if (cleanMsg.includes("||")) {
+                        const [extractedTitle, extractedBody] = cleanMsg.split("||");
                         title = extractedTitle;
                         body = extractedBody;
+                    } else {
+                        body = cleanMsg;
                     }
 
                     return {
@@ -83,7 +85,7 @@ function notificationsRouter(db) {
                         body: body,
                         createdAt: r.notif_date,
                         kind: kind,
-                        rawMessage: msg // Sent to frontend for action processing
+                        rawMessage: msg
                     };
                 })
             });
@@ -229,10 +231,17 @@ async function recordNotification(db, { employeeId, kind, title, body, relatedUr
         message = `${title}||${body}`;
     }
     
+    // Handle targeting by prefixing the message
+    if (targetUserId) {
+        message = `TARGET:USER|${targetUserId}||${message}`;
+    } else if (targetRole) {
+        message = `TARGET:ROLE|${targetRole}||${message}`;
+    }
+    
     try {
         await db.query(
-            `INSERT INTO Notifications (notif_message, target_user_id, target_role) VALUES (?, ?, ?)`,
-            [message, targetUserId, targetRole]
+            `INSERT INTO Notifications (notif_message) VALUES (?)`,
+            [message]
         );
     } catch (err) {
         console.warn("Notification persist failed:", err.message);
