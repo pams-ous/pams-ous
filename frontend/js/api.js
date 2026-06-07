@@ -239,10 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
             transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
         }); 
         PAMS.socket = socket; // Store socket in PAMS object
-        const savedEmail = localStorage.getItem('PAMS_userEmail');
         
-        if (savedEmail) {
-            socket.emit('register_session', savedEmail);
+        if (token) {
+            socket.emit('register_session', { token });
         }
 
 

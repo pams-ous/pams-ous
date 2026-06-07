@@ -4,7 +4,7 @@ MODULARIZED LOGIN & APP ROUTING (UserMngmt_APIs/login.js)
 */
 const { verify_pass, hash_password } = require("./passwordUtil");
 const { getEmployeeDetails } = require("./dbChecks");
-const { generateToken } = require("./authUtil");
+const { generateToken, verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
 
 function loginAPI(express, db, io, app) {
@@ -83,11 +83,25 @@ function loginAPI(express, db, io, app) {
             handle_login(socket, data);
         });
 
-        socket.on('register_session', async (email) => {
+        socket.on('register_session', async (data) => {
+            // Expect data to be { token: '...' }
+            const token = typeof data === 'string' ? null : data?.token;
+            if (!token) {
+                console.log(`[SESSION] register_session called without valid token format.`);
+                return;
+            }
+
+            const decoded = verifyToken(token);
+            if (!decoded || !decoded.email) {
+                console.log(`[SESSION] Invalid or expired token provided during registration.`);
+                return;
+            }
+
+            const email = decoded.email;
             socket.userEmail = email; 
             try {
                 await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
-                console.log(`[SESSION] ${email} reconnected to a new page.`);
+                console.log(`[SESSION] ${email} successfully authenticated and marked Online.`);
                 
                 // BROADCAST TO ALL CLIPS: Ensure other screens update to Online
                 io.emit('status_change', { email: email, status: 'Online' });

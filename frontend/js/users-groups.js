@@ -44,9 +44,8 @@
             const token = PAMS.getToken();
             const socket = io(CONFIG.BACKEND_SOCKET_URL, { auth: { token } });
 
-            const userSession = PAMS.getUser();
-            if (userSession && userSession.email) {
-                socket.emit('register_session', userSession.email);
+            if (token) {
+                socket.emit('register_session', { token });
             }
 
             socket.on('status_change', (data) => {
