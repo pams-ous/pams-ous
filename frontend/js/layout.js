@@ -152,41 +152,38 @@ window.PAMS_UI = (function () {
         bell.style.position = 'relative';
         bell.appendChild(badge);
 
-        // Add "Clear All" button for Admins
-        const user = PAMS.getUser();
-        if (user && user.role === 'ADMIN') {
-            const clearBtn = document.createElement('button');
-            clearBtn.innerHTML = 'Clear All';
-            clearBtn.className = 'notif-clear-btn';
-            
-            clearBtn.style.position = 'absolute';
-            clearBtn.style.top = '10px';
-            clearBtn.style.right = '10px';
-            clearBtn.style.background = 'transparent';
-            clearBtn.style.border = 'none';
-            clearBtn.style.color = '#888';
-            clearBtn.style.cursor = 'pointer';
-            clearBtn.style.fontSize = '10px';
-            clearBtn.style.fontWeight = 'normal';
-            clearBtn.style.zIndex = '10';
+        // Add "Clear All" button for users
+        const clearBtn = document.createElement('button');
+        clearBtn.innerHTML = 'Clear All';
+        clearBtn.className = 'notif-clear-btn';
+        
+        clearBtn.style.position = 'absolute';
+        clearBtn.style.top = '10px';
+        clearBtn.style.right = '10px';
+        clearBtn.style.background = 'transparent';
+        clearBtn.style.border = 'none';
+        clearBtn.style.color = '#888';
+        clearBtn.style.cursor = 'pointer';
+        clearBtn.style.fontSize = '10px';
+        clearBtn.style.fontWeight = 'normal';
+        clearBtn.style.zIndex = '10';
 
-            clearBtn.onmouseover = () => clearBtn.style.color = '#333';
-            clearBtn.onmouseout = () => clearBtn.style.color = '#888';
-            
-            clearBtn.onclick = async (e) => {
-                e.stopPropagation();
-                showConfirmModal('Are you sure you want to clear all system notifications? This action cannot be undone.', async () => {
-                    try {
-                        await PAMS.apiFetch('/notifications/clear', 'POST');
-                        loadNotifications();
-                        updateBadgeCount(0);
-                    } catch (err) {
-                        PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
-                    }
-                });
-            };
-            popover.appendChild(clearBtn);
-        }
+        clearBtn.onmouseover = () => clearBtn.style.color = '#333';
+        clearBtn.onmouseout = () => clearBtn.style.color = '#888';
+        
+        clearBtn.onclick = async (e) => {
+            e.stopPropagation();
+            showConfirmModal('Are you sure you want to clear all your notifications? This action cannot be undone.', async () => {
+                try {
+                    await PAMS.apiFetch('/notifications/clear', 'POST');
+                    loadNotifications();
+                    updateBadgeCount(0);
+                } catch (err) {
+                    PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
+                }
+            });
+        };
+        popover.appendChild(clearBtn);
 
         bell.onclick = async (e) => {
             e.stopPropagation();
