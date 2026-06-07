@@ -123,19 +123,27 @@ module.exports = {
             const { view } = req.query;
             const showCompleted = view === 'completed';
 
-            // 1. Find the logged-in employee (Returns ONLY the ID based on our debug log)
+            // Find the logged-in employee (Returns ONLY the ID based on our debug log)
             const employee = await Task.findEmployeeByEmail(userEmail);
             if (!employee) return res.status(404).json({ message: 'User not found' });
 
             // Extract the known, safe ID
             const targetId = employee.employee_id;
 
-            // 2. Fetch all raw tasks
+            // Fetch the groups this employee belongs to ---
+            const [groupRows] = await db.query(
+                'SELECT group_id FROM Employees_Groups WHERE employee_id = ?', 
+                [targetId]
+            );
+            const myGroupIds = groupRows.map(row => row.group_id);
+
+            // Fetch all raw tasks
             const rawTasks = await Task.findAll();
 
-            // 3. Match tasks strictly by ID, then apply the active/completed filter
+            // Match tasks strictly by ID, then apply the active/completed filter
             const myRawTasks = rawTasks.filter(t => {
-                const matchesUser = t.assigned_to_user === targetId;
+                // Check both individual assignment OR group assignment 
+                const matchesUser = (t.assigned_to_user === targetId) || myGroupIds.includes(t.assigned_to_group);
 
                 if (showCompleted) {
                     // Return only completed tasks; cancelled is always excluded
