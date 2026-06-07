@@ -1,17 +1,8 @@
 // Notification feed for the bell popover.
 //
-// CURRENT GLOBAL IMPLEMENTATION:
-// This system currently uses a global broadcast model. Notifications are not 
-// targeted to specific users in the database; instead, any record inserted 
-// into the Notifications table is visible to all authorized users (specifically Admins).
-//
-// Table structure:
-//   - notification_id (PK)
-//   - notif_message (contains metadata for actions, e.g., "ACTION:APPROVE_USER|userId|role|email")
-//   - notif_date
-//
-// For approval notifications, we use a structured message format:
-//   "ACTION:APPROVE_USER|userId|role|email"
+// TARGETED IMPLEMENTATION:
+// Notifications are targeted to specific users, designations, or groups.
+// Read status is tracked per-user in the User_Notifications table.
 
 const express = require("express");
 const { authenticateToken } = require("./authMiddleware");
@@ -20,63 +11,51 @@ function notificationsRouter(db) {
     const router = express.Router();
     router.use(authenticateToken);
 
-    // GET /api/notifications — Returns all notifications.
+    // GET /api/notifications — Returns notifications targeted to the user, including read status.
     router.get("/", async (req, res) => {
         try {
             const userId = req.user.id;
-            const userRole = req.user.role; // 'ADMIN' or 'MEMBER'
+            console.log(`[NOTIF-DEBUG] Fetching notifications for userId: ${userId}`);
+
+            const [untracked] = await db.query("SELECT * FROM User_Notifications WHERE user_id = ?", [userId]);
+            console.log(`[NOTIF-DEBUG] Found ${untracked.length} read-trackers for this user.`);
 
             const [history] = await db.query(`
-                SELECT notification_id, notif_message, notif_date
-                FROM Notifications
-                ORDER BY notif_date DESC
+                SELECT 
+                    n.notification_id, 
+                    n.notif_message, 
+                    n.notif_date, 
+                    un.is_read
+                FROM Notifications n
+                JOIN User_Notifications un ON n.notification_id = un.notification_id
+                WHERE un.user_id = ?
+                ORDER BY n.notif_date DESC
                 LIMIT 100
-            `);
-
-            // Filter notifications in memory since we cannot use targeting columns in the schema
-            const filteredHistory = history.filter(r => {
-                const msg = r.notif_message;
-                if (msg.startsWith("TARGET:USER|")) {
-                    const parts = msg.split("||");
-                    const targetId = parts[0].split("|")[1];
-                    return targetId === String(userId);
-                }
-                if (msg.startsWith("TARGET:ROLE|")) {
-                    const parts = msg.split("||");
-                    const targetRole = parts[0].split("|")[1];
-                    return targetRole.toUpperCase() === userRole.toUpperCase();
-                }
-                return true;
-            });
+            `, [userId]);
+            console.log(`[NOTIF-DEBUG] JOIN result: ${history.length} notifications found.`);
 
             const empId = req.user.id;
             const current = await loadCurrent(db, empId);
 
             res.json({
                 current,
-                history: filteredHistory.map(r => {
+                history: history.map(r => {
                     const msg = r.notif_message;
                     let title = "System Notification";
                     let body = msg;
                     let kind = "info";
 
-                    let cleanMsg = msg;
-                    if (msg.startsWith("TARGET:USER|") || msg.startsWith("TARGET:ROLE|")) {
-                        const parts = msg.split("||");
-                        cleanMsg = parts.slice(1).join("||");
-                    }
-
-                    if (cleanMsg.startsWith("ACTION:APPROVE_USER|")) {
+                    if (msg.startsWith("ACTION:APPROVE_USER|")) {
                         kind = "approval";
-                        const parts = cleanMsg.split("|");
+                        const parts = msg.split("|");
                         title = `Account Request (${parts[2] || 'User'})`;
                         body = `Approval request for ${parts[3] || 'Unknown email'}`;
-                    } else if (cleanMsg.includes("||")) {
-                        const [extractedTitle, extractedBody] = cleanMsg.split("||");
+                    } else if (msg.includes("||")) {
+                        const [extractedTitle, extractedBody] = msg.split("||");
                         title = extractedTitle;
                         body = extractedBody;
                     } else {
-                        body = cleanMsg;
+                        body = msg;
                     }
 
                     return {
@@ -85,6 +64,7 @@ function notificationsRouter(db) {
                         body: body,
                         createdAt: r.notif_date,
                         kind: kind,
+                        isRead: r.is_read,
                         rawMessage: msg
                     };
                 })
@@ -95,10 +75,33 @@ function notificationsRouter(db) {
         }
     });
 
+    // PATCH /api/notifications/mark-all-read — marks all notifications as read for the user
+    router.patch("/mark-all-read", async (req, res) => {
+        try {
+            const userId = req.user.id;
+            await db.query("UPDATE User_Notifications SET is_read = TRUE, read_at = NOW() WHERE user_id = ? AND is_read = FALSE", [userId]);
+            res.json({ success: true, message: "Notifications marked as read." });
+        } catch (err) {
+            console.error("Mark read error:", err);
+            res.status(500).json({ message: "Server error." });
+        }
+    });
+
+    // GET /api/notifications/unread-count — lightweight summary for the red bubble.
+    router.get("/unread-count", async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const [[row]] = await db.query("SELECT COUNT(*) as count FROM User_Notifications WHERE user_id = ? AND is_read = FALSE", [userId]);
+            res.json({ unreadCount: Number(row.count) || 0 });
+        } catch (err) {
+            console.error("Unread count error:", err);
+            res.status(500).json({ message: "Server error." });
+        }
+    });
+
     // POST /api/notifications/:id/approve — approves a pending account
     router.post("/:id/approve", async (req, res) => {
         try {
-            // Only admins should approve
             const [adminCheck] = await db.query("SELECT 1 FROM Employees WHERE employee_id = ? AND designation = 'Admin'", [req.user.id]);
             if (adminCheck.length === 0) return res.status(403).json({ message: "Forbidden: Admin only." });
 
@@ -112,8 +115,6 @@ function notificationsRouter(db) {
 
             const [, userId] = msg.split("|");
             await db.query("UPDATE Employees SET approval_status = 'APPROVED' WHERE employee_id = ?", [userId]);
-            
-            // Delete the notification once acted upon
             await db.query("DELETE FROM Notifications WHERE notification_id = ?", [req.params.id]);
 
             res.json({ message: "Account approved successfully." });
@@ -126,7 +127,6 @@ function notificationsRouter(db) {
     // POST /api/notifications/:id/reject — rejects and deletes a pending account
     router.post("/:id/reject", async (req, res) => {
         try {
-            // Only admins should reject
             const [adminCheck] = await db.query("SELECT 1 FROM Employees WHERE employee_id = ? AND designation = 'Admin'", [req.user.id]);
             if (adminCheck.length === 0) return res.status(403).json({ message: "Forbidden: Admin only." });
 
@@ -149,41 +149,14 @@ function notificationsRouter(db) {
         }
     });
 
-    // POST /api/notifications/clear — deletes all notifications
+    // POST /api/notifications/clear — deletes all notifications for the user
     router.post("/clear", async (req, res) => {
         try {
-            // Only admins can clear all notifications
-            const [adminCheck] = await db.query("SELECT 1 FROM Employees WHERE employee_id = ? AND designation = 'Admin'", [req.user.id]);
-            if (adminCheck.length === 0) return res.status(403).json({ message: "Forbidden: Admin only." });
-
-            await db.query("DELETE FROM Notifications");
-            res.json({ message: "All notifications cleared." });
+            const userId = req.user.id;
+            await db.query("DELETE FROM User_Notifications WHERE user_id = ?", [userId]);
+            res.json({ message: "Your notifications have been cleared." });
         } catch (err) {
             console.error("Clear notifications error:", err);
-            res.status(500).json({ message: "Server error." });
-        }
-    });
-
-    // GET /api/notifications/badge — lightweight summary for the bell dot.
-    router.get("/badge", async (req, res) => {
-        try {
-            const empId = req.user.id;
-            const [[overdueRow]] = await db.query(`
-                SELECT COUNT(*) AS c
-                FROM Tasks t
-                WHERE (t.assigned_to_user = ?
-                       OR t.assigned_to_group IN (
-                           SELECT group_id FROM Employees_Groups WHERE employee_id = ?
-                       ))
-                  AND t.status NOT IN ('completed','cancelled')
-                  AND t.due_date < CURDATE()
-            `, [empId, empId]);
-            res.json({
-                unreadCount: 0,
-                overdueCount: Number(overdueRow.c) || 0
-            });
-        } catch (err) {
-            console.error("Badge error:", err);
             res.status(500).json({ message: "Server error." });
         }
     });
@@ -221,28 +194,42 @@ async function loadCurrent(db, employeeId) {
     });
 }
 
-async function recordNotification(db, { employeeId, kind, title, body, relatedUrl, targetUserId = null, targetRole = null }) {
+async function recordNotification(db, { kind, title, body, relatedUrl, targetUserId = null, targetDesignationId = null, targetGroupId = null }) {
     let message;
     if (kind === "user_approval") {
-        // structured as: ACTION:APPROVE_USER | userId | role | email
         message = `ACTION:APPROVE_USER|${relatedUrl}|${title}|${body}`;
     } else {
-        // Use a delimiter to store both title and body in the single column
         message = `${title}||${body}`;
     }
     
-    // Handle targeting by prefixing the message
-    if (targetUserId) {
-        message = `TARGET:USER|${targetUserId}||${message}`;
-    } else if (targetRole) {
-        message = `TARGET:ROLE|${targetRole}||${message}`;
-    }
-    
     try {
-        await db.query(
-            `INSERT INTO Notifications (notif_message) VALUES (?)`,
-            [message]
+        // 1. Insert into master table
+        const [result] = await db.query(
+            `INSERT INTO Notifications (notif_message, target_user_id, target_designation_id, target_group_id) VALUES (?, ?, ?, ?)`,
+            [message, targetUserId, targetDesignationId, targetGroupId]
         );
+        const notifId = result.insertId;
+
+        // 2. Fan-out to User_Notifications
+        if (targetUserId) {
+            await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [targetUserId, notifId]);
+        } else if (targetDesignationId) {
+            const [users] = await db.query(`SELECT employee_id FROM Employees WHERE job_title = ?`, [targetDesignationId]);
+            for (const u of users) {
+                await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [u.employee_id, notifId]);
+            }
+        } else if (targetGroupId) {
+            const [users] = await db.query(`SELECT employee_id FROM Employees_Groups WHERE group_id = ?`, [targetGroupId]);
+            for (const u of users) {
+                await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [u.employee_id, notifId]);
+            }
+        } else {
+            // Global
+            const [allUsers] = await db.query(`SELECT employee_id FROM Employees`);
+            for (const u of allUsers) {
+                await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [u.employee_id, notifId]);
+            }
+        }
     } catch (err) {
         console.warn("Notification persist failed:", err.message);
     }

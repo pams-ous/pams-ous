@@ -157,7 +157,8 @@ app.post('/api/admin/sync/groups', authenticateToken, async (req, res) => {
             kind: "group_created",
             title: "New Group Created",
             body: `A new group "${name}" was created by ${adminName}`,
-            relatedUrl: null
+            relatedUrl: null,
+            targetGroupId: newGroupId
         });
 
         res.json({ success: true });

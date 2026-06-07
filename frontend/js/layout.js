@@ -132,6 +132,26 @@ window.PAMS_UI = (function () {
         const popover = document.querySelector('.notif-popover');
         if (!bell || !popover) return;
 
+        // Create the red bubble badge
+        const badge = document.createElement('span');
+        badge.className = 'notif-badge';
+        badge.style.position = 'absolute';
+        badge.style.top = '5px';
+        badge.style.right = '5px';
+        badge.style.backgroundColor = '#dc2626';
+        badge.style.color = '#fff';
+        badge.style.fontSize = '10px';
+        badge.style.fontWeight = 'bold';
+        badge.style.borderRadius = '50%';
+        badge.style.width = '16px';
+        badge.style.height = '16px';
+        badge.style.display = 'none';
+        badge.style.justifyContent = 'center';
+        badge.style.alignItems = 'center';
+        badge.style.zIndex = '10';
+        bell.style.position = 'relative';
+        bell.appendChild(badge);
+
         // Add "Clear All" button for Admins
         const user = PAMS.getUser();
         if (user && user.role === 'ADMIN') {
@@ -139,7 +159,6 @@ window.PAMS_UI = (function () {
             clearBtn.innerHTML = 'Clear All';
             clearBtn.className = 'notif-clear-btn';
             
-            // Styling for top-right, no background, no borders, gray text
             clearBtn.style.position = 'absolute';
             clearBtn.style.top = '10px';
             clearBtn.style.right = '10px';
@@ -160,6 +179,7 @@ window.PAMS_UI = (function () {
                     try {
                         await PAMS.apiFetch('/notifications/clear', 'POST');
                         loadNotifications();
+                        updateBadgeCount(0);
                     } catch (err) {
                         PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
                     }
@@ -168,15 +188,18 @@ window.PAMS_UI = (function () {
             popover.appendChild(clearBtn);
         }
 
-        bell.onclick = (e) => {
+        bell.onclick = async (e) => {
             e.stopPropagation();
             popover.classList.toggle('open');
             if (popover.classList.contains('open')) {
-                loadNotifications();
+                await loadNotifications();
+                updateBadgeCount(0);
+                PAMS.apiFetch('/notifications/mark-all-read', 'PATCH').catch(err => {
+                    console.error('Failed to mark read:', err);
+                });
             }
         };
 
-        // Handle approval/rejection clicks via delegation
         popover.onclick = async (e) => {
             const btn = e.target.closest('.notif-action');
             if (!btn) return;
@@ -189,7 +212,7 @@ window.PAMS_UI = (function () {
 
             try {
                 await PAMS.apiFetch(`/notifications/${notifId}/${action}`, 'POST');
-                loadNotifications(); // Refresh list
+                loadNotifications();
             } catch (err) {
                 PAMS.toast('Action failed: ' + err.message, 'error');
             }
@@ -200,6 +223,45 @@ window.PAMS_UI = (function () {
                 popover.classList.remove('open');
             }
         });
+
+        updateBadgeCount();
+        
+        if (typeof io !== 'undefined') {
+            const socket = PAMS.socket;
+            if (socket) {
+                socket.on('new_notification', (data) => {
+                    const current = parseInt(badge.textContent) || 0;
+                    updateBadgeCount(current + 1);
+                    if (popover.classList.contains('open')) {
+                        loadNotifications();
+                    }
+                });
+            }
+        }
+    };
+
+    const updateBadgeCount = async (count = null) => {
+        const bell = document.querySelector('.bell-btn');
+        if (!bell) return;
+        const badge = bell.querySelector('.notif-badge');
+        if (!badge) return;
+
+        let finalCount = count;
+        if (finalCount === null) {
+            try {
+                const data = await PAMS.apiFetch('/notifications/unread-count');
+                finalCount = data.unreadCount;
+            } catch (e) {
+                finalCount = 0;
+            }
+        }
+
+        if (finalCount > 0) {
+            badge.textContent = finalCount > 99 ? '99+' : finalCount;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
     };
 
     const loadNotifications = async () => {
@@ -210,9 +272,9 @@ window.PAMS_UI = (function () {
 
         try {
             const data = await PAMS.apiFetch('/notifications');
+            console.log('[NOTIF-UI-DEBUG] Received data from server:', data);
             let html = '';
 
-            // 1. Render "Current" (Live Tasks)
             if (data.current && data.current.length > 0) {
                 html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-bottom:1px solid #eee;">DUE NOW / OVERDUE</div>';
                 html += data.current.map(n => `
@@ -226,48 +288,99 @@ window.PAMS_UI = (function () {
                 `).join('');
             }
 
-            // 2. Render "History" (Persistent Notifications)
             if (data.history && data.history.length > 0) {
-                if (html) html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-top:1px solid #eee; border-bottom:1px solid #eee;">HISTORY</div>';
+                console.log('[NOTIF-UI-DEBUG] Processing history notifications:', data.history.length);
                 
-                html += data.history.map(n => {
-                    let actionButtons = '';
-                    if (n.kind === 'user_approval') {
-                        actionButtons = `
-                            <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
-                                <button data-id="${n.id}" data-action="approve" class="notif-action" style="color:#16a34a; background:none; border:none; cursor:pointer; font-size:16px;" title="Approve">
-                                    <i class="fa-solid fa-circle-check"></i>
-                                </button>
-                                <button data-id="${n.id}" data-action="reject" class="notif-action" style="color:#dc2626; background:none; border:none; cursor:pointer; font-size:16px;" title="Reject">
-                                    <i class="fa-solid fa-circle-xmark"></i>
-                                </button>
+                // Use truthy/falsy checks to handle MySQL 0/1 booleans
+                const unread = data.history.filter(n => !n.isRead);
+                const read = data.history.filter(n => n.isRead);
+                console.log(`[NOTIF-UI-DEBUG] Split: Unread=${unread.length}, Read=${read.length}`);
+
+                if (html) {
+                    html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-top:1px solid #eee; border-bottom:1px solid #eee;">HISTORY</div>';
+                }
+                
+                if (unread.length > 0) {
+                    html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#3b82f6; background:#eff6ff; border-bottom:1px solid #dbeafe;">NEW NOTIFICATIONS</div>';
+                    html += unread.map(n => {
+                        let actionButtons = '';
+                        if (n.kind === 'user_approval') {
+                            actionButtons = `
+                                <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+                                    <button data-id="${n.id}" data-action="approve" class="notif-action" style="color:#16a34a; background:none; border:none; cursor:pointer; font-size:16px;" title="Approve">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                    </button>
+                                    <button data-id="${n.id}" data-action="reject" class="notif-action" style="color:#dc2626; background:none; border:none; cursor:pointer; font-size:16px;" title="Reject">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div class="notif-item" style="cursor:default; background-color: #f0f7ff; border-left: 3px solid #3b82f6;">
+                                <i class="fa-solid fa-bell" style="color:#3b82f6;"></i>
+                                <div style="flex:1;">
+                                    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                        <div style="font-weight:600;">${n.title}</div>
+                                        <div style="font-size:9px; color:#aaa; margin-left:8px;">${n.createdAt ? new Date(n.createdAt).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                    </div>
+                                    <div style="font-size:11px;color:#666;">${n.body || ''}</div>
+                                    ${actionButtons}
+                                </div>
                             </div>
                         `;
+                    }).join('');
+                }
+
+                if (read.length > 0) {
+                    if (unread.length > 0) {
+                        html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#999; background:#fafafa; border-top:1px solid #eee; border-bottom:1px solid #eee;">OLDER</div>';
+                    } else if (!html) {
+                        html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-bottom:1px solid #eee;">HISTORY</div>';
                     }
 
-                    return `
-                        <div class="notif-item" style="cursor:default;">
-                            <i class="fa-solid fa-bell" style="color:#666;"></i>
-                            <div style="flex:1;">
-                                <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                                    <div style="font-weight:600;">${n.title}</div>
-                                    <div style="font-size:9px; color:#aaa; margin-left:8px;">${n.createdAt ? new Date(n.createdAt).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                    html += read.map(n => {
+                        let actionButtons = '';
+                        if (n.kind === 'user_approval') {
+                            actionButtons = `
+                                <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+                                    <button data-id="${n.id}" data-action="approve" class="notif-action" style="color:#16a34a; background:none; border:none; cursor:pointer; font-size:16px;" title="Approve">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                    </button>
+                                    <button data-id="${n.id}" data-action="reject" class="notif-action" style="color:#dc2626; background:none; border:none; cursor:pointer; font-size:16px;" title="Reject">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
                                 </div>
-                                <div style="font-size:11px;color:#666;">${n.body || ''}</div>
-                                ${actionButtons}
+                            `;
+                        }
+
+                        return `
+                            <div class="notif-item" style="cursor:default;">
+                                <i class="fa-solid fa-bell" style="color:#666;"></i>
+                                <div style="flex:1;">
+                                    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                        <div style="font-weight:600;">${n.title}</div>
+                                        <div style="font-size:9px; color:#aaa; margin-left:8px;">${n.createdAt ? new Date(n.createdAt).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                    </div>
+                                    <div style="font-size:11px;color:#666, font-style: italic;">${n.body || ''}</div>
+                                    ${actionButtons}
+                                </div>
                             </div>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
+                }
             }
 
-            if (!html) {
+            console.log('[NOTIF-UI-DEBUG] Final HTML length:', html.length);
+            if (!html || html.trim() === '') {
                 body.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#888;">No notifications.</div>';
                 return;
             }
 
             body.innerHTML = html;
         } catch (err) {
+            console.error('[NOTIF-UI-DEBUG] loadNotifications error:', err);
             body.innerHTML = '<div style="padding:20px;text-align:center;font-size:11px;color:#dc2626;">Failed to load.</div>';
         }
     };

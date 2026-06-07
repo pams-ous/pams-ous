@@ -169,7 +169,6 @@ CREATE TABLE `Report_Entries` (
 -- Turn checks back on
 SET FOREIGN_KEY_CHECKS = 1;
 
---
 -- Table structure for table `Notifications`
 --
 DROP TABLE IF EXISTS `Notifications`;
@@ -177,5 +176,30 @@ CREATE TABLE `Notifications` (
   `notification_id` int NOT NULL AUTO_INCREMENT,
   `notif_message` varchar(512) NOT NULL,
   `notif_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`notification_id`)
+  `target_user_id` varchar(36) DEFAULT NULL,
+  `target_designation_id` int DEFAULT NULL,
+  `target_group_id` int DEFAULT NULL,
+  PRIMARY KEY (`notification_id`),
+  CONSTRAINT `fk_notif_user` FOREIGN KEY (`target_user_id`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_notif_designation` FOREIGN KEY (`target_designation_id`) REFERENCES `Designations` (`designation_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_notif_group` FOREIGN KEY (`target_group_id`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Table structure for table `User_Notifications`
+--
+DROP TABLE IF EXISTS `User_Notifications`;
+CREATE TABLE `User_Notifications` (
+  `user_notification_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(36) NOT NULL,
+  `notification_id` int NOT NULL,
+  `is_read` boolean DEFAULT FALSE,
+  `read_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_notification_id`),
+  KEY `un_user_idx` (`user_id`),
+  KEY `un_notification_idx` (`notification_id`),
+  CONSTRAINT `fk_un_user` FOREIGN KEY (`user_id`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_un_notification` FOREIGN KEY (`notification_id`) REFERENCES `Notifications` (`notification_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE KEY `uq_user_notif` (`user_id`, `notification_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

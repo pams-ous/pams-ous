@@ -40,8 +40,8 @@ module.exports = {
                         kind: "system_refresh",
                         title: "Tasks Refreshed",
                         body: "Completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1",
-                        relatedUrl: null,
-                        targetRole: 'Admin'
+                        relatedUrl: null
+                        // targetDesignationId will be handled globally for admins
                     });
                 }
             }
@@ -277,8 +277,8 @@ module.exports = {
                 kind: "task_created_admin",
                 title: "New Task Created",
                 body: `${creatorName} created task "${title.trim()}" and assigned it to ${targetName}.`,
-                relatedUrl: null,
-                targetRole: 'Admin'
+                relatedUrl: null
+                // Global for admins
             });
 
             //-admin/chief x assigned task y to you, if non admin (only appears if the user isn't an admin)
@@ -291,12 +291,13 @@ module.exports = {
                     targetUserId: assignedToUser
                 });
             } else if (assignedToGroup) {
-                // If assigned to a group, notify all members of that group? 
-                // The request doesn't explicitly ask for group members to be notified, 
-                // but "assigned to you" if non admin implies individual targeting.
-                // For group assignments, we can't easily target all in current Notifications table 
-                // without multiple inserts or a target_group_id column.
-                // I'll skip group member individual notifications unless I add target_group_id.
+                await recordNotification(db, {
+                    kind: "task_assigned_group",
+                    title: "Task Assigned to Your Group",
+                    body: `${creatorName} assigned task "${title.trim()}" to your group.`,
+                    relatedUrl: null,
+                    targetGroupId: assignedToGroup
+                });
             }
 
             res.status(201).json({ message: 'Task created successfully', taskId: newTaskId });
