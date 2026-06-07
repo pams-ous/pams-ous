@@ -9,11 +9,15 @@ npm install express socket.io mysql2 dotenv argon2 jsonwebtoken nodemailer cors
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '.', '.env') });
 
+const dns = require('dns'); // force connection to use IPv4 to connect to smtp.gmail.com
+dns.setDefaultResultOrder('ipv4first');
+
 const http = require('http');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const { Server } = require('socket.io');
 const express = require('express');
+
 
 // --- 1. SETUP CORE SERVICES ---
 const app = express();
