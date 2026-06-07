@@ -78,7 +78,7 @@ app.use("/api/notifications", notificationsRouter(db));
 app.get('/api/admin/sync/users', authenticateToken, async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT e.employee_id as id, e.first_name, e.last_name, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status, e.approval_status,
+            SELECT e.employee_id as id, e.employee_code, e.first_name, e.last_name, e.middle_name, e.suffix, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status, e.approval_status,
             (
                 SELECT JSON_ARRAYAGG(g.group_name)
                 FROM Employees_Groups eg
@@ -95,7 +95,14 @@ app.get('/api/admin/sync/users', authenticateToken, async (req, res) => {
                 catch (err) { parsedGroups = []; }
             }
             return {
-                id: r.id, name: `${r.first_name} ${r.last_name}`, email: r.email,
+                id: r.id, 
+                employeeCode: r.employee_code,
+                firstName: r.first_name,
+                lastName: r.last_name,
+                middleName: r.middle_name,
+                suffix: r.suffix,
+                name: `${r.first_name} ${r.last_name}`, 
+                email: r.email,
                 role: r.system_role === 'Admin' ? 'ADMIN' : 'MEMBER',
                 jobTitleId: r.job_title,
                 jobTitleName: r.designation_name,
