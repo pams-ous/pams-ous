@@ -59,14 +59,14 @@ const db = mysql.createPool({
 // 3. API MODULE INITIALIZATION & ROUTING
 // =======================================================
 
-const {searchAPI} = require("./UserMngmt_APIs/userSearch");
-const {regiUserAPI} = require("./UserMngmt_APIs/registration");
-const {manageAccountAPI} = require("./UserMngmt_APIs/manage");
-const {otpAPI} = require("./UserMngmt_APIs/otp");
-const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
-const {loginAPI} = require("./UserMngmt_APIs/login");
-const {reportAPI} = require("./ReportMngmt_APIs/reportHandlers");
-const {dashboardAPI} = require("./TaskMngmt_APIs/dashboardHandlers");
+const {registerSearchHandlers} = require("./UserMngmt_APIs/userSearch");
+const {registerRegistrationHandlers, initRegistrationRoutes} = require("./UserMngmt_APIs/registration");
+const {registerManageHandlers, initManageRoutes} = require("./UserMngmt_APIs/manage");
+const {registerOtpHandlers} = require("./UserMngmt_APIs/otp");
+const {registerPasswordResetHandlers} = require("./UserMngmt_APIs/passwordReset");
+const {registerLoginHandlers, initLoginRoutes} = require("./UserMngmt_APIs/login");
+const {registerReportHandlers} = require("./ReportMngmt_APIs/reportHandlers");
+const {dashboardAPI, registerDashboardHandlers} = require("./TaskMngmt_APIs/dashboardHandlers");
 const {notificationsRouter, recordNotification} = require("./UserMngmt_APIs/notifications");
 const {formatFullName} = require("./UserMngmt_APIs/userUtils");
 const { authenticateToken } = require("./UserMngmt_APIs/authMiddleware");
@@ -318,14 +318,29 @@ app.put('/api/admin/sync/groups/:id/members', authenticateToken, async (req, res
 // ==========================================
 // Initialize all APIs (The order matters!)
 // ==========================================
-searchAPI(io, db);
-regiUserAPI(io, db, app);
-manageAccountAPI(io, db, app);
-otpAPI(io, db);
-passwordResetAPI(io, db);
-loginAPI(express, db, io, app);
-reportAPI(io, db);
+
+// REST Route Initializations
+initRegistrationRoutes(app, db);
+initManageRoutes(app, db);
+initLoginRoutes(app, db, io);
 dashboardAPI(app, io, db);
+
+// Single Socket Connection Handler
+io.on('connection', async (socket) => {
+    console.log(`\n[SOCKET] Client connected: ${socket.id}`);
+    
+    // Register all module handlers to this single socket
+    await registerSearchHandlers(socket, db);
+    await registerRegistrationHandlers(socket, db);
+    await registerManageHandlers(socket, db);
+    await registerOtpHandlers(socket, db);
+    await registerPasswordResetHandlers(socket, db);
+    await registerLoginHandlers(socket, db, io);
+    await registerReportHandlers(socket, db, io);
+    await registerDashboardHandlers(socket, db, io);
+    
+    console.log(`[SOCKET] All handlers registered for client ${socket.id}\n`);
+});
 
 app.use('/api/tasks', taskRoutes);
 

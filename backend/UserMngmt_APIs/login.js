@@ -7,10 +7,137 @@ const { getEmployeeDetails } = require("./dbChecks");
 const { generateToken, verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
 
-function loginAPI(express, db, io, app) {
+async function handle_login(socket, data, db, io) {
+    const email = data.email;
+    const rawPw = data.password;
 
+    if (rawPw.trim().length <= 0 || !rawPw) {
+        return socket.emit('login_backendLog', { success: false, rawData: `Enter the password!`});
+    }
+
+    const query = `SELECT password, approval_status FROM employees WHERE email = ? LIMIT 1;`;
+
+    try {
+        const [records] = await db.query(query, [email]);
+        if (records && records.length > 0) {
+            const userRecord = records[0];
+            const hashedPw = userRecord.password;
+            const approvalStatus = userRecord.approval_status;
+
+            if (approvalStatus === 'PENDING') {
+                return socket.emit('login_backendLog', { success: false, rawData: `Your account is pending admin approval.`});
+            }
+
+            let validPw = await verify_pass(rawPw, hashedPw);
+            
+            if (validPw) {
+                // Update active_status using database connection context from server.js
+                await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
+                socket.userEmail = email;
+                
+                // BROADCAST TO ALL CLIPS: User is now online
+                io.emit('status_change', { email: email, status: 'Online' });
+            }
+            
+            const result = await getEmployeeDetails(db, data.email);
+            const [firstName, middleName, lastName, suffix] = [result?.first_name, result?.middle_name, result?.last_name, result?.suffix];
+            const empName = [firstName, middleName, lastName, suffix].filter(Boolean).join(" ");
+
+            socket.emit('login_backendLog', {
+                success: validPw,
+                rawData: `Email: ${email}\nValid: ${validPw}\n`,
+                empName: empName,
+                email: email
+            });
+            console.log(`validPw: ${validPw}`);
+        } else {
+            socket.emit('login_backendLog', { success: false, rawData: `Account not found!` });
+        }
+    } catch (err) {
+        socket.emit('login_backendLog', { success: false, rawData: `${err}` });
+    }
+}
+
+async function registerLoginHandlers(socket, db, io) {
+    socket.on('sendAccDetails', async (data) => {
+        handle_login(socket, data, db, io);
+    });
+
+    socket.on('register_session', async (data) => {
+        // Expect data to be { token: '...' }
+        const token = typeof data === 'string' ? null : data?.token;
+        if (!token) {
+            console.log(`[SESSION] register_session called without valid token format.`);
+            return;
+        }
+
+        const decoded = verifyToken(token);
+        if (!decoded || !decoded.email) {
+            console.log(`[SESSION] Invalid or expired token provided during registration.`);
+            return;
+        }
+
+        const email = decoded.email;
+        socket.userEmail = email; 
+        
+        // Join a user-specific room for real-time notifications
+        const [userRow] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [email]);
+        if (userRow && userRow.length > 0) {
+            const userId = userRow[0].employee_id;
+            socket.userId = userId;
+            socket.join(`user_${userId}`);
+            console.log(`[SESSION] ${email} (ID: ${userId}) joined room user_${userId}`);
+        }
+
+        try {
+            await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
+            console.log(`[SESSION] ${email} successfully authenticated and marked Online.`);
+            
+            // BROADCAST TO ALL CLIPS: Ensure other screens update to Online
+            io.emit('status_change', { email: email, status: 'Online' });
+        } catch (err) {
+            console.error("Error setting online status on reconnect:", err);
+        }
+    });
+
+    socket.on('logout', async () => {
+        if (socket.userEmail) {
+            try {
+                await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [socket.userEmail]);
+                io.emit('status_change', { email: socket.userEmail, status: 'Offline' });
+                console.log(`[LOGOUT] ${socket.userEmail} manually logged out.`);
+            } catch (err) {
+                console.error("Error during manual logout:", err);
+            }
+        }
+    });
+
+    socket.on('disconnect', async () => {
+        if (socket.userEmail) {
+            const disconnectedEmail = socket.userEmail;
+            
+            // Presence Check: Only mark offline if no other sockets for this user are connected
+            const otherSockets = Array.from(io.sockets.sockets.values()).filter(s => s !== socket && s.userEmail === disconnectedEmail);
+            
+            if (otherSockets.length === 0) {
+                try {
+                    await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [disconnectedEmail]);
+                    console.log(`[SESSION] ${disconnectedEmail} went offline (last session closed).`);
+                    
+                    // BROADCAST TO ALL CLIPS: User is now offline
+                    io.emit('status_change', { email: disconnectedEmail, status: 'Offline' });
+                } catch (err) {
+                    console.error("Error updating offline status:", err);
+                }
+            } else {
+                console.log(`[SESSION] ${disconnectedEmail} disconnected, but still has ${otherSockets.length} active session(s).`);
+            }
+        }
+    });
+}
+
+async function initLoginRoutes(app, db, io) {
     // --- 1. CORE MIDDLEWARE SETUP ---
-    app.use(express.json());
     app.use((req, res, next) => {
         const origin = req.headers.origin;
         // Allow any origin that matches our configured origin or localhost
@@ -25,141 +152,6 @@ function loginAPI(express, db, io, app) {
         next();
     });
 
-    async function handle_login(socket, data) {
-        const email = data.email;
-        const rawPw = data.password;
-
-        if (rawPw.trim().length <= 0 || !rawPw) {
-            return socket.emit('login_backendLog', { success: false, rawData: `Enter the password!`});
-        }
-
-        const query = `SELECT password, approval_status FROM employees WHERE email = ? LIMIT 1;`;
-
-        try {
-            const [records] = await db.query(query, [email]);
-            if (records && records.length > 0) {
-                const userRecord = records[0];
-                const hashedPw = userRecord.password;
-                const approvalStatus = userRecord.approval_status;
-
-                if (approvalStatus === 'PENDING') {
-                    return socket.emit('login_backendLog', { success: false, rawData: `Your account is pending admin approval.`});
-                }
-
-                let validPw = await verify_pass(rawPw, hashedPw);
-                
-                if (validPw) {
-                    // Update active_status using database connection context from server.js
-                    await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
-                    socket.userEmail = email;
-                    
-                    // BROADCAST TO ALL CLIPS: User is now online
-                    io.emit('status_change', { email: email, status: 'Online' });
-                }
-                
-                const result = await getEmployeeDetails(db, data.email);
-                const [firstName, middleName, lastName, suffix] = [result?.first_name, result?.middle_name, result?.last_name, result?.suffix];
-                const empName = [firstName, middleName, lastName, suffix].filter(Boolean).join(" ");
-
-                socket.emit('login_backendLog', {
-                    success: validPw,
-                    rawData: `Email: ${email}\nValid: ${validPw}\n`,
-                    empName: empName,
-                    email: email
-                });
-                console.log(`validPw: ${validPw}`);
-            } else {
-                socket.emit('login_backendLog', { success: false, rawData: `Account not found!` });
-            }
-        } catch (err) {
-            socket.emit('login_backendLog', { success: false, rawData: `${err}` });
-        }
-    }
-
-    io.on('connection', (socket) => {
-        console.log(`Connected!`);
-
-        socket.on('sendAccDetails', async (data) => {
-            handle_login(socket, data);
-        });
-
-        socket.on('register_session', async (data) => {
-            // Expect data to be { token: '...' }
-            const token = typeof data === 'string' ? null : data?.token;
-            if (!token) {
-                console.log(`[SESSION] register_session called without valid token format.`);
-                return;
-            }
-
-            const decoded = verifyToken(token);
-            if (!decoded || !decoded.email) {
-                console.log(`[SESSION] Invalid or expired token provided during registration.`);
-                return;
-            }
-
-            const email = decoded.email;
-            socket.userEmail = email; 
-            
-            // Join a user-specific room for real-time notifications
-            const [userRow] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [email]);
-            if (userRow && userRow.length > 0) {
-                const userId = userRow[0].employee_id;
-                socket.userId = userId;
-                socket.join(`user_${userId}`);
-                console.log(`[SESSION] ${email} (ID: ${userId}) joined room user_${userId}`);
-            }
-
-            try {
-                await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
-                console.log(`[SESSION] ${email} successfully authenticated and marked Online.`);
-                
-                // BROADCAST TO ALL CLIPS: Ensure other screens update to Online
-                io.emit('status_change', { email: email, status: 'Online' });
-            } catch (err) {
-                console.error("Error setting online status on reconnect:", err);
-            }
-        });
-
-        socket.on('logout', async () => {
-            if (socket.userEmail) {
-                try {
-                    await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [socket.userEmail]);
-                    io.emit('status_change', { email: socket.userEmail, status: 'Offline' });
-                    console.log(`[LOGOUT] ${socket.userEmail} manually logged out.`);
-                } catch (err) {
-                    console.error("Error during manual logout:", err);
-                }
-            }
-        });
-
-        socket.on('disconnect', async () => {
-            if (socket.userEmail) {
-                const disconnectedEmail = socket.userEmail;
-                
-                // Presence Check: Only mark offline if no other sockets for this user are connected
-                const otherSockets = Array.from(io.sockets.sockets.values()).filter(s => s !== socket && s.userEmail === disconnectedEmail);
-                
-                if (otherSockets.length === 0) {
-                    try {
-                        await db.query("UPDATE Employees SET active_status = 'Offline' WHERE email = ?", [disconnectedEmail]);
-                        console.log(`[SESSION] ${disconnectedEmail} went offline (last session closed).`);
-                        
-                        // BROADCAST TO ALL CLIPS: User is now offline
-                        io.emit('status_change', { email: disconnectedEmail, status: 'Offline' });
-                    } catch (err) {
-                        console.error("Error updating offline status:", err);
-                    }
-                } else {
-                    console.log(`[SESSION] ${disconnectedEmail} disconnected, but still has ${otherSockets.length} active session(s).`);
-                }
-            }
-        });
-    });
-
-    // --- 3. SUB-MODULE ROUTE DELEGATIONS ---
-    // Task routes are now managed centrally in server.js to avoid duplication.
-
-// --- 4. EXPRESS REST API ROUTING HANDLERS ---
     app.post('/api/auth/logout', async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
@@ -270,8 +262,6 @@ function loginAPI(express, db, io, app) {
         }
     });
 
-    // Fetch All Users
-
     // Fetch Groups Details
     app.get('/api/groups', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         try {
@@ -338,4 +328,4 @@ function loginAPI(express, db, io, app) {
     });
 }
 
-module.exports = { loginAPI };
+module.exports = { registerLoginHandlers, initLoginRoutes };

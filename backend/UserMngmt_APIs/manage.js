@@ -87,74 +87,71 @@ async function editEmployeeData(socket, db, data) {
     }
 }
 
-async function manageAccountAPI(io, db, app) {
-    io.on('connection', (socket) => {
-        console.log("Management API connected.");
+async function registerManageHandlers(socket, db) {
+    const verifyAdmin = () => {
+        const token = socket.handshake.auth?.token;
+        const user = verifyToken(token);
+        return user && user.role === 'ADMIN';
+    };
 
-        const verifyAdmin = () => {
-            const token = socket.handshake.auth?.token;
-            const user = verifyToken(token);
-            return user && user.role === 'ADMIN';
-        };
-
-        socket.on('getEmployeeData', (data) => {
-            if (!verifyAdmin()) {
-                socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
-                return;
-            }
-            getEmployeeData(db, data, socket, "get", { accountFound: false });
-        });
-
-        socket.on('deleteAccount', async (data) => {
-            if (!verifyAdmin()) {
-                socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
-                return;
-            }
-            const state = { accountFound: false };
-            
-            // Need user details before deletion for notification
-            const { email } = data;
-            const userDetails = await getEmployeeDetails(db, email);
-            const deletedUserName = formatFullName(userDetails);
-            
-            const {empID} = await getEmployeeData(db, data, socket, "delete", state);
-            
-            if (empID !== undefined) {
-                // Notification: user x was deleted by Admin y
-                const token = socket.handshake.auth?.token;
-                const adminUser = verifyToken(token);
-                const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [adminUser.id]);
-                const adminName = formatFullName(adminData[0]);
-
-                await recordNotification(db, {
-                    kind: "user_deleted",
-                    title: "User Deleted",
-                    body: `${deletedUserName} was deleted by ${adminName}`,
-                    relatedUrl: null
-                });
-
-                socket.emit('managementLog', {
-                    success: true,
-                    rawData: `Deletion of ${email} by ${empID} successful.`
-                });
-            } else {
-                socket.emit('managementLog', {
-                    success: false,
-                    rawData: `Deletion of ${email} unsucessful.`
-                }); 
-            }
-        });
-
-        socket.on('updateDetails', (data) => {
-            if (!verifyAdmin()) {
-                socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
-                return;
-            }
-            editEmployeeData(socket, db, data);
-        });
-
+    socket.on('getEmployeeData', (data) => {
+        if (!verifyAdmin()) {
+            socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
+            return;
+        }
+        getEmployeeData(db, data, socket, "get", { accountFound: false });
     });
 
+    socket.on('deleteAccount', async (data) => {
+        if (!verifyAdmin()) {
+            socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
+            return;
+        }
+        const state = { accountFound: false };
+        
+        // Need user details before deletion for notification
+        const { email } = data;
+        const userDetails = await getEmployeeDetails(db, email);
+        const deletedUserName = formatFullName(userDetails);
+        
+        const {empID} = await getEmployeeData(db, data, socket, "delete", state);
+        
+        if (empID !== undefined) {
+            // Notification: user x was deleted by Admin y
+            const token = socket.handshake.auth?.token;
+            const adminUser = verifyToken(token);
+            const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [adminUser.id]);
+            const adminName = formatFullName(adminData[0]);
+
+            await recordNotification(db, {
+                kind: "user_deleted",
+                title: "User Deleted",
+                body: `${deletedUserName} was deleted by ${adminName}`,
+                relatedUrl: null
+            });
+
+            socket.emit('managementLog', {
+                success: true,
+                rawData: `Deletion of ${email} by ${empID} successful.`
+            });
+        } else {
+            socket.emit('managementLog', {
+                success: false,
+                rawData: `Deletion of ${email} unsucessful.`
+            }); 
+        }
+    });
+
+    socket.on('updateDetails', (data) => {
+        if (!verifyAdmin()) {
+            socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
+            return;
+        }
+        editEmployeeData(socket, db, data);
+    });
+}
+
+async function initManageRoutes(app, db) {
     // Fetch Designations
     app.get('/api/designations', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         try {
@@ -203,7 +200,6 @@ async function manageAccountAPI(io, db, app) {
     });
 
     // REST API: Delete User
-
     app.delete('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const userEmail = req.params.id;
         try {
@@ -266,4 +262,4 @@ async function manageAccountAPI(io, db, app) {
     });
 }
 
-module.exports = {manageAccountAPI};
+module.exports = { registerManageHandlers, initManageRoutes };

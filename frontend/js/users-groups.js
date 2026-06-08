@@ -40,13 +40,8 @@
             console.error("Failed to load designations:", e);
         }
 
-        if (typeof io !== 'undefined') {
-            const token = PAMS.getToken();
-            const socket = io(CONFIG.BACKEND_SOCKET_URL, { auth: { token } });
-
-            if (token) {
-                socket.emit('register_session', { token });
-            }
+        if (PAMS.socket) {
+            const socket = PAMS.socket;
 
             socket.on('status_change', (data) => {
                 const { email, status } = data;

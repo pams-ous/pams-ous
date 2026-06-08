@@ -206,7 +206,6 @@ window.PAMS = (function () {
         return Array.isArray(data) ? data : (data.designations || []);
     };
 
-
     const verifySessionIntegrity = async () => {
         const token = getToken();
         if (!token) return;
@@ -219,6 +218,26 @@ window.PAMS = (function () {
         }
     };
 
+    /**
+     * Socket Initialization
+     */
+    const initSocket = () => {
+        if (typeof io === 'undefined') return null;
+        
+        const token = getToken();
+        const socketUrl = (typeof CONFIG !== 'undefined') ? CONFIG.BACKEND_SOCKET_URL : "http://localhost:3000";
+        
+        const socket = io(socketUrl, {
+            auth: { token },
+            transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
+        }); 
+        
+        if (token) {
+            socket.emit('register_session', { token });
+        }
+        
+        return socket;
+    };
 
     return {
         apiFetch, getToken, setToken, getUser, setUser,
@@ -226,27 +245,15 @@ window.PAMS = (function () {
         authUrl, pageUrl, fmtDate, fmtHeaderDate,
         getUsers, getGroups, getDesignations,
         validatePassword, PASSWORD_POLICY,
-        socket: null
+        socket: null,
+        initSocket // Export the initializer
     };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if the Socket.io library is loaded on the current HTML page
-    if (typeof io !== 'undefined') {
-        const token = PAMS.getToken();
-        const socket = io(typeof CONFIG !== 'undefined' ? CONFIG.BACKEND_SOCKET_URL : "http://localhost:3000", {
-            auth: { token },
-            transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
-        }); 
-        PAMS.socket = socket; // Store socket in PAMS object
-        
-        if (token) {
-            socket.emit('register_session', { token });
-        }
-
-
-    }
-
+    // Initialize the shared socket
+    PAMS.socket = PAMS.initSocket();
+    
     // Automatically check session validity on pages inside the protected OUS portal
     if (PAMS.getToken() && PAMS.verifySessionIntegrity && /\/pages\//.test(location.pathname)) {
         PAMS.verifySessionIntegrity();

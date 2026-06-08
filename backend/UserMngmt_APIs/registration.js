@@ -197,18 +197,16 @@ async function handleConfirm(db, socket, data) {
     }
 }
 
-async function regiUserAPI(io, db, app) {
-    io.on("connection", (socket) => {
-        console.log("Registration API connected.");
+async function registerRegistrationHandlers(socket, db) {
+    // OTP-gated flow.
+    socket.on("requestRegistration", (data) => handleRequest(db, socket, data));
+    socket.on("confirmRegistration", (data) => handleConfirm(db, socket, data));
 
-        // OTP-gated flow.
-        socket.on("requestRegistration", (data) => handleRequest(db, socket, data));
-        socket.on("confirmRegistration", (data) => handleConfirm(db, socket, data));
+    // Back-compat: the original event still works but now also requires OTP confirmation.
+    socket.on("newAccDetails", (data) => handleRequest(db, socket, data));
+}
 
-        // Back-compat: the original event still works but now also requires OTP confirmation.
-        socket.on("newAccDetails", (data) => handleRequest(db, socket, data));
-    });
-
+async function initRegistrationRoutes(app, db) {
     // REST API: Add Direct User (Admin managed)
     app.post('/api/users', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const { code, firstName, lastName, middleName, suffix, email, role, password, designationId } = req.body;
@@ -277,4 +275,4 @@ async function regiUserAPI(io, db, app) {
     });
 }
 
-module.exports = { regiUserAPI };
+module.exports = { registerRegistrationHandlers, initRegistrationRoutes };

@@ -40,14 +40,14 @@
 
     function getSocket() {
         if (USE_MOCK) return null;
-        if (window.PAMS && window.PAMS.socket && window.PAMS.socket.connected) return window.PAMS.socket;
+        if (window.PAMS && window.PAMS.socket) return window.PAMS.socket;
         if (typeof window.io !== 'function') {
             console.error('socket.io-client not loaded. Add the CDN script to the page.');
             return null;
         }
-        sharedSocket = window.io(BACKEND_URL, { transports: ['websocket', 'polling'] });
-        if (window.PAMS) window.PAMS.socket = sharedSocket;
-        return sharedSocket;
+        const socket = window.io(BACKEND_URL, { transports: ['websocket', 'polling'] });
+        if (window.PAMS) window.PAMS.socket = socket;
+        return socket;
     }
 
     function purposeCopy(purpose) {

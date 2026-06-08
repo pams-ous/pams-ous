@@ -1,9 +1,6 @@
 const { verifyToken } = require("./authUtil");
 
-async function searchAPI(io, db) {
-    io.on('connection', (socket) => {
-    console.log('Search API connected.');
-
+async function registerSearchHandlers(socket, db) {
     const verifyAuth = () => {
         const token = socket.handshake.auth?.token;
         return verifyToken(token) !== null;
@@ -37,7 +34,6 @@ async function searchAPI(io, db) {
             socket.emit('searchResult', { success: false, rawData: err });
         }
     });
-});
 }
 
-module.exports = { searchAPI };
+module.exports = { registerSearchHandlers };
