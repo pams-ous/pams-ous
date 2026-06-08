@@ -1,4 +1,4 @@
-# PUP OUS – Personnel Daily Accomplishment Report System (PAMS)
+# PUP OUS – Personnel Accomplishment Management System (PAMS)
 
 ## Project Overview
 PAMS is a professional management system designed for the **Polytechnic University of the Philippines - Open University System**. It streamlines personnel task tracking, real-time accomplishment monitoring, and high-integrity report generation.
