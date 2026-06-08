@@ -41,6 +41,8 @@ const io = new Server(server, {
     }
 });
 
+app.set('io', io);
+
 // Serve the static files directly from your raw frontend folder
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -157,13 +159,14 @@ app.post('/api/admin/sync/groups', authenticateToken, async (req, res) => {
         const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
         const adminName = formatFullName(adminData[0]);
 
-        await recordNotification(db, {
-            kind: "group_created",
-            title: "New Group Created",
-            body: `A new group "${name}" was created by ${adminName}`,
-            relatedUrl: null,
-            targetGroupId: newGroupId
-        });
+                await recordNotification(db, {
+                    kind: "group_created",
+                    title: "New Group Created",
+                    body: `A new group "${name}" was created by ${adminName}`,
+                    relatedUrl: null,
+                    targetGroupId: newGroupId
+                }, req.app.get('io'));
+
 
         res.json({ success: true });
     } catch (e) { await connection.rollback(); res.status(500).json({ error: e.message }); } finally { connection.release(); }
@@ -198,32 +201,35 @@ app.put('/api/admin/sync/groups/:id', authenticateToken, async (req, res) => {
 
         //-group x's group name was modifed to (the new group name) by Admin y
         if (name && name !== groupNameBefore) {
-            await recordNotification(db, {
-                kind: "group_name_update",
-                title: "Group Name Modified",
-                body: `Group "${groupNameBefore}"'s group name was modified to "${name}" by ${adminName}`,
-                relatedUrl: null
-            });
+                await recordNotification(db, {
+                    kind: "group_name_update",
+                    title: "Group Name Modified",
+                    body: `Group "${groupNameBefore}"'s group name was modified to "${name}" by ${adminName}`,
+                    relatedUrl: null
+                }, req.app.get('io'));
+
         }
         //-group x's description was modifed by Admin y
         if (desc && desc !== groupDescBefore) {
-            await recordNotification(db, {
-                kind: "group_desc_update",
-                title: "Group Description Modified",
-                body: `Group "${groupNameBefore}"'s description was modified by ${adminName}`,
-                relatedUrl: null
-            });
+                await recordNotification(db, {
+                    kind: "group_desc_update",
+                    title: "Group Description Modified",
+                    body: `Group "${groupNameBefore}"'s description was modified by ${adminName}`,
+                    relatedUrl: null
+                }, req.app.get('io'));
+
         }
         //-group x's group leader was changed to (the new group's leader) by Admin y
         if (leaderEmail) {
             const [leaderData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE email = ?', [leaderEmail]);
             const leaderName = formatFullName(leaderData[0]);
-            await recordNotification(db, {
-                kind: "group_leader_update",
-                title: "Group Leader Changed",
-                body: `Group "${groupNameBefore}"'s group leader was changed to ${leaderName} by ${adminName}`,
-                relatedUrl: null
-            });
+                await recordNotification(db, {
+                    kind: "group_leader_update",
+                    title: "Group Leader Changed",
+                    body: `Group "${groupNameBefore}"'s group leader was changed to ${leaderName} by ${adminName}`,
+                    relatedUrl: null
+                }, req.app.get('io'));
+
         }
 
         res.json({ success: true });
@@ -243,12 +249,13 @@ app.delete('/api/admin/sync/groups/:id', authenticateToken, async (req, res) => 
         const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
         const adminName = formatFullName(adminData[0]);
 
-        await recordNotification(db, {
-            kind: "group_deleted",
-            title: "Group Deleted",
-            body: `Group "${groupName}" was deleted by ${adminName}`,
-            relatedUrl: null
-        });
+            await recordNotification(db, {
+                kind: "group_deleted",
+                title: "Group Deleted",
+                body: `Group "${groupName}" was deleted by ${adminName}`,
+                relatedUrl: null
+            }, req.app.get('io'));
+
 
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -297,7 +304,7 @@ app.put('/api/admin/sync/groups/:id/members', authenticateToken, async (req, res
                             body: `${formatFullName(emp)} was added to group ${groupName}`,
                             relatedUrl: null,
                             targetUserId: emp.employee_id
-                        });
+                        }, req.app.get('io'));
                     }
                 }
             }

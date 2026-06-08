@@ -99,6 +99,16 @@ function loginAPI(express, db, io, app) {
 
             const email = decoded.email;
             socket.userEmail = email; 
+            
+            // Join a user-specific room for real-time notifications
+            const [userRow] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [email]);
+            if (userRow && userRow.length > 0) {
+                const userId = userRow[0].employee_id;
+                socket.userId = userId;
+                socket.join(`user_${userId}`);
+                console.log(`[SESSION] ${email} (ID: ${userId}) joined room user_${userId}`);
+            }
+
             try {
                 await db.query("UPDATE Employees SET active_status = 'Online' WHERE email = ?", [email]);
                 console.log(`[SESSION] ${email} successfully authenticated and marked Online.`);

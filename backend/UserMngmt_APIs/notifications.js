@@ -194,7 +194,7 @@ async function loadCurrent(db, employeeId) {
     });
 }
 
-async function recordNotification(db, { kind, title, body, relatedUrl, targetUserId = null, targetDesignationId = null, targetGroupId = null }) {
+async function recordNotification(db, { kind, title, body, relatedUrl, targetUserId = null, targetDesignationId = null, targetGroupId = null }, io = null) {
     let message;
     if (kind === "user_approval") {
         message = `ACTION:APPROVE_USER|${relatedUrl}|${title}|${body}`;
@@ -211,23 +211,49 @@ async function recordNotification(db, { kind, title, body, relatedUrl, targetUse
         const notifId = result.insertId;
 
         // 2. Fan-out to User_Notifications
+        let notifiedUserIds = [];
         if (targetUserId) {
             await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [targetUserId, notifId]);
+            notifiedUserIds.push(targetUserId);
         } else if (targetDesignationId) {
             const [users] = await db.query(`SELECT employee_id FROM Employees WHERE job_title = ?`, [targetDesignationId]);
             for (const u of users) {
                 await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [u.employee_id, notifId]);
+                notifiedUserIds.push(u.employee_id);
             }
         } else if (targetGroupId) {
             const [users] = await db.query(`SELECT employee_id FROM Employees_Groups WHERE group_id = ?`, [targetGroupId]);
             for (const u of users) {
                 await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [u.employee_id, notifId]);
+                notifiedUserIds.push(u.employee_id);
             }
         } else {
             // Global
             const [allUsers] = await db.query(`SELECT employee_id FROM Employees`);
             for (const u of allUsers) {
                 await db.query(`INSERT INTO User_Notifications (user_id, notification_id) VALUES (?, ?)`, [u.employee_id, notifId]);
+                notifiedUserIds.push(u.employee_id);
+            }
+        }
+
+        // 3. Real-time emission via Socket.io
+        if (io) {
+            const notificationPayload = {
+                id: notifId,
+                title,
+                body,
+                kind,
+                createdAt: new Date()
+            };
+
+            if (targetUserId) {
+                io.to(`user_${targetUserId}`).emit('new_notification', notificationPayload);
+            } else if (targetDesignationId || targetGroupId || notifiedUserIds.length > 0) {
+                // If it was a group/designation or global, we can either emit to all rooms or use a broadcast.
+                // To be safe and precise, we emit to the specific rooms we just populated.
+                notifiedUserIds.forEach(uid => {
+                    io.to(`user_${uid}`).emit('new_notification', notificationPayload);
+                });
             }
         }
     } catch (err) {
