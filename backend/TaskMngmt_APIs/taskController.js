@@ -162,12 +162,21 @@ module.exports = {
             // 4. Format perfectly for my-tasks.js to prevent UI rendering bugs
             const formattedTasks = myRawTasks.map(t => {
                 let assigneeObj = null;
+                let assignedToName = null;
                 // If your findAll() join provides names, we still build the object for the UI
                 if (t.assignee_fn) {
+                    assignedToName = `${t.assignee_fn} ${t.assignee_ln}`.trim();
                     assigneeObj = { 
                         name: `${t.assignee_fn} ${t.assignee_ln}`, 
                         type: 'user', 
                         initials: getInitials(t.assignee_fn, t.assignee_ln) 
+                    };
+                } else if (t.group_name) {
+                    assignedToName = t.group_name;
+                    assigneeObj = { 
+                        name: t.group_name, 
+                        type: 'group', 
+                        initials: t.group_name.substring(0, 2).toUpperCase() 
                     };
                 }
 
@@ -181,6 +190,7 @@ module.exports = {
                     createdAt: t.createdAt,
                     updatedAt: t.updatedAt || t.createdAt, 
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
+                    assignedToName: assignedToName,
                     assignee: assigneeObj
                 };
             });
