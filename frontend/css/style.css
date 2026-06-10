@@ -2036,6 +2036,12 @@ body.sidebar-open .main {
   font-weight: 600;
 }
 
+.detail-item .val {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 .detail-item.full {
   grid-column: 1 / -1;
 }

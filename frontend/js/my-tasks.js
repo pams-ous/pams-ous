@@ -171,10 +171,11 @@
             if (bodyEl) {
                 bodyEl.innerHTML = `
                     <div class="detail-grid">
-                        <div class="detail-item full"><label>Task Name</label><div class="val">${t.title}</div></div>
+                        <div class="detail-item"><label>Task Name</label><div class="val">${t.title}</div></div>
+                        <div class="detail-item"><label>Due Date</label><div class="val">${fmtDate(t.dueDate)}</div></div>
                         <div class="detail-item"><label>Priority</label><div class="val">${t.priority}</div></div>
                         <div class="detail-item"><label>Status</label><div class="val">${t.status}</div></div>
-                        <div class="detail-item"><label>Due Date</label><div class="val">${fmtDate(t.dueDate)}</div></div>
+                        <div class="detail-item"><label>Assigned To</label><div class="val">${t.assignedToName || '—'}</div></div>
                         <div class="detail-item"><label>Assigned By</label><div class="val">${t.assignedByName || '—'}</div></div>
                         ${t.description ? `<div class="detail-item full"><label>Description</label><div class="val" style="font-weight:400; color:var(--gray-700);">${t.description}</div></div>` : ''}
                     </div>
