@@ -1,5 +1,4 @@
 // Business logic, payload formatting, and enum translations
-//
 
 const Task = require('./taskModel');
 const db = require('./db');
@@ -18,7 +17,7 @@ module.exports = {
             // run auto reset first
             const resetCount = await Task.autoResetStaleTasks();
             if (resetCount > 0) {
-                //-an in-progress task turned to pending after 24 hours have passed of not completing
+                // an in-progress task turned to pending after 24 hours have passed of not completing
                     await recordNotification(db, {
                         kind: "system_reset",
                         title: "Tasks Auto-Reset",
@@ -28,7 +27,7 @@ module.exports = {
 
             }
 
-            //-completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1
+            // completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1
             if (req.user.role === 'Admin') {
                 const today = new Date().toISOString().split('T')[0];
                 const [lastRefresh] = await db.query(`
@@ -124,14 +123,14 @@ module.exports = {
             const { view } = req.query;
             const showCompleted = view === 'completed';
 
-            // Find the logged-in employee (Returns ONLY the ID based on our debug log)
+            // For debugging. Find the logged-in employee (Returns only the ID)
             const employee = await Task.findEmployeeByEmail(userEmail);
             if (!employee) return res.status(404).json({ message: 'User not found' });
 
             // Extract the known, safe ID
             const targetId = employee.employee_id;
 
-            // Fetch the groups this employee belongs to ---
+            // Fetch the groups this employee belongs to
             const [groupRows] = await db.query(
                 'SELECT group_id FROM Employees_Groups WHERE employee_id = ?', 
                 [targetId]
@@ -156,14 +155,11 @@ module.exports = {
                 return matchesUser && !isClosed;
             });
 
-            // DEBUG: If it's STILL empty after this, uncomment the line below to see exactly what columns Task.findAll() provides
-            // console.log("DEBUG - First Task from DB:", rawTasks[0]);
-
-            // 4. Format perfectly for my-tasks.js to prevent UI rendering bugs
+            // Format perfectly for my-tasks.js to prevent UI rendering bugs
             const formattedTasks = myRawTasks.map(t => {
                 let assigneeObj = null;
                 let assignedToName = null;
-                // If your findAll() join provides names, we still build the object for the UI
+
                 if (t.assignee_fn) {
                     assignedToName = `${t.assignee_fn} ${t.assignee_ln}`.trim();
                     assigneeObj = { 
@@ -205,7 +201,7 @@ module.exports = {
     createTask: async (req, res) => {
         try {
             // --- ROLE SECURITY CHECK ---
-            // Ensure only ADMIN role can create tasks (Second layer of defense)
+            // Ensure only ADMIN role can create tasks
             const userRole = req.user.role ? req.user.role.toUpperCase() : '';
             if (userRole !== 'ADMIN') {
                 return res.status(403).json({ message: 'Insufficient permissions to create tasks. Admin access required.' });
@@ -259,10 +255,8 @@ module.exports = {
             }
             
             console.log("Decoded Token User Object:", req.user);
-            
-            // ... (keep the rest of your createTask logic from extracting the creator down to the catch block) ...
 
-            //Extracting the actual authenticated creator
+            //For debugging. Extract the actual authenticated creator
             const creatorId = req.user.id; 
             if (!creatorId) {
                 return res.status(401).json({ message: 'Unauthorized: Complete profile credentials missing' });
@@ -327,13 +321,13 @@ module.exports = {
             const { title, description, priority, dueDate, status } = req.body; 
             const userRole = req.user.role ? req.user.role.toLowerCase() : 'staff';
 
-            // 1. Fetch the existing task to perform status/permission business rule checks
+            // Fetch the existing task to perform status/permission business rule checks
             const existingTask = await Task.findById(id);
             if (!existingTask) {
                 return res.status(404).json({ message: 'Task not found' });
             }
 
-            // 2. Enforce Role & Modification Boundary Rules
+            // Enforce Role & Modification Boundary Rules
             const isAuthorizedModifier = (userRole === 'admin' || userRole === 'chief');
             
             if (!isAuthorizedModifier) {
@@ -356,7 +350,7 @@ module.exports = {
                 }
             }
 
-            // 3. Assemble dynamic payload mapping safely
+            // Assemble dynamic payload mapping safely
             const updatePayload = {};
             if (isAuthorizedModifier) {
                 if (title) updatePayload.title = title.trim();
