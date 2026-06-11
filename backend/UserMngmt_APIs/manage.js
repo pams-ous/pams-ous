@@ -55,7 +55,7 @@ async function getEmployeeData(db, data, socket, mode, state) {
     }
 }
 
-async function editEmployeeData(socket, db, data) {
+async function editEmployeeData(socket, db, data, io) {
     const {empCode, email, currEmail, lastName, firstName, middleName, suffix} = data;
     const results = await getEmployeeDetails(db, currEmail);
     const empID = results?.employee_id;
@@ -75,6 +75,23 @@ async function editEmployeeData(socket, db, data) {
             return
         }
         const [updateRecord] = await db.query(query, [empCode || null, email, lastName, firstName, middleName, suffix, empID]);
+        
+        // Notification: User x was updated by Admin y
+        const token = socket.handshake.auth?.token;
+        const adminUser = verifyToken(token);
+        if (adminUser) {
+            const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [adminUser.id]);
+            const adminName = formatFullName(adminData[0]);
+            const updatedUserName = formatFullName({first_name: firstName, last_name: lastName, suffix});
+            
+            await recordNotification(db, {
+                kind: "user_updated",
+                title: "User Details Updated",
+                body: `${updatedUserName} was updated by ${adminName}`,
+                relatedUrl: null
+            }, io);
+        }
+
         socket.emit('managementLog', {
             success: true,
             rawData: `Successfully updated the details!`
@@ -87,13 +104,13 @@ async function editEmployeeData(socket, db, data) {
     }
 }
 
-async function registerManageHandlers(socket, db) {
+async function registerManageHandlers(socket, db, io) {
     const verifyAdmin = () => {
         const token = socket.handshake.auth?.token;
         const user = verifyToken(token);
         return user && user.role === 'ADMIN';
     };
-
+    
     socket.on('getEmployeeData', (data) => {
         if (!verifyAdmin()) {
             socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
@@ -101,7 +118,7 @@ async function registerManageHandlers(socket, db) {
         }
         getEmployeeData(db, data, socket, "get", { accountFound: false });
     });
-
+    
     socket.on('deleteAccount', async (data) => {
         if (!verifyAdmin()) {
             socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
@@ -122,14 +139,14 @@ async function registerManageHandlers(socket, db) {
             const adminUser = verifyToken(token);
             const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [adminUser.id]);
             const adminName = formatFullName(adminData[0]);
-
+    
             await recordNotification(db, {
                 kind: "user_deleted",
                 title: "User Deleted",
                 body: `${deletedUserName} was deleted by ${adminName}`,
                 relatedUrl: null
-            });
-
+            }, io);
+    
             socket.emit('managementLog', {
                 success: true,
                 rawData: `Deletion of ${email} by ${empID} successful.`
@@ -141,13 +158,13 @@ async function registerManageHandlers(socket, db) {
             }); 
         }
     });
-
+    
     socket.on('updateDetails', (data) => {
         if (!verifyAdmin()) {
             socket.emit('managementLog', { success: false, rawData: `Unauthorized access.` });
             return;
         }
-        editEmployeeData(socket, db, data);
+        editEmployeeData(socket, db, data, io);
     });
 }
 
@@ -175,6 +192,19 @@ async function initManageRoutes(app, db) {
                 [empCode || null, firstName, lastName, middleName, suffix, email]
             );
             if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "User not found" });
+
+            // Notification: User x was updated by Admin y
+            const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
+            const adminName = formatFullName(adminData[0]);
+            const updatedUserName = formatFullName({first_name: firstName, last_name: lastName, suffix});
+            
+            await recordNotification(db, {
+                kind: "user_updated",
+                title: "User Details Updated",
+                body: `${updatedUserName} was updated by ${adminName}`,
+                relatedUrl: null
+            }, req.app.get('io'));
+
             res.json({ success: true, message: "Profile updated successfully" });
         } catch (err) {
             console.error("Update Profile Error:", err);
@@ -192,6 +222,20 @@ async function initManageRoutes(app, db) {
             const idNum = parseInt(jobTitleId, 10);
             const [result] = await db.query('UPDATE Employees SET job_title = ? WHERE email = ?', [idNum, email]);
             if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "User not found" });
+
+            // Notification: User x's job title was updated by Admin y
+            const [userData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE email = ?', [email]);
+            const updatedUserName = formatFullName(userData[0]);
+            const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
+            const adminName = formatFullName(adminData[0]);
+
+            await recordNotification(db, {
+                kind: "user_updated",
+                title: "User Job Title Updated",
+                body: `${updatedUserName}'s job title was updated by ${adminName}`,
+                relatedUrl: null
+            }, req.app.get('io'));
+
             res.json({ success: true, message: "Job title updated successfully" });
         } catch (err) {
             console.error("Update Job Title Error:", err);
@@ -224,7 +268,7 @@ async function initManageRoutes(app, db) {
                 title: "User Deleted",
                 body: `${formatFullName(deletedUser)} was deleted by ${adminName}`,
                 relatedUrl: null
-            });
+            }, req.app.get('io'));
 
             res.json({ success: true, message: "User deleted successfully" });
         } catch (err) {

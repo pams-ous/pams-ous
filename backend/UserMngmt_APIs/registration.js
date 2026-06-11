@@ -97,7 +97,7 @@ async function handleRequest(db, socket, data) {
     }
 }
 
-async function handleConfirm(db, socket, data) {
+async function handleConfirm(db, socket, data, io) {
     const { email, code } = data || {};
     try {
         const result = await verifyOtp(db, { email, purpose: "registration", code });
@@ -169,14 +169,20 @@ async function handleConfirm(db, socket, data) {
             approvalStatus
         ]);
 
+        await recordNotification(db, {
+            kind: "user_registered",
+            title: "New User Registered",
+            body: `A new account has been created for ${p.email}`,
+            relatedUrl: uuid
+        }, io);
+
         if (approvalStatus === 'PENDING') {
-            const { recordNotification } = require("./notifications");
             await recordNotification(db, {
                 kind: "user_approval",
                 title: systemRole,
                 body: p.email,
                 relatedUrl: uuid
-            });
+            }, io);
         }
 
         socket.emit("registrationLog", {
@@ -197,10 +203,10 @@ async function handleConfirm(db, socket, data) {
     }
 }
 
-async function registerRegistrationHandlers(socket, db) {
+async function registerRegistrationHandlers(socket, db, io) {
     // OTP-gated flow.
     socket.on("requestRegistration", (data) => handleRequest(db, socket, data));
-    socket.on("confirmRegistration", (data) => handleConfirm(db, socket, data));
+    socket.on("confirmRegistration", (data) => handleConfirm(db, socket, data, io));
 
     // Back-compat: the original event still works but now also requires OTP confirmation.
     socket.on("newAccDetails", (data) => handleRequest(db, socket, data));
@@ -257,7 +263,7 @@ async function initRegistrationRoutes(app, db) {
                 title: "New User Added",
                 body: `A new user ${formatFullName({first_name: firstName, last_name: lastName, suffix})} was added as ${designationName} by ${adminName}`,
                 relatedUrl: null
-            });
+            }, req.app.get('io'));
 
             if (approvalStatus === 'PENDING') {
                 await recordNotification(db, {
@@ -265,7 +271,7 @@ async function initRegistrationRoutes(app, db) {
                     title: systemRole,
                     body: email,
                     relatedUrl: employee_id
-                });
+                }, req.app.get('io'));
             }
             res.json({ success: true, id: employee_id, message: approvalStatus === 'PENDING' ? "User created and pending approval!" : "User added to SQL!" });
         } catch (err) {

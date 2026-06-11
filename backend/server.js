@@ -331,8 +331,8 @@ io.on('connection', async (socket) => {
     
     // Register all module handlers to this single socket
     await registerSearchHandlers(socket, db);
-    await registerRegistrationHandlers(socket, db);
-    await registerManageHandlers(socket, db);
+    await registerRegistrationHandlers(socket, db, io);
+    await registerManageHandlers(socket, db, io);
     await registerOtpHandlers(socket, db);
     await registerPasswordResetHandlers(socket, db);
     await registerLoginHandlers(socket, db, io);
