@@ -152,38 +152,9 @@ window.PAMS_UI = (function () {
         bell.style.position = 'relative';
         bell.appendChild(badge);
 
-        // Add "Clear All" button for users
-        const clearBtn = document.createElement('button');
-        clearBtn.innerHTML = 'Clear All';
-        clearBtn.className = 'notif-clear-btn';
-        
-        clearBtn.style.position = 'absolute';
-        clearBtn.style.top = '10px';
-        clearBtn.style.right = '10px';
-        clearBtn.style.background = 'transparent';
-        clearBtn.style.border = 'none';
-        clearBtn.style.color = '#888';
-        clearBtn.style.cursor = 'pointer';
-        clearBtn.style.fontSize = '10px';
-        clearBtn.style.fontWeight = 'normal';
-        clearBtn.style.zIndex = '10';
+        // Remove the old absolute-positioned "Clear All" button logic
+        // It is now integrated into the "HISTORY" section in loadNotifications()
 
-        clearBtn.onmouseover = () => clearBtn.style.color = '#333';
-        clearBtn.onmouseout = () => clearBtn.style.color = '#888';
-        
-        clearBtn.onclick = async (e) => {
-            e.stopPropagation();
-            showConfirmModal('Are you sure you want to clear all your notifications? This action cannot be undone.', async () => {
-                try {
-                    await PAMS.apiFetch('/notifications/clear', 'POST');
-                    loadNotifications();
-                    updateBadgeCount(0);
-                } catch (err) {
-                    PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
-                }
-            });
-        };
-        popover.appendChild(clearBtn);
 
         bell.onclick = async (e) => {
             e.stopPropagation();
@@ -198,6 +169,22 @@ window.PAMS_UI = (function () {
         };
 
         popover.onclick = async (e) => {
+            const clearBtn = e.target.closest('.notif-clear-btn');
+            if (clearBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                showConfirmModal('Are you sure you want to clear all your notifications? This action cannot be undone.', async () => {
+                    try {
+                        await PAMS.apiFetch('/notifications/clear', 'POST');
+                        loadNotifications();
+                        updateBadgeCount(0);
+                    } catch (err) {
+                        PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
+                    }
+                });
+                return;
+            }
+
             const btn = e.target.closest('.notif-action');
             if (!btn) return;
 
@@ -294,7 +281,10 @@ window.PAMS_UI = (function () {
                 console.log(`[NOTIF-UI-DEBUG] Split: Unread=${unread.length}, Read=${read.length}`);
 
                 if (html) {
-                    html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-top:1px solid #eee; border-bottom:1px solid #eee;">HISTORY</div>';
+                    html += `<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-top:1px solid #eee; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                                <span>HISTORY</span>
+                                <button class="notif-clear-btn" style="background:none; border:none; color:#888; cursor:pointer; font-size:10px; font-weight:normal;">Clear All</button>
+                             </div>`;
                 }
                 
                 if (unread.length > 0) {
@@ -334,7 +324,10 @@ window.PAMS_UI = (function () {
                     if (unread.length > 0) {
                         html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#999; background:#fafafa; border-top:1px solid #eee; border-bottom:1px solid #eee;">OLDER</div>';
                     } else if (!html) {
-                        html += '<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-bottom:1px solid #eee;">HISTORY</div>';
+                        html += `<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>HISTORY</span>
+                                    <button class="notif-clear-btn" style="background:none; border:none; color:#888; cursor:pointer; font-size:10px; font-weight:normal;">Clear All</button>
+                                 </div>`;
                     }
 
                     html += read.map(n => {

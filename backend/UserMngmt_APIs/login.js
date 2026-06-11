@@ -233,7 +233,7 @@ async function initLoginRoutes(app, db, io) {
 
             const [result] = await db.query('UPDATE Employees SET designation = ? WHERE employee_id = ?', [designation, userId]);
             if (result.affectedRows === 0) {
-                console.log(`[WARNING] Tried to update role, but could not find Employee ID: "${userId}" in the database.`);
+                 console.log(`[WARNING] Tried to update role, but could not find Employee ID: "${userId}" in the database.`);
             } else {
                 console.log(`[SUCCESS] Updated Employee ID: "${userId}" (${userEmail}) to ${designation}.`);
             }
