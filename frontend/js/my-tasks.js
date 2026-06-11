@@ -128,7 +128,7 @@
                         ${currentView === 'completed'
                             ? `<button class="act-btn act-complete" title="Reopen (set to In Progress)" aria-label="Reopen task" onclick="window.MyTasks.reopenTask(${t.id})"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>`
                             : `<button class="act-btn act-complete" title="Mark as Completed" aria-label="Mark task as completed" onclick="window.MyTasks.completeTask(${t.id})"${isTerminal ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>`}
-                        <button class="act-btn" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
+                        <button class="act-btn act-view" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
                         <button class="act-btn act-delete" title="Remove" onclick="window.MyTasks.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </td>
