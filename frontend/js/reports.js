@@ -453,7 +453,7 @@
                 <div class="print-signatures-section">
                     <div class="print-signature-block">
                         <div class="print-sig-line"></div>
-                        <div class="print-sig-name">${report.generated_by_name || 'Admin'}</div>
+                        <div class="print-sig-name">${(report.generated_by_name || 'Admin').toUpperCase()}</div>
                         <div class="print-sig-role">Prepared By</div>
                     </div>
                 </div>
