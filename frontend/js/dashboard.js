@@ -71,8 +71,8 @@
         if (barCtxEl) {
             const barCtx = barCtxEl.getContext('2d');
             const groupCount = s.byGroup.length;
-            // Adjust bar thickness dynamically based on number of groups, with a hard cap of 45px
-            const computedMaxBarThickness = groupCount <= 1 ? 30 : (groupCount === 2 ? 38 : 45);
+            // Adjust bar thickness dynamically based on number of groups, ensuring they are decently thick but capped
+            const computedMaxBarThickness = groupCount <= 1 ? 60 : (groupCount === 2 ? 70 : 80);
 
             barChart = new Chart(barCtx, {
                 type: 'bar',
