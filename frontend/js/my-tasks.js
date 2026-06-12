@@ -128,7 +128,7 @@
                         ${currentView === 'completed'
                             ? `<button class="act-btn act-complete" title="Reopen (set to In Progress)" aria-label="Reopen task" onclick="window.MyTasks.reopenTask(${t.id})"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>`
                             : `<button class="act-btn act-complete" title="Mark as Completed" aria-label="Mark task as completed" onclick="window.MyTasks.completeTask(${t.id})"${isTerminal ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>`}
-                        <button class="act-btn" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
+                        <button class="act-btn act-view" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
                         <button class="act-btn act-delete" title="Remove" onclick="window.MyTasks.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </td>
@@ -171,10 +171,11 @@
             if (bodyEl) {
                 bodyEl.innerHTML = `
                     <div class="detail-grid">
-                        <div class="detail-item full"><label>Task Name</label><div class="val">${t.title}</div></div>
+                        <div class="detail-item"><label>Task Name</label><div class="val">${t.title}</div></div>
+                        <div class="detail-item"><label>Due Date</label><div class="val">${fmtDate(t.dueDate)}</div></div>
                         <div class="detail-item"><label>Priority</label><div class="val">${t.priority}</div></div>
                         <div class="detail-item"><label>Status</label><div class="val">${t.status}</div></div>
-                        <div class="detail-item"><label>Due Date</label><div class="val">${fmtDate(t.dueDate)}</div></div>
+                        <div class="detail-item"><label>Assigned To</label><div class="val">${t.assignedToName || '—'}</div></div>
                         <div class="detail-item"><label>Assigned By</label><div class="val">${t.assignedByName || '—'}</div></div>
                         ${t.description ? `<div class="detail-item full"><label>Description</label><div class="val" style="font-weight:400; color:var(--gray-700);">${t.description}</div></div>` : ''}
                     </div>

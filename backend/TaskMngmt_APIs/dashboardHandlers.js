@@ -87,17 +87,13 @@ function dashboardAPI(app, io, db) {
             res.status(500).json({ success: false, message: "Failed to load dashboard statistics." });
         }
     });
+}
 
-    /**
-     * Socket.io Handlers
-     * Listens for broadcasts from other modules to trigger real-time UI refreshes.
-     */
-    io.on("connection", (socket) => {
-        // When a task is created/updated in other modules, we can notify the dashboard
-        socket.on("taskActivity", () => {
-            io.emit("refreshDashboard");
-        });
+async function registerDashboardHandlers(socket, db, io) {
+    // When a task is created/updated in other modules, we can notify the dashboard
+    socket.on("taskActivity", () => {
+        io.emit("refreshDashboard");
     });
 }
 
-module.exports = { dashboardAPI };
+module.exports = { dashboardAPI, registerDashboardHandlers };

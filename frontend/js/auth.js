@@ -117,7 +117,15 @@ const setSession = (token, user) => {
             }
         }
 
-        const optionsHtml = designations.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        const optionsHtml = designations
+            .filter(d => {
+                // If we are on the Admin portal, exclude the base staff role
+                if (location.pathname.includes('admin-login.html')) {
+                    return d.name !== 'Encoder / Administrative Staff';
+                }
+                return true;
+            })
+            .map(d => `<option value="${d.id}">${d.name}</option>`).join('');
         selects.forEach(sel => {
             sel.innerHTML = optionsHtml;
         });

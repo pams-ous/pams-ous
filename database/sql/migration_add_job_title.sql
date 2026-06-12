@@ -53,8 +53,7 @@ INSERT INTO Designations (name, hierarchy_position, is_default) VALUES
   ('Director',             10, 0),
   ('Deputy Director',      20, 0),
   ('Coordinator',          30, 0),
-  ('Administrative Staff', 40, 1),
-  ('Encoder',              50, 0)
+  ('Supervisor',           40, 0)
 ON DUPLICATE KEY UPDATE
   hierarchy_position = VALUES(hierarchy_position),
   is_default = VALUES(is_default);

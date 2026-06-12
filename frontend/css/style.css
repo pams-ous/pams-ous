@@ -1473,9 +1473,11 @@ body.sidebar-open .main {
   background: var(--white);
   color: var(--text);
   border: 1.5px solid var(--gray-200);
+  transition: var(--transition);
 }
 
 .ribbon-btn.ghost:hover {
+  border-color: var(--gray-500);
   background: var(--gray-100);
 }
 
@@ -1732,6 +1734,13 @@ body.sidebar-open .main {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-cancel:hover {
+  background: var(--gray-200);
+  color: var(--text);
+  transform: scale(1.02);
 }
 
 .btn-danger {
@@ -1791,8 +1800,14 @@ body.sidebar-open .main {
 }
 
 .act-delete:hover {
-  border-color: var(--red-text);
-  color: var(--red-text);
+  border-color: var(--red-text) !important;
+  color: var(--red-text) !important;
+  background: var(--red-bg) !important;
+}
+
+.act-view:hover {
+  border-color: var(--gray-500);
+  background: var(--gray-100);
 }
 
 .act-complete {
@@ -2036,6 +2051,12 @@ body.sidebar-open .main {
   font-weight: 600;
 }
 
+.detail-item .val {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 .detail-item.full {
   grid-column: 1 / -1;
 }
@@ -2113,11 +2134,15 @@ body.sidebar-open .main {
   color: var(--gray-700);
   font-size: 14.5px;
   line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .confirm-body strong {
   color: var(--text);
   font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* ─── COMPONENTS: REPORTS ────────────────────────── */

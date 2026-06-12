@@ -40,14 +40,8 @@
             console.error("Failed to load designations:", e);
         }
 
-        if (typeof io !== 'undefined') {
-            const token = PAMS.getToken();
-            const socket = io(CONFIG.BACKEND_SOCKET_URL, { auth: { token } });
-
-            const userSession = PAMS.getUser();
-            if (userSession && userSession.email) {
-                socket.emit('register_session', userSession.email);
-            }
+        if (PAMS.socket) {
+            const socket = PAMS.socket;
 
             socket.on('status_change', (data) => {
                 const { email, status } = data;
@@ -505,23 +499,59 @@
             } catch (error) { PAMS.toast(`Failed to add user: ${error.message}`, 'error'); }
         },
         openEditUser: (email) => {
-            document.getElementById('editUserEmail').value = email;
-            document.getElementById('editUserEmailDisplay').textContent = email;
+            const user = users.find(u => u.email === email);
+            if (!user) {
+                PAMS.toast('User data not found.', 'error');
+                return;
+            }
+
+            document.getElementById('editUserEmail').value = user.email;
+            document.getElementById('editUserCode').value = user.employeeCode || '';
+            document.getElementById('editUserFirstName').value = user.firstName || '';
+            document.getElementById('editUserLastName').value = user.lastName || '';
+            document.getElementById('editUserMiddleName').value = user.middleName || '';
+            document.getElementById('editUserSuffix').value = user.suffix || '';
+            
+            // Passwords should always be empty on open
             document.getElementById('editUserPassword').value = '';
             document.getElementById('confirmEditUserPassword').value = '';
+            
             openModal('editUserModal');
         },
-        saveUserPassword: async () => {
+        saveUserEdit: async () => {
             const email = document.getElementById('editUserEmail').value;
+            const empCode = document.getElementById('editUserCode').value.trim();
+            const firstName = document.getElementById('editUserFirstName').value.trim();
+            const lastName = document.getElementById('editUserLastName').value.trim();
+            const middleName = document.getElementById('editUserMiddleName').value.trim();
+            const suffix = document.getElementById('editUserSuffix').value.trim();
             const pass = document.getElementById('editUserPassword').value;
             const confirmPass = document.getElementById('confirmEditUserPassword').value;
-            { const c = PAMS.validatePassword(pass); if (!c.valid) { PAMS.toast(c.message, 'warning'); return; } }
-            if (pass !== confirmPass) { PAMS.toast('Passwords do not match.', 'warning'); return; }
+
+            if (!firstName || !lastName || !email) { 
+                PAMS.toast('First Name, Last Name, and Email are required.', 'warning'); 
+                return; 
+            }
 
             try {
-                await apiFetch('/users/update-password', 'POST', { email, newPassword: pass });
-                closeModal('editUserModal'); PAMS.toast('Password updated successfully!', 'success');
-            } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
+                // 1. Update Profile Details
+                await apiFetch('/users/update-profile', 'PUT', { empCode, firstName, lastName, middleName, suffix, email });
+
+                // 2. Handle Optional Password Update
+                if (pass) {
+                    if (pass !== confirmPass) { 
+                        throw new Error('Passwords do not match.'); 
+                    }
+                    { const c = PAMS.validatePassword(pass); if (!c.valid) { throw new Error(c.message); } }
+                    await apiFetch('/users/update-password', 'POST', { email, newPassword: pass });
+                }
+
+                closeModal('editUserModal'); 
+                PAMS.toast('User profile updated successfully!', 'success');
+                await loadAll(); 
+            } catch (err) { 
+                PAMS.toast(`Error: ${err.message}`, 'error'); 
+            }
         },
         toggleUser: async (id) => {
             try { await apiFetch(`/users/${id}/toggle-status`, 'PATCH'); await loadAll(); } catch (err) { PAMS.toast(err.message, 'error'); }

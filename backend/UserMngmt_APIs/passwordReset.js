@@ -107,13 +107,9 @@ async function handleConfirm(db, socket, data) {
     }
 }
 
-async function passwordResetAPI(io, db) {
-    io.on("connection", (socket) => {
-        console.log("Password Reset API connected.");
-
-        socket.on("requestPasswordReset", (data) => handleRequest(db, socket, data));
-        socket.on("confirmPasswordReset", (data) => handleConfirm(db, socket, data));
-    });
+async function registerPasswordResetHandlers(socket, db) {
+    socket.on("requestPasswordReset", (data) => handleRequest(db, socket, data));
+    socket.on("confirmPasswordReset", (data) => handleConfirm(db, socket, data));
 }
 
-module.exports = { passwordResetAPI };
+module.exports = { registerPasswordResetHandlers };

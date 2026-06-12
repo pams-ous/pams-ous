@@ -97,7 +97,7 @@ async function handleRequest(db, socket, data) {
     }
 }
 
-async function handleConfirm(db, socket, data) {
+async function handleConfirm(db, socket, data, io) {
     const { email, code } = data || {};
     try {
         const result = await verifyOtp(db, { email, purpose: "registration", code });
@@ -169,14 +169,20 @@ async function handleConfirm(db, socket, data) {
             approvalStatus
         ]);
 
+        await recordNotification(db, {
+            kind: "user_registered",
+            title: "New User Registered",
+            body: `A new account has been created for ${p.email}`,
+            relatedUrl: uuid
+        }, io);
+
         if (approvalStatus === 'PENDING') {
-            const { recordNotification } = require("./notifications");
             await recordNotification(db, {
                 kind: "user_approval",
                 title: systemRole,
                 body: p.email,
                 relatedUrl: uuid
-            });
+            }, io);
         }
 
         socket.emit("registrationLog", {
@@ -197,18 +203,16 @@ async function handleConfirm(db, socket, data) {
     }
 }
 
-async function regiUserAPI(io, db, app) {
-    io.on("connection", (socket) => {
-        console.log("Registration API connected.");
+async function registerRegistrationHandlers(socket, db, io) {
+    // OTP-gated flow.
+    socket.on("requestRegistration", (data) => handleRequest(db, socket, data));
+    socket.on("confirmRegistration", (data) => handleConfirm(db, socket, data, io));
 
-        // OTP-gated flow.
-        socket.on("requestRegistration", (data) => handleRequest(db, socket, data));
-        socket.on("confirmRegistration", (data) => handleConfirm(db, socket, data));
+    // Back-compat: the original event still works but now also requires OTP confirmation.
+    socket.on("newAccDetails", (data) => handleRequest(db, socket, data));
+}
 
-        // Back-compat: the original event still works but now also requires OTP confirmation.
-        socket.on("newAccDetails", (data) => handleRequest(db, socket, data));
-    });
-
+async function initRegistrationRoutes(app, db) {
     // REST API: Add Direct User (Admin managed)
     app.post('/api/users', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const { code, firstName, lastName, middleName, suffix, email, role, password, designationId } = req.body;
@@ -259,7 +263,7 @@ async function regiUserAPI(io, db, app) {
                 title: "New User Added",
                 body: `A new user ${formatFullName({first_name: firstName, last_name: lastName, suffix})} was added as ${designationName} by ${adminName}`,
                 relatedUrl: null
-            });
+            }, req.app.get('io'));
 
             if (approvalStatus === 'PENDING') {
                 await recordNotification(db, {
@@ -267,7 +271,7 @@ async function regiUserAPI(io, db, app) {
                     title: systemRole,
                     body: email,
                     relatedUrl: employee_id
-                });
+                }, req.app.get('io'));
             }
             res.json({ success: true, id: employee_id, message: approvalStatus === 'PENDING' ? "User created and pending approval!" : "User added to SQL!" });
         } catch (err) {
@@ -277,4 +281,4 @@ async function regiUserAPI(io, db, app) {
     });
 }
 
-module.exports = { regiUserAPI };
+module.exports = { registerRegistrationHandlers, initRegistrationRoutes };

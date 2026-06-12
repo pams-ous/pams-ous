@@ -265,22 +265,46 @@
 
     <!-- EDIT USER MODAL -->
     <div class="modal-backdrop" id="editUserModal">
-        <div class="modal modal-sm">
+        <div class="modal">
             <div class="modal-header">
-                <span class="modal-title">Edit User Password</span>
+                <span class="modal-title">Edit User</span>
                 <button class="modal-close" onclick="window.Admin.closeModal('editUserModal')"><i
                         class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
-                <p class="text-sm color-gray mb-3">
-                    Updating password for <strong id="editUserEmailDisplay" class="color-maroon"></strong>.
-                </p>
-                <input type="hidden" id="editUserEmail">
                 <div class="form-group">
-                    <label class="form-label">New Password</label>
+                    <label class="form-label">Employee Code</label>
+                    <input type="text" id="editUserCode" class="form-control" placeholder="e.g. EMP-202X-011">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">First Name *</label>
+                        <input type="text" id="editUserFirstName" class="form-control" placeholder="First Name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last Name *</label>
+                        <input type="text" id="editUserLastName" class="form-control" placeholder="Last Name">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Middle Name</label>
+                        <input type="text" id="editUserMiddleName" class="form-control" placeholder="Middle Name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Suffix</label>
+                        <input type="text" id="editUserSuffix" class="form-control" placeholder="e.g. Jr.">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address (Read-only)</label>
+                    <input type="email" id="editUserEmail" class="form-control" readonly style="background-color: #f9fafb; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password (Leave blank to keep current)</label>
                     <div class="password-field-wrap">
                         <input type="password" id="editUserPassword" class="form-control"
-                            placeholder="••••••••" minlength="8" aria-describedby="editUserPassword-hint">
+                            placeholder="••••••••" aria-describedby="editUserPassword-hint">
                         <button type="button" class="pass-toggle" onclick="togglePasswordVisibility('editUserPassword', this)"
                             aria-label="Toggle password visibility">
                             <i class="fa-regular fa-eye-slash"></i>
@@ -303,7 +327,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="window.Admin.closeModal('editUserModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="window.Admin.saveUserPassword()">Update Password</button>
+                <button class="btn btn-primary" onclick="window.Admin.saveUserEdit()">Save Changes</button>
             </div>
         </div>
     </div>

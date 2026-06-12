@@ -9,11 +9,15 @@ npm install express socket.io mysql2 dotenv argon2 jsonwebtoken nodemailer cors
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '.', '.env') });
 
+const dns = require('dns'); // force connection to use IPv4 to connect to smtp.gmail.com
+dns.setDefaultResultOrder('ipv4first');
+
 const http = require('http');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const { Server } = require('socket.io');
 const express = require('express');
+
 
 // --- 1. SETUP CORE SERVICES ---
 const app = express();
@@ -37,6 +41,8 @@ const io = new Server(server, {
     }
 });
 
+app.set('io', io);
+
 // Serve the static files directly from your raw frontend folder
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -53,14 +59,14 @@ const db = mysql.createPool({
 // 3. API MODULE INITIALIZATION & ROUTING
 // =======================================================
 
-const {searchAPI} = require("./UserMngmt_APIs/userSearch");
-const {regiUserAPI} = require("./UserMngmt_APIs/registration");
-const {manageAccountAPI} = require("./UserMngmt_APIs/manage");
-const {otpAPI} = require("./UserMngmt_APIs/otp");
-const {passwordResetAPI} = require("./UserMngmt_APIs/passwordReset");
-const {loginAPI} = require("./UserMngmt_APIs/login");
-const {reportAPI} = require("./ReportMngmt_APIs/reportHandlers");
-const {dashboardAPI} = require("./TaskMngmt_APIs/dashboardHandlers");
+const {registerSearchHandlers} = require("./UserMngmt_APIs/userSearch");
+const {registerRegistrationHandlers, initRegistrationRoutes} = require("./UserMngmt_APIs/registration");
+const {registerManageHandlers, initManageRoutes} = require("./UserMngmt_APIs/manage");
+const {registerOtpHandlers} = require("./UserMngmt_APIs/otp");
+const {registerPasswordResetHandlers} = require("./UserMngmt_APIs/passwordReset");
+const {registerLoginHandlers, initLoginRoutes} = require("./UserMngmt_APIs/login");
+const {registerReportHandlers} = require("./ReportMngmt_APIs/reportHandlers");
+const {dashboardAPI, registerDashboardHandlers} = require("./TaskMngmt_APIs/dashboardHandlers");
 const {notificationsRouter, recordNotification} = require("./UserMngmt_APIs/notifications");
 const {formatFullName} = require("./UserMngmt_APIs/userUtils");
 const { authenticateToken } = require("./UserMngmt_APIs/authMiddleware");
@@ -78,7 +84,7 @@ app.use("/api/notifications", notificationsRouter(db));
 app.get('/api/admin/sync/users', authenticateToken, async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT e.employee_id as id, e.first_name, e.last_name, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status, e.approval_status,
+            SELECT e.employee_id as id, e.employee_code, e.first_name, e.last_name, e.middle_name, e.suffix, e.email, e.job_title, d.name as designation_name, e.designation as system_role, e.active_status, e.approval_status,
             (
                 SELECT JSON_ARRAYAGG(g.group_name)
                 FROM Employees_Groups eg
@@ -95,7 +101,14 @@ app.get('/api/admin/sync/users', authenticateToken, async (req, res) => {
                 catch (err) { parsedGroups = []; }
             }
             return {
-                id: r.id, name: `${r.first_name} ${r.last_name}`, email: r.email,
+                id: r.id, 
+                employeeCode: r.employee_code,
+                firstName: r.first_name,
+                lastName: r.last_name,
+                middleName: r.middle_name,
+                suffix: r.suffix,
+                name: `${r.first_name} ${r.last_name}`, 
+                email: r.email,
                 role: r.system_role === 'Admin' ? 'ADMIN' : 'MEMBER',
                 jobTitleId: r.job_title,
                 jobTitleName: r.designation_name,
@@ -146,12 +159,14 @@ app.post('/api/admin/sync/groups', authenticateToken, async (req, res) => {
         const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
         const adminName = formatFullName(adminData[0]);
 
-        await recordNotification(db, {
-            kind: "group_created",
-            title: "New Group Created",
-            body: `A new group "${name}" was created by ${adminName}`,
-            relatedUrl: null
-        });
+                await recordNotification(db, {
+                    kind: "group_created",
+                    title: "New Group Created",
+                    body: `A new group "${name}" was created by ${adminName}`,
+                    relatedUrl: null,
+                    targetGroupId: newGroupId
+                }, req.app.get('io'));
+
 
         res.json({ success: true });
     } catch (e) { await connection.rollback(); res.status(500).json({ error: e.message }); } finally { connection.release(); }
@@ -186,32 +201,35 @@ app.put('/api/admin/sync/groups/:id', authenticateToken, async (req, res) => {
 
         //-group x's group name was modifed to (the new group name) by Admin y
         if (name && name !== groupNameBefore) {
-            await recordNotification(db, {
-                kind: "group_name_update",
-                title: "Group Name Modified",
-                body: `Group "${groupNameBefore}"'s group name was modified to "${name}" by ${adminName}`,
-                relatedUrl: null
-            });
+                await recordNotification(db, {
+                    kind: "group_name_update",
+                    title: "Group Name Modified",
+                    body: `Group "${groupNameBefore}"'s group name was modified to "${name}" by ${adminName}`,
+                    relatedUrl: null
+                }, req.app.get('io'));
+
         }
         //-group x's description was modifed by Admin y
         if (desc && desc !== groupDescBefore) {
-            await recordNotification(db, {
-                kind: "group_desc_update",
-                title: "Group Description Modified",
-                body: `Group "${groupNameBefore}"'s description was modified by ${adminName}`,
-                relatedUrl: null
-            });
+                await recordNotification(db, {
+                    kind: "group_desc_update",
+                    title: "Group Description Modified",
+                    body: `Group "${groupNameBefore}"'s description was modified by ${adminName}`,
+                    relatedUrl: null
+                }, req.app.get('io'));
+
         }
         //-group x's group leader was changed to (the new group's leader) by Admin y
         if (leaderEmail) {
             const [leaderData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE email = ?', [leaderEmail]);
             const leaderName = formatFullName(leaderData[0]);
-            await recordNotification(db, {
-                kind: "group_leader_update",
-                title: "Group Leader Changed",
-                body: `Group "${groupNameBefore}"'s group leader was changed to ${leaderName} by ${adminName}`,
-                relatedUrl: null
-            });
+                await recordNotification(db, {
+                    kind: "group_leader_update",
+                    title: "Group Leader Changed",
+                    body: `Group "${groupNameBefore}"'s group leader was changed to ${leaderName} by ${adminName}`,
+                    relatedUrl: null
+                }, req.app.get('io'));
+
         }
 
         res.json({ success: true });
@@ -231,12 +249,13 @@ app.delete('/api/admin/sync/groups/:id', authenticateToken, async (req, res) => 
         const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
         const adminName = formatFullName(adminData[0]);
 
-        await recordNotification(db, {
-            kind: "group_deleted",
-            title: "Group Deleted",
-            body: `Group "${groupName}" was deleted by ${adminName}`,
-            relatedUrl: null
-        });
+            await recordNotification(db, {
+                kind: "group_deleted",
+                title: "Group Deleted",
+                body: `Group "${groupName}" was deleted by ${adminName}`,
+                relatedUrl: null
+            }, req.app.get('io'));
+
 
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -285,7 +304,7 @@ app.put('/api/admin/sync/groups/:id/members', authenticateToken, async (req, res
                             body: `${formatFullName(emp)} was added to group ${groupName}`,
                             relatedUrl: null,
                             targetUserId: emp.employee_id
-                        });
+                        }, req.app.get('io'));
                     }
                 }
             }
@@ -299,14 +318,29 @@ app.put('/api/admin/sync/groups/:id/members', authenticateToken, async (req, res
 // ==========================================
 // Initialize all APIs (The order matters!)
 // ==========================================
-searchAPI(io, db);
-regiUserAPI(io, db, app);
-manageAccountAPI(io, db, app);
-otpAPI(io, db);
-passwordResetAPI(io, db);
-loginAPI(express, db, io, app);
-reportAPI(io, db);
+
+// REST Route Initializations
+initRegistrationRoutes(app, db);
+initManageRoutes(app, db);
+initLoginRoutes(app, db, io);
 dashboardAPI(app, io, db);
+
+// Single Socket Connection Handler
+io.on('connection', async (socket) => {
+    console.log(`\n[SOCKET] Client connected: ${socket.id}`);
+    
+    // Register all module handlers to this single socket
+    await registerSearchHandlers(socket, db);
+    await registerRegistrationHandlers(socket, db, io);
+    await registerManageHandlers(socket, db, io);
+    await registerOtpHandlers(socket, db);
+    await registerPasswordResetHandlers(socket, db);
+    await registerLoginHandlers(socket, db, io);
+    await registerReportHandlers(socket, db, io);
+    await registerDashboardHandlers(socket, db, io);
+    
+    console.log(`[SOCKET] All handlers registered for client ${socket.id}\n`);
+});
 
 app.use('/api/tasks', taskRoutes);
 

@@ -1,5 +1,4 @@
 // Business logic, payload formatting, and enum translations
-//
 
 const Task = require('./taskModel');
 const db = require('./db');
@@ -18,16 +17,17 @@ module.exports = {
             // run auto reset first
             const resetCount = await Task.autoResetStaleTasks();
             if (resetCount > 0) {
-                //-an in-progress task turned to pending after 24 hours have passed of not completing
-                await recordNotification(db, {
-                    kind: "system_reset",
-                    title: "Tasks Auto-Reset",
-                    body: `${resetCount} stale task(s) have been moved back to Pending because they were not completed within 24 hours.`,
-                    relatedUrl: null
-                });
+                // an in-progress task turned to pending after 24 hours have passed of not completing
+                    await recordNotification(db, {
+                        kind: "system_reset",
+                        title: "Tasks Auto-Reset",
+                        body: `${resetCount} stale task(s) have been moved back to Pending because they were not completed within 24 hours.`,
+                        relatedUrl: null
+                    }, req.app.get('io'));
+
             }
 
-            //-completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1
+            // completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1
             if (req.user.role === 'Admin') {
                 const today = new Date().toISOString().split('T')[0];
                 const [lastRefresh] = await db.query(`
@@ -40,9 +40,9 @@ module.exports = {
                         kind: "system_refresh",
                         title: "Tasks Refreshed",
                         body: "Completed tasks have refreshed, to view hidden completed tasks see Task Board > Admin > Show all completed since Day 1",
-                        relatedUrl: null,
-                        targetRole: 'Admin'
-                    });
+                        relatedUrl: null
+                        // targetDesignationId will be handled globally for admins
+                    }, req.app.get('io'));
                 }
             }
 
@@ -66,7 +66,7 @@ module.exports = {
                     body: `Task "${ot.title}" assigned to ${formatFullName(ot)} is now overdue`,
                     relatedUrl: null,
                     targetUserId: ot.assigned_to_user
-                });
+                }, req.app.get('io'));
             }
 
             // capture the query string sent by the admin checkbox (?completedSince=all)
@@ -123,19 +123,27 @@ module.exports = {
             const { view } = req.query;
             const showCompleted = view === 'completed';
 
-            // 1. Find the logged-in employee (Returns ONLY the ID based on our debug log)
+            // For debugging. Find the logged-in employee (Returns only the ID)
             const employee = await Task.findEmployeeByEmail(userEmail);
             if (!employee) return res.status(404).json({ message: 'User not found' });
 
             // Extract the known, safe ID
             const targetId = employee.employee_id;
 
-            // 2. Fetch all raw tasks
+            // Fetch the groups this employee belongs to
+            const [groupRows] = await db.query(
+                'SELECT group_id FROM Employees_Groups WHERE employee_id = ?', 
+                [targetId]
+            );
+            const myGroupIds = groupRows.map(row => row.group_id);
+
+            // Fetch all raw tasks
             const rawTasks = await Task.findAll();
 
-            // 3. Match tasks strictly by ID, then apply the active/completed filter
+            // Match tasks strictly by ID, then apply the active/completed filter
             const myRawTasks = rawTasks.filter(t => {
-                const matchesUser = t.assigned_to_user === targetId;
+                // Check both individual assignment OR group assignment 
+                const matchesUser = (t.assigned_to_user === targetId) || myGroupIds.includes(t.assigned_to_group);
 
                 if (showCompleted) {
                     // Return only completed tasks; cancelled is always excluded
@@ -147,18 +155,24 @@ module.exports = {
                 return matchesUser && !isClosed;
             });
 
-            // DEBUG: If it's STILL empty after this, uncomment the line below to see exactly what columns Task.findAll() provides
-            // console.log("DEBUG - First Task from DB:", rawTasks[0]);
-
-            // 4. Format perfectly for my-tasks.js to prevent UI rendering bugs
+            // Format perfectly for my-tasks.js to prevent UI rendering bugs
             const formattedTasks = myRawTasks.map(t => {
                 let assigneeObj = null;
-                // If your findAll() join provides names, we still build the object for the UI
+                let assignedToName = null;
+
                 if (t.assignee_fn) {
+                    assignedToName = `${t.assignee_fn} ${t.assignee_ln}`.trim();
                     assigneeObj = { 
                         name: `${t.assignee_fn} ${t.assignee_ln}`, 
                         type: 'user', 
                         initials: getInitials(t.assignee_fn, t.assignee_ln) 
+                    };
+                } else if (t.group_name) {
+                    assignedToName = t.group_name;
+                    assigneeObj = { 
+                        name: t.group_name, 
+                        type: 'group', 
+                        initials: t.group_name.substring(0, 2).toUpperCase() 
                     };
                 }
 
@@ -172,6 +186,7 @@ module.exports = {
                     createdAt: t.createdAt,
                     updatedAt: t.updatedAt || t.createdAt, 
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
+                    assignedToName: assignedToName,
                     assignee: assigneeObj
                 };
             });
@@ -186,7 +201,7 @@ module.exports = {
     createTask: async (req, res) => {
         try {
             // --- ROLE SECURITY CHECK ---
-            // Ensure only ADMIN role can create tasks (Second layer of defense)
+            // Ensure only ADMIN role can create tasks
             const userRole = req.user.role ? req.user.role.toUpperCase() : '';
             if (userRole !== 'ADMIN') {
                 return res.status(403).json({ message: 'Insufficient permissions to create tasks. Admin access required.' });
@@ -240,10 +255,8 @@ module.exports = {
             }
             
             console.log("Decoded Token User Object:", req.user);
-            
-            // ... (keep the rest of your createTask logic from extracting the creator down to the catch block) ...
 
-            //Extracting the actual authenticated creator
+            //For debugging. Extract the actual authenticated creator
             const creatorId = req.user.id; 
             if (!creatorId) {
                 return res.status(401).json({ message: 'Unauthorized: Complete profile credentials missing' });
@@ -265,30 +278,34 @@ module.exports = {
             const creatorName = formatFullName(creatorRow[0]);
 
             //-Admin/chief x created task y and assigned to user z or group z, for the admins (only appears if the user is admin)
-            await recordNotification(db, {
-                kind: "task_created_admin",
-                title: "New Task Created",
-                body: `${creatorName} created task "${title.trim()}" and assigned it to ${targetName}.`,
-                relatedUrl: null,
-                targetRole: 'Admin'
-            });
+                await recordNotification(db, {
+                    kind: "task_created_admin",
+                    title: "New Task Created",
+                    body: `${creatorName} created task "${title.trim()}" and assigned it to ${targetName}.`,
+                    relatedUrl: null
+                    // Global for admins
+                }, req.app.get('io'));
+
 
             //-admin/chief x assigned task y to you, if non admin (only appears if the user isn't an admin)
             if (assignedToUser) {
-                await recordNotification(db, {
-                    kind: "task_assigned_user",
-                    title: "Task Assigned to You",
-                    body: `${creatorName} assigned task "${title.trim()}" to you.`,
-                    relatedUrl: null,
-                    targetUserId: assignedToUser
-                });
+                    await recordNotification(db, {
+                        kind: "task_assigned_user",
+                        title: "Task Assigned to You",
+                        body: `${creatorName} assigned task "${title.trim()}" to you.`,
+                        relatedUrl: null,
+                        targetUserId: assignedToUser
+                    }, req.app.get('io'));
+
             } else if (assignedToGroup) {
-                // If assigned to a group, notify all members of that group? 
-                // The request doesn't explicitly ask for group members to be notified, 
-                // but "assigned to you" if non admin implies individual targeting.
-                // For group assignments, we can't easily target all in current Notifications table 
-                // without multiple inserts or a target_group_id column.
-                // I'll skip group member individual notifications unless I add target_group_id.
+                    await recordNotification(db, {
+                        kind: "task_assigned_group",
+                        title: "Task Assigned to Your Group",
+                        body: `${creatorName} assigned task "${title.trim()}" to your group.`,
+                        relatedUrl: null,
+                        targetGroupId: assignedToGroup
+                    }, req.app.get('io'));
+
             }
 
             res.status(201).json({ message: 'Task created successfully', taskId: newTaskId });
@@ -304,13 +321,13 @@ module.exports = {
             const { title, description, priority, dueDate, status } = req.body; 
             const userRole = req.user.role ? req.user.role.toLowerCase() : 'staff';
 
-            // 1. Fetch the existing task to perform status/permission business rule checks
+            // Fetch the existing task to perform status/permission business rule checks
             const existingTask = await Task.findById(id);
             if (!existingTask) {
                 return res.status(404).json({ message: 'Task not found' });
             }
 
-            // 2. Enforce Role & Modification Boundary Rules
+            // Enforce Role & Modification Boundary Rules
             const isAuthorizedModifier = (userRole === 'admin' || userRole === 'chief');
             
             if (!isAuthorizedModifier) {
@@ -333,7 +350,7 @@ module.exports = {
                 }
             }
 
-            // 3. Assemble dynamic payload mapping safely
+            // Assemble dynamic payload mapping safely
             const updatePayload = {};
             if (isAuthorizedModifier) {
                 if (title) updatePayload.title = title.trim();
@@ -360,7 +377,7 @@ module.exports = {
                         title: "Task Completed",
                         body: `Task "${task.title}" has been marked as completed.`,
                         relatedUrl: null
-                    });
+                    }, req.app.get('io'));
                 }
             }
 
@@ -404,7 +421,7 @@ module.exports = {
                 title: "Task Deleted",
                 body: `Task "${task.title}" assigned to ${assigneeName} was deleted by ${adminName}`,
                 relatedUrl: null
-            });
+            }, req.app.get('io'));
 
             res.status(200).json({ message: 'Task deleted successfully' });
         } catch (error) {
@@ -436,33 +453,36 @@ module.exports = {
 
             if (!isUpdaterAdminActual) {
                 //-non-admin x updated task y's update notes "(insert update notes)"
-                await recordNotification(db, {
-                    kind: "task_note_update",
-                    title: "Task Update Notes",
-                    body: `${updaterName} updated task "${task?.title || 'Task'}"'s update notes: "${notes}"`,
-                    relatedUrl: null
-                });
+                        await recordNotification(db, {
+                            kind: "task_note_update",
+                            title: "Task Update Notes",
+                            body: `${updaterName} updated task "${task?.title || 'Task'}"'s update notes: "${notes}"`,
+                            relatedUrl: null
+                        }, req.app.get('io'));
+
 
                 //-non-admin x updated task y's status to (the new status)
                 if (statusChange) {
-                    await recordNotification(db, {
-                        kind: "task_status_update",
-                        title: "Task Status Changed",
-                        body: `${updaterName} updated task "${task?.title || 'Task'}"'s status to ${statusChange}`,
-                        relatedUrl: null
-                    });
+                        await recordNotification(db, {
+                            kind: "task_status_update",
+                            title: "Task Status Changed",
+                            body: `${updaterName} updated task "${task?.title || 'Task'}"'s status to ${statusChange}`,
+                            relatedUrl: null
+                        }, req.app.get('io'));
+
                 }
             }
 
             //-non-admin x attached a url to the latest task update of task y
             // We can detect a URL in the notes as a simple heuristic since there is no separate URL field.
             if (!isUpdaterAdminActual && /https?:\/\/[^\s]+/.test(notes)) {
-                await recordNotification(db, {
-                    kind: "task_url_update",
-                    title: "URL Attached",
-                    body: `${updaterName} attached a url to the latest task update of task "${task?.title || 'Task'}"`,
-                    relatedUrl: null
-                });
+                    await recordNotification(db, {
+                        kind: "task_url_update",
+                        title: "URL Attached",
+                        body: `${updaterName} attached a url to the latest task update of task "${task?.title || 'Task'}"`,
+                        relatedUrl: null
+                    }, req.app.get('io'));
+
             }
 
             res.status(200).json({ message: 'Update logged successfully' });
