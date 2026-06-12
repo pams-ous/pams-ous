@@ -1,0 +1,18 @@
+[
+  {
+    "email": "admin1@local.test",
+    "password": "password123",
+    "employeeCode": "ADM-001",
+    "firstName": "System",
+    "lastName": "Admin",
+    "jobTitle": "Director"
+  },
+  {
+    "email": "admin2@local.test",
+    "password": "password123",
+    "employeeCode": "ADM-002",
+    "firstName": "Staff",
+    "lastName": "Admin",
+    "jobTitle": "Deputy Director"
+  }
+]

@@ -126,6 +126,3 @@ dist/
 # OS files
 .DS_Store
 Thumbs.db
-
-# Dev scripts and tools (Local Only)
-scripts/dev/
