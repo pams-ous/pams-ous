@@ -1,5 +1,11 @@
 # PUP OUS – Personnel Accomplishment Management System (PAMS)
 
+> [!WARNING]
+> **Active Development & Deployment Notice (Use At Your Own Risk)**
+> This system is currently in active development, specifically scoped and configured for the **PUP Open University System**.
+>
+> While you are welcome to fork, modify, and use this codebase under the terms of the Apache License 2.0, please note that **we do not currently recommend or support external deployments**. The codebase is premature, and you use/modify it entirely **at your own risk**.
+
 ## Project Overview
 PAMS is a professional management system designed for the **Polytechnic University of the Philippines - Open University System**. It streamlines personnel task tracking, real-time accomplishment monitoring, and high-integrity report generation.
 
@@ -69,4 +75,4 @@ The system will be live at: `http://localhost:3000`
 - `backend/scripts/dev/`: Local developer tools for seeding and resetting data (Git Ignored).
 
 ---
-*© 2026 PUP Open University System. Internal Use Only.*
+*© 2026 PUP Open University System. Licensed under the Apache License 2.0. See LICENSE for details.*
