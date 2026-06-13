@@ -23,7 +23,7 @@ To align with the project constraints, **full architectural overhauls (such as i
 
 ## 2. Refactoring Phases
 
-The refactoring roadmap is divided into four chronological phases, prioritizing security patching first:
+The refactoring roadmap is divided into four chronological phases, prioritizing security patching first (ignore the dates for now, gemiini hallucinated that):
 
 ```mermaid
 gantt
