@@ -25,6 +25,7 @@
 
     let currentManageGroupId = null;
     let currentGroupLeaderEmail = null;
+    let pendingDelete = null;
     const currentUserId = 1;
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -568,9 +569,8 @@
             { const c = PAMS.validatePassword(pass); if (!c.valid) { PAMS.toast(c.message, 'warning'); return; } }
             try { await apiFetch(`/users/${id}/admin-reset-password`, 'POST', { newPassword: pass }); closeModal('resetPassModal'); PAMS.toast('Password reset successfully!', 'success'); } catch (err) { PAMS.toast(err.message, 'error'); }
         },
-        deleteUser: async (email, name) => {
-            if (!confirm(`Delete user "${name}"?`)) return;
-            try { await apiFetch(`/users/${email}`, 'DELETE'); await loadAll(); } catch (err) { PAMS.toast(err.message, 'error'); }
+        deleteUser: (email, name) => {
+            window.Admin.openConfirmDelete('user', email, name);
         },
         approveUser: async (userId) => {
             try { 
@@ -609,9 +609,28 @@
             const leader = document.getElementById('editGroupLeader').value;
             try { await apiFetch(`/admin/sync/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader }); window.Admin.closeModal('editGroupModal'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
-        deleteGroup: async (id, name) => {
-            if (!confirm(`Delete group "${name}"?`)) return;
-            try { await apiFetch(`/admin/sync/groups/${id}`, 'DELETE'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
+        deleteGroup: (id, name) => {
+            window.Admin.openConfirmDelete('group', id, name);
+        },
+        openConfirmDelete: (type, id, name) => {
+            pendingDelete = { type, id, name };
+            document.getElementById('confirmDeleteText').textContent = `Are you sure you want to delete ${type === 'user' ? 'user' : 'group'} "${name}"? This action cannot be undone.`;
+            openModal('confirmDeleteModal');
+        },
+        confirmDelete: async () => {
+            if (!pendingDelete) return;
+            const { type, id } = pendingDelete;
+            try {
+                const endpoint = type === 'user' ? `/users/${id}` : `/admin/sync/groups/${id}`;
+                await apiFetch(endpoint, 'DELETE');
+                PAMS.toast(`${type === 'user' ? 'User' : 'Group'} deleted successfully!`, 'success');
+                window.Admin.closeModal('confirmDeleteModal');
+                await loadAll();
+            } catch (err) {
+                PAMS.toast(`Error: ${err.message}`, 'error');
+            } finally {
+                pendingDelete = null;
+            }
         },
 
         openManageMembers: async (id) => {

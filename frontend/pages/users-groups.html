@@ -422,7 +422,7 @@
     </div>
 	
     <!-- MANAGE MEMBERS MODAL -->	
-	
+    
 <div class="modal-backdrop" id="manageMembersModal">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
@@ -440,7 +440,7 @@
                     <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
                     <input type="text" id="memberSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterMembers()" style="padding-left: 30px; width: 100%;">
                 </div>
-
+ 
                 <div id="memberCheckboxList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
                     </div>
             </div>
@@ -450,6 +450,25 @@
             </div>
         </div>
     </div>
+
+    <!-- CONFIRM DELETE MODAL -->
+    <div class="modal-backdrop" id="confirmDeleteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Confirm Deletion</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('confirmDeleteModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmDeleteText" class="text-sm color-gray"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('confirmDeleteModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="window.Admin.confirmDelete()" style="background-color: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Delete</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Configuration and API Logic -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
