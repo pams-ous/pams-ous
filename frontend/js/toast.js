@@ -45,17 +45,37 @@
         void toastEl.offsetWidth;
         toastEl.classList.add('show');
 
+        let timeout;
+        let remainingTime = duration;
+        let startTime = Date.now();
+
+        const startDismissalTimeout = (delay) => {
+            startTime = Date.now();
+            timeout = setTimeout(() => {
+                toastEl.classList.add('hide');
+                setTimeout(() => toastEl.remove(), 400);
+            }, delay);
+        };
+
         // Automatically hide and remove after duration
-        const timeout = setTimeout(() => {
-            toastEl.classList.add('hide');
-            setTimeout(() => toastEl.remove(), 400);
-        }, duration);
+        startDismissalTimeout(remainingTime);
 
         // Pause progress animation on hover (standard premium feel)
         toastEl.addEventListener('mouseenter', () => {
             clearTimeout(timeout);
+            const elapsed = Date.now() - startTime;
+            remainingTime = Math.max(0, remainingTime - elapsed);
             const progress = toastEl.querySelector('.pams-toast-progress');
             if (progress) progress.style.animationPlayState = 'paused';
+        });
+
+        // Resume progress animation and countdown on mouse leave
+        toastEl.addEventListener('mouseleave', () => {
+            if (remainingTime > 0) {
+                startDismissalTimeout(remainingTime);
+                const progress = toastEl.querySelector('.pams-toast-progress');
+                if (progress) progress.style.animationPlayState = 'running';
+            }
         });
     };
 })();
