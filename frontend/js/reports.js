@@ -101,6 +101,7 @@
                 case 'delete':
                     closeModal('deleteReportModal');
                     loadReports();
+                    PAMS.toast("Report deleted successfully!", "success");
                     break;
             }
         });
@@ -847,6 +848,7 @@
                 if (activeReportId === reportToDelete) activeReportId = null;
                 closeModal('deleteReportModal');
                 renderHistory();
+                PAMS.toast("Report deleted successfully!", "success");
                 return;
             }
             if (PAMS.socket) {
