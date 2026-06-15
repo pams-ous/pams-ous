@@ -459,12 +459,14 @@
                 <button class="modal-close" onclick="window.Admin.closeModal('confirmDeleteModal')"><i
                         class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
-                <p id="confirmDeleteText" class="text-sm color-gray"></p>
+            <div class="confirm-body">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p id="confirmDeleteText"></p>
+                <p class="text-xs color-gray mt-2">This action cannot be undone.</p>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer is-centered">
                 <button class="btn-cancel" onclick="window.Admin.closeModal('confirmDeleteModal')">Cancel</button>
-                <button class="btn btn-danger" onclick="window.Admin.confirmDelete()" style="background-color: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Delete</button>
+                <button class="btn btn-danger" onclick="window.Admin.confirmDelete()">Delete</button>
             </div>
         </div>
     </div>

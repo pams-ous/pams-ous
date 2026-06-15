@@ -614,7 +614,7 @@
         },
         openConfirmDelete: (type, id, name) => {
             pendingDelete = { type, id, name };
-            document.getElementById('confirmDeleteText').textContent = `Are you sure you want to delete ${type === 'user' ? 'user' : 'group'} "${name}"? This action cannot be undone.`;
+            document.getElementById('confirmDeleteText').textContent = `Are you sure you want to delete ${type === 'user' ? 'user' : 'group'} "${name}"?`;
             openModal('confirmDeleteModal');
         },
         confirmDelete: async () => {
