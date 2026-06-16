@@ -157,8 +157,11 @@ module.exports = {
             );
             const myGroupIds = groupRows.map(row => row.group_id);
 
-            // Fetch all raw tasks
-            const rawTasks = await Task.findAll();
+            // Fetch all raw tasks. The Completed tab must show the full completion
+            // history (so its details — including any attached URLs — stay
+            // reachable), so bypass the daily-wipe rule there. The Active tab keeps
+            // the default behaviour (it excludes completed tasks anyway).
+            const rawTasks = await Task.findAll({ showAllCompleted: showCompleted });
 
             // Match tasks strictly by ID, then apply the active/completed filter
             const myRawTasks = rawTasks.filter(t => {

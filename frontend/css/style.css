@@ -123,6 +123,10 @@ body {
   justify-content: center;
 }
 
+.justify-end {
+  justify-content: flex-end;
+}
+
 .gap-1 {
   gap: .25rem;
 }
