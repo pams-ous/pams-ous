@@ -157,6 +157,7 @@ CREATE TABLE `Report_Entries` (
   `task_update_id` int DEFAULT NULL,
   `task_id` int DEFAULT NULL,
   `report_id` int DEFAULT NULL,
+  `historical_status` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `report_entries-task_updates_idx` (`task_update_id`),
   KEY `report_entries-task_idx` (`task_id`),

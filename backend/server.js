@@ -65,7 +65,7 @@ const {registerManageHandlers, initManageRoutes} = require("./UserMngmt_APIs/man
 const {registerOtpHandlers} = require("./UserMngmt_APIs/otp");
 const {registerPasswordResetHandlers} = require("./UserMngmt_APIs/passwordReset");
 const {registerLoginHandlers, initLoginRoutes} = require("./UserMngmt_APIs/login");
-const {registerReportHandlers} = require("./ReportMngmt_APIs/reportHandlers");
+const {registerReportHandlers, initReportModule} = require("./ReportMngmt_APIs/reportHandlers");
 const {dashboardAPI, registerDashboardHandlers} = require("./TaskMngmt_APIs/dashboardHandlers");
 const {notificationsRouter, recordNotification} = require("./UserMngmt_APIs/notifications");
 const {formatFullName} = require("./UserMngmt_APIs/userUtils");
@@ -324,6 +324,7 @@ initRegistrationRoutes(app, db);
 initManageRoutes(app, db);
 initLoginRoutes(app, db, io);
 dashboardAPI(app, io, db);
+initReportModule(db);
 
 // Single Socket Connection Handler
 io.on('connection', async (socket) => {

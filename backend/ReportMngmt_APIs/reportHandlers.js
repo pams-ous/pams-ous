@@ -43,7 +43,7 @@ async function registerReportHandlers(socket, db, io) {
         try {
             const taskQuery = `
                 SELECT t.task_id, t.title, t.priority, t.description,
-                       COALESCE(tu.status_change, t.status) AS historical_status,
+                       COALESCE(re.historical_status, t.status) AS historical_status,
                        COALESCE(tu.updated_text, 'No update logged during this period.') AS historical_notes,
                        COALESCE(CONCAT_WS(' ', e.first_name, e.last_name), g.group_name, 'Unassigned') AS assignee_name
                 FROM Report_Entries re
@@ -159,9 +159,20 @@ async function registerReportHandlers(socket, db, io) {
                     [t.task_id, endDateTime]
                 );
                 const updateId = latestUpdate[0]?.update_id || null;
+
+                // Find the task's status as of endDateTime (the end of the report period)
+                const [statusRows] = await db.query(
+                    `SELECT COALESCE(
+                        (SELECT status_change FROM Task_Updates WHERE task_id = ? AND logged_at <= ? AND status_change IS NOT NULL ORDER BY logged_at DESC LIMIT 1),
+                        (SELECT status FROM Tasks WHERE task_id = ?)
+                    ) AS status`,
+                    [t.task_id, endDateTime, t.task_id]
+                );
+                const historicalStatus = statusRows[0]?.status || 'pending';
+
                 await db.query(
-                    "INSERT INTO Report_Entries (task_id, report_id, task_update_id) VALUES (?, ?, ?)",
-                    [t.task_id, reportId, updateId]
+                    "INSERT INTO Report_Entries (task_id, report_id, task_update_id, historical_status) VALUES (?, ?, ?, ?)",
+                    [t.task_id, reportId, updateId, historicalStatus]
                 );
             }
 
@@ -231,4 +242,44 @@ async function registerReportHandlers(socket, db, io) {
     });
 }
 
-module.exports = { registerReportHandlers };
+async function initReportModule(db) {
+    console.log('Checking Report_Entries schema for historical_status...');
+    try {
+        const [columns] = await db.query("SHOW COLUMNS FROM `Report_Entries` LIKE 'historical_status'");
+        if (columns.length === 0) {
+            console.log('[MIGRATION] Altering Report_Entries table to add historical_status...');
+            await db.query("ALTER TABLE `Report_Entries` ADD COLUMN `historical_status` VARCHAR(50) DEFAULT NULL");
+            console.log('[MIGRATION] Column historical_status added successfully.');
+        }
+
+        console.log('[MIGRATION] Checking if backfill is needed for report entries...');
+        const backfillQuery = `
+            UPDATE Report_Entries re
+            JOIN Tasks t ON re.task_id = t.task_id
+            JOIN Report r ON re.report_id = r.report_id
+            SET re.historical_status = COALESCE(
+                (
+                    SELECT tu.status_change 
+                    FROM Task_Updates tu 
+                    WHERE tu.task_id = re.task_id 
+                      AND tu.logged_at <= r.period_end 
+                      AND tu.status_change IS NOT NULL 
+                    ORDER BY tu.logged_at DESC 
+                    LIMIT 1
+                ),
+                t.status
+            )
+            WHERE re.historical_status IS NULL
+        `;
+        const [result] = await db.query(backfillQuery);
+        if (result.affectedRows > 0) {
+            console.log(`[MIGRATION] Backfill complete. Affected rows: ${result.affectedRows}`);
+        } else {
+            console.log('[MIGRATION] No backfill needed.');
+        }
+    } catch (err) {
+        console.error('[MIGRATION] Database migration/backfill in initReportModule failed:', err);
+    }
+}
+
+module.exports = { registerReportHandlers, initReportModule };
