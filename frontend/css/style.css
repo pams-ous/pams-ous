@@ -364,6 +364,19 @@ body {
   opacity: 0.75;
 }
 
+.textarea-wrap {
+  position: relative;
+}
+
+.char-count {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  pointer-events: none;
+}
+
 .password-field-wrap {
   position: relative;
   width: 100%;
@@ -1860,6 +1873,17 @@ body.sidebar-open .main {
   opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.act-reopen {
+  background: var(--red-bg);
+  color: var(--red-text);
+  border-color: var(--red-text);
+  transition: var(--transition);
+}
+
+.act-reopen:hover {
+  filter: brightness(0.88);
 }
 
 .ribbon-btn.complete {
