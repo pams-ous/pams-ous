@@ -106,19 +106,40 @@
     }
 
     function populateAssigneeSelects() {
+        // New Task uses a searchable typeahead (see filterAssignees); the Edit
+        // modal still uses a plain <select>.
         const userOpts = users.map(u => `<option value="user:${u.email}">${u.name || u.email}</option>`).join('');
         const groupOpts = groups.map(g => `<option value="group:${g.id}">${g.name}</option>`).join('');
         const innerHTML = `<option value="">Select assignee</option><optgroup label="Users">${userOpts}</optgroup><optgroup label="Groups">${groupOpts}</optgroup>`;
 
-        const ntAss = document.getElementById('nt-assignee');
         const edAss = document.getElementById('edit-assignee');
-        if (ntAss) ntAss.innerHTML = innerHTML;
         if (edAss) edAss.innerHTML = innerHTML;
+    }
+
+    // Combined assignee list (users + groups) for the New Task typeahead.
+    function assigneeOptions() {
+        return [
+            ...users.map(u => ({
+                value: `user:${u.email}`,
+                type: 'user',
+                name: u.name || u.email,
+                meta: u.email + (u.code ? ' · ' + u.code : ''),
+                search: `${u.name || ''} ${u.email || ''} ${u.code || ''}`.toLowerCase()
+            })),
+            ...groups.map(g => ({
+                value: `group:${g.id}`,
+                type: 'group',
+                name: g.name,
+                meta: 'Group',
+                search: (g.name || '').toLowerCase()
+            }))
+        ];
     }
 
     function buildFilterOptions() {
         const groupNames = [...new Set(tasks.filter(t => t.assignee?.type === 'group').map(t => t.assignee.name))].sort();
-        const assignees = [...new Set(tasks.map(t => t.assignee?.name).filter(Boolean))].sort();
+        // Only individual users here — groups are covered by the Group filter.
+        const assignees = [...new Set(tasks.filter(t => t.assignee?.type === 'user').map(t => t.assignee.name).filter(Boolean))].sort();
 
         const gEl = document.getElementById('filterGroup');
         const aEl = document.getElementById('filterAssignee');
@@ -238,7 +259,7 @@
                 </div>
             </div>
             <div class="tb-row-actions">
-                <button class="ribbon-btn complete" title="Mark as Completed" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED') ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
+                <button class="ribbon-btn complete" title="${t.canComplete === false ? 'You can only complete tasks assigned to you' : 'Mark as Completed'}" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED' || t.canComplete === false) ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
                 <button class="ribbon-btn ghost" title="Edit Details" onclick="window.TaskBoard.openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
                 <button class="ribbon-btn ghost act-delete" title="Remove" onclick="window.TaskBoard.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
             </div>
@@ -258,6 +279,7 @@
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+            window.TaskBoard.clearAssignee();
 
             // Lock out past dates in the calendar picker
             const dueInput = document.getElementById('nt-due');
@@ -266,12 +288,83 @@
                 const yyyy = today.getFullYear();
                 const mm = String(today.getMonth() + 1).padStart(2, '0');
                 const dd = String(today.getDate()).padStart(2, '0');
-                
+
                 // Formats as YYYY-MM-DD and sets it as the minimum allowed date
                 dueInput.min = `${yyyy}-${mm}-${dd}`;
             }
 
             openModal('newTaskModal');
+            // Make the assignee search the automatically selected control so the
+            // admin can start typing a name right away.
+            setTimeout(() => document.getElementById('nt-assignee-search')?.focus(), 50);
+        },
+        filterAssignees: () => {
+            const input = document.getElementById('nt-assignee-search');
+            const box = document.getElementById('nt-assignee-results');
+            if (!input || !box) return;
+
+            const q = (input.value || '').trim().toLowerCase();
+            const all = assigneeOptions();
+
+            const setExpanded = (open) => input.setAttribute('aria-expanded', String(open));
+
+            if (!all.length) {
+                box.innerHTML = '<div class="text-xs color-gray text-center py-3">No assignees loaded.</div>';
+                box.classList.add('open');
+                setExpanded(true);
+                return;
+            }
+
+            const matches = (q ? all.filter(o => o.search.includes(q)) : all).slice(0, 8);
+
+            if (matches.length === 0) {
+                box.innerHTML = '<div class="text-xs color-gray text-center py-3">No matches found.</div>';
+                box.classList.add('open');
+                setExpanded(true);
+                return;
+            }
+
+            box.classList.add('open');
+            setExpanded(true);
+            box.innerHTML = matches.map(o => `
+                <button type="button" class="user-search-item" role="option"
+                    onclick="window.TaskBoard.pickAssignee('${encodeURIComponent(o.value)}','${encodeURIComponent(o.name)}')">
+                    <div class="avatar-sm">${o.type === 'group'
+                        ? '<i class="fa-solid fa-users" aria-hidden="true"></i>'
+                        : (o.name || '?').charAt(0).toUpperCase()}</div>
+                    <div class="user-search-meta">
+                        <strong>${o.name}</strong>
+                        <span class="muted">${o.meta}</span>
+                    </div>
+                </button>`).join('');
+        },
+        pickAssignee: (valueEnc, nameEnc) => {
+            const value = decodeURIComponent(valueEnc);
+            const name = decodeURIComponent(nameEnc);
+            document.getElementById('nt-assignee').value = value;
+            document.getElementById('nt-assignee-picked-name').textContent = name;
+            document.getElementById('nt-assignee-picked').style.display = 'flex';
+            const input = document.getElementById('nt-assignee-search');
+            if (input) { input.style.display = 'none'; input.setAttribute('aria-expanded', 'false'); }
+            document.getElementById('nt-assignee-results').classList.remove('open');
+        },
+        closeAssignees: () => {
+            // Delay so a click on a suggestion registers before the list hides.
+            setTimeout(() => {
+                const box = document.getElementById('nt-assignee-results');
+                if (box) box.classList.remove('open');
+                document.getElementById('nt-assignee-search')?.setAttribute('aria-expanded', 'false');
+            }, 150);
+        },
+        clearAssignee: () => {
+            const hidden = document.getElementById('nt-assignee');
+            if (hidden) hidden.value = '';
+            const picked = document.getElementById('nt-assignee-picked');
+            if (picked) picked.style.display = 'none';
+            const input = document.getElementById('nt-assignee-search');
+            if (input) { input.style.display = ''; input.value = ''; input.setAttribute('aria-expanded', 'false'); }
+            const box = document.getElementById('nt-assignee-results');
+            if (box) box.classList.remove('open');
         },
         createTask: async () => {
             const titleVal = document.getElementById('nt-title').value.trim();

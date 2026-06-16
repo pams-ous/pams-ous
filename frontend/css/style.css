@@ -1900,6 +1900,28 @@ body.sidebar-open .main {
   outline-offset: 2px;
 }
 
+/* Responsive: keep the Active/Completed toggle whole on narrow devices.
+   The header was a no-wrap flex row, so the toggle (overflow:hidden) got
+   compressed and clipped the "Completed" tab. Let the header reflow and
+   stop the toggle/tabs from shrinking. */
+.my-tasks-panel .panel-head {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.my-tasks-panel .panel-head .flex {
+  flex-wrap: wrap;
+}
+
+.mt-view-toggle {
+  flex-shrink: 0;
+}
+
+.mt-view-tab {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Specialized Task Tables */
 
 /* ── MY TASKS: viewport-bounded panel with internal scroll ──
@@ -2116,6 +2138,22 @@ body.sidebar-open .main {
 .log-note {
   color: var(--gray-700);
   line-height: 1.4;
+}
+
+.log-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--maroon);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.log-attachment:hover {
+  text-decoration: underline;
 }
 
 .log-empty {

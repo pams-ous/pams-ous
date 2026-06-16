@@ -168,12 +168,25 @@
                 updates = data.updates;
             }
 
+            // Only render attachments that are real http(s) links (the backend
+            // enforces this too, but guard on display as defense-in-depth).
+            const safeUrl = (u) => (typeof u === 'string' && /^https?:\/\/[^\s]+$/i.test(u.trim())) ? u.trim() : '';
+
             const logsHtml = updates.length
-                ? updates.map(l => `
+                ? updates.map(l => {
+                    const url = safeUrl(l.attachment_url);
+                    const attachHtml = url
+                        ? `<a class="log-attachment" href="${url}" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-solid fa-paperclip" aria-hidden="true"></i> Attachment
+                           </a>`
+                        : '';
+                    return `
                     <div class="log-entry">
                         <span class="log-date">${fmtDate(l.logged_at)}</span>
                         <span class="log-note">${l.updated_text || ''}${l.status_change ? ` <em>(${l.status_change})</em>` : ''}</span>
-                    </div>`).join('')
+                        ${attachHtml}
+                    </div>`;
+                }).join('')
                 : '<p class="log-empty">No updates logged yet.</p>';
 
             const bodyEl = document.getElementById('viewTaskBody');
@@ -204,8 +217,10 @@
                 }
                 const notes = document.getElementById('log-notes');
                 const status = document.getElementById('log-new-status');
+                const attachment = document.getElementById('log-attachment');
                 if (notes) notes.value = '';
                 if (status) status.value = '';
+                if (attachment) attachment.value = '';
             }
             openModal(id);
         },
@@ -214,8 +229,14 @@
             const taskId = document.getElementById('log-task-select')?.value;
             const notes = document.getElementById('log-notes')?.value.trim();
             const statusChange = document.getElementById('log-new-status')?.value;
+            const attachmentUrl = document.getElementById('log-attachment')?.value.trim() || '';
 
-            if (!taskId || !notes) { PAMS.toast('Please select a task and provide update notes.', 'warning'); return; }
+            // Notes are optional — a status change alone is a valid update.
+            if (!taskId) { PAMS.toast('Please select a task.', 'warning'); return; }
+            if (!notes && !statusChange) { PAMS.toast('Provide update notes or a status change.', 'warning'); return; }
+            if (attachmentUrl && !/^https?:\/\/[^\s]+$/i.test(attachmentUrl)) {
+                PAMS.toast('Attachment must be a valid http(s) URL.', 'warning'); return;
+            }
 
             if (CONFIG.USE_MOCK_API) {
                 const t = tasks.find(x => x.id == taskId);
@@ -229,7 +250,7 @@
             }
 
             try {
-                await apiFetch('/tasks/updates', 'POST', { taskId, email: getUser().email, notes, statusChange: statusChange || null });
+                await apiFetch('/tasks/updates', 'POST', { taskId, email: getUser().email, notes, statusChange: statusChange || null, attachmentUrl: attachmentUrl || null });
                 closeModal('logUpdateModal');
                 await loadTasks();
             } catch (err) { PAMS.toast(err.message, 'error'); }
