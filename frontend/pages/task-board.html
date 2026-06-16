@@ -250,10 +250,23 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Assign To <span style="color: var(--red-text);">*</span></label>
-                    <select class="form-control" id="nt-assignee">
-                        <option value="">Select assignee</option>
-                    </select>
+                    <label class="form-label" for="nt-assignee-search">Assign To <span style="color: var(--red-text);">*</span></label>
+                    <div class="user-search">
+                        <input type="text" id="nt-assignee-search" class="form-control" autocomplete="off"
+                            placeholder="Type a name, email, or group…" oninput="TaskBoard.filterAssignees()"
+                            onfocus="TaskBoard.filterAssignees()" onblur="TaskBoard.closeAssignees()"
+                            role="combobox" aria-expanded="false"
+                            aria-controls="nt-assignee-results" aria-autocomplete="list">
+                        <input type="hidden" id="nt-assignee">
+                        <div class="user-search-results" id="nt-assignee-results" role="listbox"
+                            aria-label="Assignee suggestions"></div>
+
+                        <div class="user-search-picked" id="nt-assignee-picked" style="display:none;">
+                            <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+                            <span id="nt-assignee-picked-name">—</span>
+                            <button type="button" class="link-btn" onclick="TaskBoard.clearAssignee()">change</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <p style="font-size: 0.75rem; color: var(--gray-500); padding: 0 1.5rem;"><span style="color: var(--red-text);">*</span> Indicates required field</p>

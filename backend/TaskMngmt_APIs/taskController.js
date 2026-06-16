@@ -433,15 +433,21 @@ module.exports = {
     logTaskUpdate: async (req, res) => {
         try {
             const { taskId, email, notes, statusChange } = req.body;
-            if (!taskId || !notes || !email) {
-                return res.status(400).json({ message: 'Task ID, email, and notes are required.' });
+            if (!taskId || !email) {
+                return res.status(400).json({ message: 'Task ID and email are required.' });
+            }
+            // Notes are optional (e.g. the "easy complete" check button only
+            // changes status), but the request must do something.
+            const trimmedNotes = (notes || '').trim();
+            if (!trimmedNotes && !statusChange) {
+                return res.status(400).json({ message: 'Provide update notes or a status change.' });
             }
 
             // Find employee ID from email
             const employee = await Task.findEmployeeByEmail(email);
             if (!employee) return res.status(404).json({ message: 'User not found' });
 
-            await Task.logUpdate(taskId, employee.employee_id, notes, statusChange);
+            await Task.logUpdate(taskId, employee.employee_id, trimmedNotes, statusChange);
 
             const task = await Task.findById(taskId);
             const updaterName = formatFullName(employee);
@@ -453,12 +459,14 @@ module.exports = {
 
             if (!isUpdaterAdminActual) {
                 //-non-admin x updated task y's update notes "(insert update notes)"
+                if (trimmedNotes) {
                         await recordNotification(db, {
                             kind: "task_note_update",
                             title: "Task Update Notes",
-                            body: `${updaterName} updated task "${task?.title || 'Task'}"'s update notes: "${notes}"`,
+                            body: `${updaterName} updated task "${task?.title || 'Task'}"'s update notes: "${trimmedNotes}"`,
                             relatedUrl: null
                         }, req.app.get('io'));
+                }
 
 
                 //-non-admin x updated task y's status to (the new status)
@@ -475,7 +483,7 @@ module.exports = {
 
             //-non-admin x attached a url to the latest task update of task y
             // We can detect a URL in the notes as a simple heuristic since there is no separate URL field.
-            if (!isUpdaterAdminActual && /https?:\/\/[^\s]+/.test(notes)) {
+            if (!isUpdaterAdminActual && /https?:\/\/[^\s]+/.test(trimmedNotes)) {
                     await recordNotification(db, {
                         kind: "task_url_update",
                         title: "URL Attached",

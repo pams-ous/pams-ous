@@ -89,7 +89,7 @@ CREATE TABLE `Tasks` (
   `task_id` int NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` text DEFAULT NULL,
-  `assigned_by` varchar(36) NOT NULL,
+  `assigned_by` varchar(36) DEFAULT NULL,
   `assigned_to_user` varchar(36) DEFAULT NULL,
   `assigned_to_group` int DEFAULT NULL,
   `priority` enum('low','medium','high','urgent') NOT NULL,
@@ -101,8 +101,8 @@ CREATE TABLE `Tasks` (
   KEY `tasks-employees_idx` (`assigned_by`),
   KEY `tasks-employees_employee_idx` (`assigned_to_user`),
   KEY `tasks-employees_groups_idx` (`assigned_to_group`),
-  CONSTRAINT `tasks-employees_admin` FOREIGN KEY (`assigned_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `tasks-employees_employee` FOREIGN KEY (`assigned_to_user`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tasks-employees_admin` FOREIGN KEY (`assigned_by`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `tasks-employees_employee` FOREIGN KEY (`assigned_to_user`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `tasks-employees_groups_link` FOREIGN KEY (`assigned_to_group`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -113,7 +113,7 @@ DROP TABLE IF EXISTS `Task_Updates`;
 CREATE TABLE `Task_Updates` (
   `update_id` int NOT NULL AUTO_INCREMENT,
   `task_id` int NOT NULL,
-  `updated_by` varchar(36) NOT NULL,
+  `updated_by` varchar(36) DEFAULT NULL,
   `updated_text` text NOT NULL,
   `status_change` enum('pending','in_progress','completed','cancelled') DEFAULT NULL,
   `attachment_url` varchar(500) DEFAULT NULL,
@@ -121,7 +121,7 @@ CREATE TABLE `Task_Updates` (
   PRIMARY KEY (`update_id`),
   KEY `task_updates-tasks_idx` (`task_id`),
   KEY `task_updates-employees_idx` (`updated_by`),
-  CONSTRAINT `task_updates-employees_link` FOREIGN KEY (`updated_by`) REFERENCES `Employees` (`employee_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `task_updates-employees_link` FOREIGN KEY (`updated_by`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `task_updates-tasks_link` FOREIGN KEY (`task_id`) REFERENCES `Tasks` (`task_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

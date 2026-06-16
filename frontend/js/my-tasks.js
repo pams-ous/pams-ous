@@ -215,7 +215,9 @@
             const notes = document.getElementById('log-notes')?.value.trim();
             const statusChange = document.getElementById('log-new-status')?.value;
 
-            if (!taskId || !notes) { PAMS.toast('Please select a task and provide update notes.', 'warning'); return; }
+            // Notes are optional — a status change alone is a valid update.
+            if (!taskId) { PAMS.toast('Please select a task.', 'warning'); return; }
+            if (!notes && !statusChange) { PAMS.toast('Provide update notes or a status change.', 'warning'); return; }
 
             if (CONFIG.USE_MOCK_API) {
                 const t = tasks.find(x => x.id == taskId);
