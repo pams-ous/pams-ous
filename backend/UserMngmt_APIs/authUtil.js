@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-env';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!process.env.JWT_SECRET) {
+    throw new Error('FATAL ERROR: JWT_SECRET is not defined in environment variables.');
+}
 
 function generateToken(payload) {
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
