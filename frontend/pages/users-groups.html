@@ -477,6 +477,25 @@
         </div>
     </div>
 
+    <!-- CONFIRM DEMOTE MODAL -->
+    <div class="modal-backdrop" id="confirmDemoteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Confirm Demotion</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('confirmDemoteModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="confirm-body">
+                <i class="fa-solid fa-circle-info"></i>
+                <p id="confirmDemoteText"></p>
+            </div>
+            <div class="modal-footer is-centered">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('confirmDemoteModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.confirmDemote()">OK</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Configuration and API Logic -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

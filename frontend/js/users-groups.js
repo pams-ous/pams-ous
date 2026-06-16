@@ -22,11 +22,13 @@
     // No online-first concept for groups; single-key sort only.
     // Leader: blank / "Unassigned" always sorts to the end regardless of direction.
     let groupSortState = { col: 'name', dir: 'asc' };
-
+    
     let currentManageGroupId = null;
     let currentGroupLeaderEmail = null;
     let pendingDelete = null;
+    let pendingDemote = null;
     const currentUserId = 1;
+
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -461,7 +463,7 @@
               <td>
                 <select 
                     class="form-control role-select-dropdown" 
-                    onchange="window.Admin.changeRole('${u.email}', this.value)"
+                    onchange="window.Admin.handleRoleChange('${u.email}', this.value, '${u.role}')"
                     data-user-email="${u.email}" 
                     data-current-role="${u.role}"
                     style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
@@ -620,6 +622,14 @@
             }
 
             try {
+                if (empCode) {
+                    const exists = users.find(u => u.email !== email && u.employeeCode === empCode);
+                    if (exists) {
+                        PAMS.toast(`Employee Code ${empCode} is already assigned to another user.`, 'warning');
+                        return;
+                    }
+                }
+
                 // 1. Update Profile Details
                 await apiFetch('/users/update-profile', 'PUT', { empCode, firstName, lastName, middleName, suffix, email });
 
@@ -669,6 +679,39 @@
         },
         changeJobTitle: async (email, jobId) => {
             try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change job title: ${err.message}. Reverting...`, 'error'); await loadAll(); }
+        },
+        
+        handleRoleChange: async (email, newRole, currentRole) => {
+            if (currentRole === 'ADMIN' && newRole === 'MEMBER') {
+                // Revert the select value immediately so it doesn't look changed until confirmed
+                const select = document.querySelector(`.role-select-dropdown[data-user-email="${email}"]`);
+                if (select) select.value = currentRole;
+                
+                const user = users.find(u => u.email === email);
+                window.Admin.openConfirmDemote(email, user?.name);
+                return;
+            }
+            await window.Admin.changeRole(email, newRole);
+        },
+
+        openConfirmDemote: (email, name) => {
+            pendingDemote = { email, name };
+            document.getElementById('confirmDemoteText').textContent = `Are you sure you want to demote this administrator?`;
+            openModal('confirmDemoteModal');
+        },
+        confirmDemote: async () => {
+            if (!pendingDemote) return;
+            const { email } = pendingDemote;
+            try {
+                await apiFetch(`/users/${email}`, 'PUT', { role: 'MEMBER' });
+                PAMS.toast('User demoted successfully!', 'success');
+                window.Admin.closeModal('confirmDemoteModal');
+                await loadAll();
+            } catch (err) {
+                PAMS.toast(`Error: ${err.message}`, 'error');
+            } finally {
+                pendingDemote = null;
+            }
         },
 
         addGroup: async () => {
