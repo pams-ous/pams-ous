@@ -259,7 +259,7 @@
                 </div>
             </div>
             <div class="tb-row-actions">
-                <button class="ribbon-btn complete" title="Mark as Completed" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED') ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
+                <button class="ribbon-btn complete" title="${t.canComplete === false ? 'You can only complete tasks assigned to you' : 'Mark as Completed'}" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED' || t.canComplete === false) ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
                 <button class="ribbon-btn ghost" title="Edit Details" onclick="window.TaskBoard.openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
                 <button class="ribbon-btn ghost act-delete" title="Remove" onclick="window.TaskBoard.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
             </div>

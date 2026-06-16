@@ -112,15 +112,15 @@ module.exports = {
         return result.affectedRows;
     },
 
-    logUpdate: async (taskId, userId, notes, statusChange) => {
+    logUpdate: async (taskId, userId, notes, statusChange, attachmentUrl = null) => {
         // Insert the history entry into Task_Updates
         const logQuery = `
-            INSERT INTO Task_Updates (task_id, updated_by, updated_text, status_change)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO Task_Updates (task_id, updated_by, updated_text, status_change, attachment_url)
+            VALUES (?, ?, ?, ?, ?)
         `;
         // Normalize status_change for the update log enum (which uses underscores)
         const logStatus = statusChange ? statusChange.toLowerCase().replace(' ', '_') : null;
-        await db.query(logQuery, [taskId, userId, notes, logStatus]);
+        await db.query(logQuery, [taskId, userId, notes, logStatus, attachmentUrl || null]);
 
         // If a status change was requested, update the main Tasks table status too
         if (statusChange) {
@@ -134,9 +134,9 @@ module.exports = {
 
     getUpdatesByTaskId: async (taskId) => {
         const query = `
-            SELECT logged_at, updated_text, status_change 
-            FROM Task_Updates 
-            WHERE task_id = ? 
+            SELECT logged_at, updated_text, status_change, attachment_url
+            FROM Task_Updates
+            WHERE task_id = ?
             ORDER BY logged_at DESC
         `;
         const [rows] = await db.query(query, [taskId]);

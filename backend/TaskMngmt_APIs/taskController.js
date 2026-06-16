@@ -73,26 +73,45 @@ module.exports = {
             const { completedSince } = req.query;
             
             // pass the option down into the model
-            const rawTasks = await Task.findAll({ 
-                showAllCompleted: completedSince === 'all' 
+            const rawTasks = await Task.findAll({
+                showAllCompleted: completedSince === 'all'
             });
+
+            // Work out which tasks the current user is allowed to complete, using
+            // the same ownership rule updateTask enforces: admins/chiefs may
+            // complete anything; everyone else only their own (assigned to them
+            // directly, or to a group they belong to).
+            const role = req.user.role ? req.user.role.toLowerCase() : 'staff';
+            const isManager = role === 'admin' || role === 'chief';
+            let myGroupIds = [];
+            if (!isManager) {
+                const [groupRows] = await db.query(
+                    'SELECT group_id FROM Employees_Groups WHERE employee_id = ?',
+                    [req.user.id]
+                );
+                myGroupIds = groupRows.map(r => r.group_id);
+            }
 
             const formattedTasks = rawTasks.map(t => {
                 let assigneeObj = null;
-                
+
                 if (t.assignee_fn) {
-                    assigneeObj = { 
-                        name: `${t.assignee_fn} ${t.assignee_ln}`, 
-                        type: 'user', 
-                        initials: getInitials(t.assignee_fn, t.assignee_ln) 
+                    assigneeObj = {
+                        name: `${t.assignee_fn} ${t.assignee_ln}`,
+                        type: 'user',
+                        initials: getInitials(t.assignee_fn, t.assignee_ln)
                     };
                 } else if (t.group_name) {
-                    assigneeObj = { 
-                        name: t.group_name, 
-                        type: 'group', 
-                        initials: t.group_name.substring(0, 2).toUpperCase() 
+                    assigneeObj = {
+                        name: t.group_name,
+                        type: 'group',
+                        initials: t.group_name.substring(0, 2).toUpperCase()
                     };
                 }
+
+                const canComplete = isManager
+                    || t.assigned_to_user === req.user.id
+                    || myGroupIds.includes(t.assigned_to_group);
 
                 return {
                     id: t.id,
@@ -103,7 +122,8 @@ module.exports = {
                     dueDate: t.dueDate,
                     createdAt: t.createdAt,
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
-                    assignee: assigneeObj
+                    assignee: assigneeObj,
+                    canComplete
                 };
             });
 
@@ -338,15 +358,26 @@ module.exports = {
             }
 
             const currentStatus = existingTask.status.toLowerCase();
-            const isAssignee = existingTask.assigned_to_user === req.user.id;
-            if (status) {
-                const targetStatus = status.toLowerCase();
 
-                // Lock Terminal States: a finalized (completed/cancelled) task may only be
-                // reopened by an admin/chief OR by the task's own assignee (their My Tasks).
-                // Everyone else is blocked from resurrecting it.
-                if (!isAuthorizedModifier && !isAssignee && (currentStatus === 'completed' || currentStatus === 'cancelled')) {
-                    return res.status(403).json({ message: 'Cannot modify a finalized or cancelled task.' });
+            // Determine ownership: the individual assignee, OR a member of the
+            // group the task is assigned to. Admins/chiefs bypass this entirely.
+            let isAssignee = existingTask.assigned_to_user === req.user.id;
+            if (!isAssignee && existingTask.assigned_to_group) {
+                const [memberRows] = await db.query(
+                    'SELECT 1 FROM Employees_Groups WHERE group_id = ? AND employee_id = ? LIMIT 1',
+                    [existingTask.assigned_to_group, req.user.id]
+                );
+                isAssignee = memberRows.length > 0;
+            }
+
+            if (status) {
+                // Personnel may only change the status of tasks that are their own
+                // (assigned to them directly, or to a group they belong to). This
+                // stops a user from completing someone else's task from the Task
+                // Board. Admins/chiefs are exempt. This also covers reopening a
+                // finalized task, since that is just another status change.
+                if (!isAuthorizedModifier && !isAssignee) {
+                    return res.status(403).json({ message: 'You can only update the status of tasks assigned to you.' });
                 }
             }
 
@@ -432,7 +463,7 @@ module.exports = {
 
     logTaskUpdate: async (req, res) => {
         try {
-            const { taskId, email, notes, statusChange } = req.body;
+            const { taskId, email, notes, statusChange, attachmentUrl } = req.body;
             if (!taskId || !email) {
                 return res.status(400).json({ message: 'Task ID and email are required.' });
             }
@@ -443,11 +474,20 @@ module.exports = {
                 return res.status(400).json({ message: 'Provide update notes or a status change.' });
             }
 
+            // Attachment URL is optional. If provided, only accept http(s) links
+            // so we never store a javascript:/data: URI that would execute when
+            // rendered as a link in the task history.
+            const trimmedAttachment = (attachmentUrl || '').trim();
+            if (trimmedAttachment && !/^https?:\/\/[^\s]+$/i.test(trimmedAttachment)) {
+                return res.status(400).json({ message: 'Attachment must be a valid http(s) URL.' });
+            }
+            const attachment = trimmedAttachment || null;
+
             // Find employee ID from email
             const employee = await Task.findEmployeeByEmail(email);
             if (!employee) return res.status(404).json({ message: 'User not found' });
 
-            await Task.logUpdate(taskId, employee.employee_id, trimmedNotes, statusChange);
+            await Task.logUpdate(taskId, employee.employee_id, trimmedNotes, statusChange, attachment);
 
             const task = await Task.findById(taskId);
             const updaterName = formatFullName(employee);
@@ -482,8 +522,7 @@ module.exports = {
             }
 
             //-non-admin x attached a url to the latest task update of task y
-            // We can detect a URL in the notes as a simple heuristic since there is no separate URL field.
-            if (!isUpdaterAdminActual && /https?:\/\/[^\s]+/.test(trimmedNotes)) {
+            if (!isUpdaterAdminActual && attachment) {
                     await recordNotification(db, {
                         kind: "task_url_update",
                         title: "URL Attached",
