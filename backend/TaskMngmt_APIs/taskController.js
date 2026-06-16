@@ -470,12 +470,7 @@ module.exports = {
             if (!taskId || !email) {
                 return res.status(400).json({ message: 'Task ID and email are required.' });
             }
-            // Notes are optional (e.g. the "easy complete" check button only
-            // changes status), but the request must do something.
             const trimmedNotes = (notes || '').trim();
-            if (!trimmedNotes && !statusChange) {
-                return res.status(400).json({ message: 'Provide update notes or a status change.' });
-            }
 
             // Attachment URL is optional. If provided, only accept http(s) links
             // so we never store a javascript:/data: URI that would execute when
@@ -485,6 +480,13 @@ module.exports = {
                 return res.status(400).json({ message: 'Attachment must be a valid http(s) URL.' });
             }
             const attachment = trimmedAttachment || null;
+
+            // Notes are optional (e.g. the "easy complete" button only changes
+            // status, or the user just attaches a URL), but the request must do
+            // something: notes, a status change, or an attachment.
+            if (!trimmedNotes && !statusChange && !attachment) {
+                return res.status(400).json({ message: 'Provide update notes, a status change, or an attachment URL.' });
+            }
 
             // Find employee ID from email
             const employee = await Task.findEmployeeByEmail(email);

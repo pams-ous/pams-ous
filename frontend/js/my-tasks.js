@@ -189,6 +189,25 @@
                 }).join('')
                 : '<p class="log-empty">No updates logged yet.</p>';
 
+            // Dedicated, always-visible URL section: collect every attached link
+            // across the task's updates (newest first) so it is easy to find.
+            const attachments = updates
+                .map(l => ({ url: safeUrl(l.attachment_url), date: l.logged_at }))
+                .filter(a => a.url);
+
+            const attachmentsHtml = `
+                <div class="update-log">
+                    <div class="update-log-title"><i class="fa-solid fa-link" aria-hidden="true"></i> Attachments</div>
+                    ${attachments.length
+                        ? `<div class="attach-list">${attachments.map(a => `
+                            <a class="attach-link" href="${a.url}" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+                                <span class="attach-url">${a.url}</span>
+                                <span class="attach-date">${fmtDate(a.date)}</span>
+                            </a>`).join('')}</div>`
+                        : '<p class="log-empty">No URL attached.</p>'}
+                </div>`;
+
             const bodyEl = document.getElementById('viewTaskBody');
             if (bodyEl) {
                 bodyEl.innerHTML = `
@@ -201,6 +220,7 @@
                         <div class="detail-item"><label>Assigned By</label><div class="val">${t.assignedByName || '—'}</div></div>
                         ${t.description ? `<div class="detail-item full"><label>Description</label><div class="val" style="font-weight:400; color:var(--gray-700);">${t.description}</div></div>` : ''}
                     </div>
+                    ${attachmentsHtml}
                     <div class="update-log">
                         <div class="update-log-title"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</div>
                         ${logsHtml}
@@ -231,9 +251,12 @@
             const statusChange = document.getElementById('log-new-status')?.value;
             const attachmentUrl = document.getElementById('log-attachment')?.value.trim() || '';
 
-            // Notes are optional — a status change alone is a valid update.
+            // Notes are optional — a status change OR an attachment alone is a
+            // valid update. We only require that the update does *something*.
             if (!taskId) { PAMS.toast('Please select a task.', 'warning'); return; }
-            if (!notes && !statusChange) { PAMS.toast('Provide update notes or a status change.', 'warning'); return; }
+            if (!notes && !statusChange && !attachmentUrl) {
+                PAMS.toast('Provide update notes, a status change, or an attachment URL.', 'warning'); return;
+            }
             if (attachmentUrl && !/^https?:\/\/[^\s]+$/i.test(attachmentUrl)) {
                 PAMS.toast('Attachment must be a valid http(s) URL.', 'warning'); return;
             }
