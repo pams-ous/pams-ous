@@ -9,7 +9,7 @@ const serverArgs = [serverPath];
 const ngrokCmd = 'ngrok';
 const ngrokArgs = ['http', '3000'];
 
-console.log('🚀 Launching server and ngrok...');
+console.log('Launching server and ngrok...');
 
 const serverProc = spawn(serverCmd, serverArgs);
 const ngrokProc = spawn(ngrokCmd, ngrokArgs);
@@ -29,6 +29,19 @@ const setupLogging = (proc, prefix, color) => {
 setupLogging(serverProc, '[Server]', '\x1b[32m');
 setupLogging(ngrokProc, '[Ngrok]', '\x1b[34m');
 
+const checkServerConnection = () => {
+    return new Promise((resolve) => {
+        const timer = setInterval(() => {
+            http.get('http://localhost:3000', (res) => {
+                clearInterval(timer);
+                resolve();
+            }).on('error', () => {
+                // Keep trying
+            });
+        }, 500);
+    });
+};
+
 const fetchNgrokUrl = () => {
     http.get('http://localhost:4040/api/tunnels', (res) => {
         let data = '';
@@ -38,6 +51,10 @@ const fetchNgrokUrl = () => {
                 const tunnels = JSON.parse(data).tunnels;
                 if (tunnels && tunnels.length > 0) {
                     console.log(`\n\x1b[33mNgrok Public URL: ${tunnels[0].public_url}\x1b[0m\n`);
+                    console.log('--------------------------------------------------');
+                    console.log('SERVER AND NGROK ARE RUNNING');
+                    console.log('Close this window or press Ctrl+C to stop everything.');
+                    console.log('--------------------------------------------------');
                 } else {
                     setTimeout(fetchNgrokUrl, 2000);
                 }
@@ -50,11 +67,16 @@ const fetchNgrokUrl = () => {
     });
 };
 
-console.log('Fetching Ngrok public URL... please wait.');
-setTimeout(fetchNgrokUrl, 1000);
+const startSequence = async () => {
+    await checkServerConnection();
+    console.log('Fetching Ngrok public URL...');
+    fetchNgrokUrl();
+};
+
+startSequence();
 
 const killProcesses = () => {
-    console.log('\n🛑 Stopping all processes...');
+    console.log('\nStopping all processes...');
     serverProc.kill();
     ngrokProc.kill();
 };
@@ -69,10 +91,4 @@ process.on('SIGTERM', () => {
     process.exit();
 });
 
-// Handle window close on some platforms
 process.on('exit', killProcesses);
-
-console.log('--------------------------------------------------');
-console.log('SERVER AND NGROK ARE RUNNING');
-console.log('Close this window or press Ctrl+C to stop everything.');
-console.log('--------------------------------------------------');
