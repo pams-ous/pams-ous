@@ -34,6 +34,42 @@ async function registerSearchHandlers(socket, db) {
             socket.emit('searchResult', { success: false, rawData: err });
         }
     });
+
+    socket.on('searchUsersByEmail', async (data) => {
+        if (!verifyAuth()) {
+            socket.emit('userSearchEmailResult', { success: false, rawData: `Unauthorized access.` });
+            return;
+        }
+        const emailQuery = data.query;
+        const wildcardEmail = `%${emailQuery}%`;
+
+        const sql = `SELECT * FROM Employees WHERE email LIKE ?;`;
+
+        try {
+            const [results] = await db.query(sql, [wildcardEmail]);
+            socket.emit('userSearchEmailResult', { success: true, rawData: results });
+        } catch (err) {
+            socket.emit('userSearchEmailResult', { success: false, rawData: err });
+        }
+    });
+
+    socket.on('searchGroupsByName', async (data) => {
+        if (!verifyAuth()) {
+            socket.emit('groupSearchResult', { success: false, rawData: `Unauthorized access.` });
+            return;
+        }
+        const groupQuery = data.query;
+        const wildcardGroup = `%${groupQuery}%`;
+
+        const sql = `SELECT * FROM Job_Groups WHERE group_name LIKE ?;`;
+
+        try {
+            const [results] = await db.query(sql, [wildcardGroup]);
+            socket.emit('groupSearchResult', { success: true, rawData: results });
+        } catch (err) {
+            socket.emit('groupSearchResult', { success: false, rawData: err });
+        }
+    });
 }
 
 module.exports = { registerSearchHandlers };

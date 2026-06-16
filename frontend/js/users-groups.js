@@ -63,13 +63,98 @@
                     `;
                 }
             });
+
+            socket.on('userSearchEmailResult', (data) => {
+                if (!data.success) {
+                    console.error("User email search failed:", data.rawData);
+                    return;
+                }
+                
+                // Update the local users cache with the filtered results
+                // Note: This overrides the global 'users' array for rendering
+                users = data.rawData.map(u => ({
+                    ...u,
+                    name: `${u.first_name || ''} ${u.last_name || ''} ${u.suffix || ''}`.trim() || u.email,
+                    email: u.email,
+                    role: u.designation, // Based on schema.sql, designation is the role enum
+                    jobTitleId: u.job_title,
+                    activeStatus: u.active_status
+                }));
+                
+                renderUsers();
+            });
+
+            socket.on('groupSearchResult', (data) => {
+                if (!data.success) {
+                    console.error("Group search failed:", data.rawData);
+                    return;
+                }
+                
+                // Map DB columns to frontend expected properties
+                groups = data.rawData.map(g => ({
+                    id: g.group_id,
+                    name: g.group_name,
+                    desc: g.desc,
+                    leader: g.leader, // This depends on if the query joined with employees, 
+                                      // but for basic search we use what's in Job_Groups
+                    members: g.members || 0
+                }));
+                
+                renderGroups();
+            });
         }
 
         await loadAll();
         initSortHeaders();
         initGroupSortHeaders();
         initTabs();
+        initUserEmailSearch();
+        initGroupSearch();
     });
+
+    function initUserEmailSearch() {
+        const searchInput = document.getElementById('userEmailSearch');
+        if (!searchInput) return;
+
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                
+                if (!query) {
+                    await loadAll();
+                    return;
+                }
+
+                if (PAMS.socket) {
+                    PAMS.socket.emit('searchUsersByEmail', { query });
+                }
+            }, 300);
+        });
+    }
+
+    function initGroupSearch() {
+        const searchInput = document.getElementById('groupSearch');
+        if (!searchInput) return;
+
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                
+                if (!query) {
+                    await loadAll();
+                    return;
+                }
+
+                if (PAMS.socket) {
+                    PAMS.socket.emit('searchGroupsByName', { query });
+                }
+            }, 300);
+        });
+    }
 
     async function loadAll() {
         try {

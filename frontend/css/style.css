@@ -561,7 +561,32 @@ tbody td {
   gap: 10px;
 }
 
-.panel-title i {
+
+/* User Search Bar */
+.search-wrap {
+  position: relative;
+  flex: 0 1 450px;
+  margin-right: 1rem;
+}
+
+.search-wrap .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-500);
+  font-size: 14px;
+  transition: color var(--transition);
+  pointer-events: none;
+}
+
+.search-wrap .search-input {
+  padding-left: 35px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.search-wrap .search-input:focus + .search-icon,
+.search-wrap:focus-within .search-icon {
   color: var(--maroon);
 }
 
@@ -1905,12 +1930,12 @@ body.sidebar-open .main {
    compressed and clipped the "Completed" tab. Let the header reflow and
    stop the toggle/tabs from shrinking. */
 .my-tasks-panel .panel-head {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
 }
 
 .my-tasks-panel .panel-head .flex {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .mt-view-toggle {

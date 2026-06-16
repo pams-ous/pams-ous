@@ -120,7 +120,10 @@
                 aria-labelledby="tab-users"
                 tabindex="0">
                 <div class="panel-header">
-                    <div class="panel-title"><i class="fa-solid fa-user-gear"></i> System Users</div>
+                    <div class="search-wrap">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by email address...">
+                </div>
                     <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')" aria-label="Add new user">
                         <i class="fa-solid fa-user-plus"></i> Add User
                     </button>
@@ -152,7 +155,10 @@
                 tabindex="0"
                 hidden>
                 <div class="panel-header">
-                    <div class="panel-title"><i class="fa-solid fa-layer-group"></i> Groups</div>
+                    <div class="search-wrap">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="groupSearch" class="form-control search-input" placeholder="Search for groups...">
+                </div>
                     <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')" aria-label="Add new group">
                         <i class="fa-solid fa-plus"></i> Add Group
                     </button>
