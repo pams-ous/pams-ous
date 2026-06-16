@@ -19,7 +19,7 @@ Additionally, new architectural and data integrity flaws have been discovered in
 
 | Severity        | Count | Findings                                                                                              |
 |-----------------|:-----:|-------------------------------------------------------------------------------------------------------|
-| 🔴 Critical     |   2   | Hardcoded JWT fallback secret, IDOR in `getMyTasks`                                                   |
+| 🔴 Critical     |   1   | IDOR in `getMyTasks`                                                   |
 | 🟠 High         |   3   | Impersonation in `logTaskUpdate`, unguarded admin sync route, unguarded report socket events          |
 | 🟡 Medium       |   4   | XSS via innerHTML, memory-intensive filtering in `getMyTasks`, system jobs in GET handler, CORS match |
 | 🔵 Low          |   3   | Internal error leaks, architectural coupling in `server.js`, JWT in sessionStorage                    |
@@ -37,7 +37,7 @@ Findings related to authentication, authorization, user identity, and personnel 
 | Attribute  | Value                                  |
 |------------|----------------------------------------|
 | **File**   | `backend/UserMngmt_APIs/authUtil.js:3` |
-| **Status** | 🔴 VULNERABLE (PERSISTENT)             |
+| **Status** | ✅ FIXED |
 
 **Vulnerable code:**
 
@@ -114,7 +114,7 @@ Acceptable for internal use if XSS is fixed, but `HttpOnly` cookies are recommen
 
 ### Users — Remediation Checklist
 
-- [ ] **[CRITICAL]** Remove JWT fallback secret in `authUtil.js`; fail fast with `process.exit(1)` if `JWT_SECRET` is absent
+- [x] **[CRITICAL]** Remove JWT fallback secret in `authUtil.js`; fail fast with `process.exit(1)` if `JWT_SECRET` is absent
 - [ ] **[HIGH]** Protect `GET /api/admin/sync/groups/:id/members` with `authenticateToken` and `authorizeRole(['ADMIN'])`
 - [ ] **[MEDIUM]** Replace `.includes()` CORS checks with an exact `Set.has()` allowlist
 - [ ] **[LOW]** Replace `res.status(500).json({ error: e.message })` with a generic message; log the full error server-side
