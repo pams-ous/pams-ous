@@ -346,6 +346,14 @@ body {
   background: var(--white);
   transition: border-color .15s ease;
   outline: none;
+  resize: none;
+}
+
+.form-control option {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .form-control:disabled {
@@ -612,7 +620,7 @@ body.sidebar-open .sidebar {
   align-items: center;
   justify-content: center;
   padding: 3px;
-  margin-left: 4px;
+  margin-left: 4px 10px;
 }
 
 .logo-star img {
@@ -787,6 +795,7 @@ html:not(.sidebar-pre-open) body:not(.sidebar-open) .user-card {
   font-size: 14px;
   color: var(--pup-maroon);
   flex-shrink: 0;
+  margin-left: 10px;
 }
 
 .user-card>div:not(.user-avatar) {

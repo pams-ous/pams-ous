@@ -18,6 +18,15 @@
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
         injectViewToggle();
+
+        const logNotes = document.getElementById('log-notes');
+        const logNotesCount = document.getElementById('log-notes-count');
+        if (logNotes && logNotesCount) {
+            logNotes.addEventListener('input', () => {
+                logNotesCount.textContent = logNotes.value.length;
+            });
+        }
+
         await loadTasks();
     });
 
@@ -191,7 +200,7 @@
                 const sel = document.getElementById('log-task-select');
                 if (sel) {
                     sel.innerHTML = '<option value="">— Choose a task —</option>' +
-                        tasks.filter(t => t.status !== 'COMPLETED').map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+                        tasks.filter(t => t.status !== 'COMPLETED').map(t => `<option value="${t.id}">${t.title.length > 60 ? t.title.slice(0, 60) + '...' : t.title}</option>`).join('');
                 }
                 const notes = document.getElementById('log-notes');
                 const status = document.getElementById('log-new-status');

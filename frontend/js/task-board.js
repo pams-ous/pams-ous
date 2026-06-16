@@ -20,6 +20,15 @@
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
         wireRibbon();
+
+        const ntDesc = document.getElementById('nt-desc');
+        const ntDescCount = document.getElementById('nt-desc-count');
+        if (ntDesc && ntDescCount) {
+            ntDesc.addEventListener('input', () => {
+                ntDescCount.textContent = ntDesc.value.length;
+            });
+        }
+
         await loadAll();
     });
 

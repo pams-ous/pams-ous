@@ -133,15 +133,17 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Select Task *</label>
+                    <label class="form-label">Select Task <span style="color: var(--red-text);">*</span></label>
                     <select id="log-task-select" class="form-control">
                         <option value="">— Choose a task —</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Update Notes *</label>
+                    <label class="form-label">Update Notes <span style="color: var(--red-text);">*</span></label>
                     <textarea id="log-notes" class="form-control" rows="4"
-                        placeholder="What progress was made?"></textarea>
+                        placeholder="What progress was made?" maxlength="200"></textarea>
+                        <div style="text-align: right; font-size: 0.75rem; color: var(--gray-500);
+                            margin-top: 4px;"><span id="log-notes-count">0</span>/200</div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -159,6 +161,7 @@
                     </div>
                 </div>
             </div>
+            <p style="font-size: 0.75rem; color: var(--gray-500); padding: 0 1.5rem;"><span style="color: var(--red-text);">*</span> Indicates required fields</p>
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="window.MyTasks.closeModal('logUpdateModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="window.MyTasks.saveLogUpdate()">Save Update</button>
