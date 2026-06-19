@@ -122,7 +122,7 @@
                 <div class="panel-header">
                     <div class="search-wrap">
                     <i class="fa-solid fa-search search-icon"></i>
-                    <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by email address...">
+                    <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by name, email, or employee code...">
                 </div>
                     <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')" aria-label="Add new user">
                         <i class="fa-solid fa-user-plus"></i> Add User
@@ -131,9 +131,10 @@
                 <div class="table-wrap ph-24">
                     <table class="data-table" id="usersTable">
                         <thead>
-                            <tr>
-                                <th class="th-sort" data-col="name" role="columnheader" aria-sort="ascending" tabindex="0"><span class="th-sort-inner">Personnel <i class="fa-solid fa-sort-up th-sort-icon"></i></span></th>
-                                <th class="th-sort" data-col="email" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Email <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <tr>
+                                    <th class="th-sort" data-col="code" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Employee Code <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                    <th class="th-sort" data-col="name" role="columnheader" aria-sort="ascending" tabindex="0"><span class="th-sort-inner">Personnel <i class="fa-solid fa-sort-up th-sort-icon"></i></span></th>
+                                    <th class="th-sort" data-col="email" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Email <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
                                 <th class="th-sort" data-col="role" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Access Role <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
                                 <th class="th-sort" data-col="jobtitle" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Job Title <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
                                 <th class="th-sort" data-col="groups" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Groups <i class="fa-solid fa-sort th-sort-icon"></i></span></th>

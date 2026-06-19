@@ -76,6 +76,7 @@
                 // Note: This overrides the global 'users' array for rendering
                 users = data.rawData.map(u => ({
                     ...u,
+                    employeeCode: u.employee_code,
                     name: `${u.first_name || ''} ${u.last_name || ''} ${u.suffix || ''}`.trim() || u.email,
                     email: u.email,
                     role: u.designation, // Based on schema.sql, designation is the role enum
@@ -185,6 +186,8 @@
     // This gives a deterministic, meaningful sort rather than leaving Actions unsorted.
     function getSortValue(u, col) {
         switch (col) {
+            case 'code':
+                return (u.employeeCode || '').toLowerCase();
             case 'name':
                 return (u.name || '').toLowerCase();
             case 'email':
@@ -458,6 +461,7 @@
 
             return `
             <tr>
+              <td class="td-code">${u.employeeCode || '—'}</td>
               <td class="td-name">${u.name || '—'}</td>
               <td class="td-email">${u.email}</td>
               <td>
@@ -719,7 +723,26 @@
             const desc = document.getElementById('newGroupDesc').value.trim();
             const leader = document.getElementById('newGroupLeader').value;
             if (!name) { PAMS.toast('Group name required.', 'warning'); return; }
-            try { await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); window.Admin.closeModal('addGroupModal'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
+            try { 
+                const res = await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); 
+                window.Admin.closeModal('addGroupModal'); 
+                
+                const groupId = res?.id || res?.group_id;
+                if (groupId) {
+                    // Pass the group object from the response directly to avoid race conditions with loadAll()
+                    const groupObj = {
+                        id: groupId,
+                        name: res.group_name || res.name || name,
+                        desc: res.desc || desc,
+                        leader: res.leader || ''
+                    };
+                    // Trigger modal immediately
+                    window.Admin.openManageMembers(groupObj);
+                }
+                
+                // Update background data
+                await loadAll(); 
+            } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         openEditGroup: (id) => {
             const g = groups.find(x => x.id === id);
@@ -761,9 +784,10 @@
             }
         },
 
-        openManageMembers: async (id) => {
+        openManageMembers: async (idOrGroup) => {
+            let id = typeof idOrGroup === 'object' ? idOrGroup.id : idOrGroup;
             currentManageGroupId = id;
-            const g = groups.find(x => x.id === id);
+            const g = typeof idOrGroup === 'object' ? idOrGroup : groups.find(x => x.id === id);
             if (!g) return;
 
             const leaderUser = users.find(u => u.name === g.leader);

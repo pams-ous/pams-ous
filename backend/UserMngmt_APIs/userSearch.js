@@ -40,13 +40,29 @@ async function registerSearchHandlers(socket, db) {
             socket.emit('userSearchEmailResult', { success: false, rawData: `Unauthorized access.` });
             return;
         }
-        const emailQuery = data.query;
-        const wildcardEmail = `%${emailQuery}%`;
+        const query = data.query;
+        const wildcardQuery = `%${query}%`;
+        
+        // Split query into individual words for "any order" name search
+        const terms = query.trim().split(/\s+/).filter(t => t.length > 0);
+        
+        // Build name search components: each word must be present in one of the name columns
+        let nameConditions = [];
+        let nameParams = [];
+        terms.forEach(term => {
+            const wildcardTerm = `%${term}%`;
+            nameConditions.push('(first_name LIKE ? OR last_name LIKE ? OR middle_name LIKE ? OR suffix LIKE ?)');
+            nameParams.push(wildcardTerm, wildcardTerm, wildcardTerm, wildcardTerm);
+        });
 
-        const sql = `SELECT * FROM Employees WHERE email LIKE ?;`;
+        const nameQuery = nameConditions.length > 0 ? nameConditions.join(' AND ') : '0=1';
+
+        // Combine Email, Employee Code, and the multi-word Name search
+        const sql = `SELECT * FROM Employees WHERE email LIKE ? OR employee_code LIKE ? OR (${nameQuery});`;
+        const finalParams = [wildcardQuery, wildcardQuery, ...nameParams];
 
         try {
-            const [results] = await db.query(sql, [wildcardEmail]);
+            const [results] = await db.query(sql, finalParams);
             socket.emit('userSearchEmailResult', { success: true, rawData: results });
         } catch (err) {
             socket.emit('userSearchEmailResult', { success: false, rawData: err });

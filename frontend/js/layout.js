@@ -214,8 +214,7 @@ window.PAMS_UI = (function () {
             const socket = PAMS.socket;
             if (socket) {
                 socket.on('new_notification', (data) => {
-                    const current = parseInt(badge.textContent) || 0;
-                    updateBadgeCount(current + 1);
+                    updateBadgeCount();
                     if (popover.classList.contains('open')) {
                         loadNotifications();
                     }
