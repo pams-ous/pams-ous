@@ -2,4 +2,5 @@
 .antigravitycli/
 
 # Other agents/tools
+backend/config/superadmin.js
 .claude/

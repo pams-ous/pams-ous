@@ -20,11 +20,15 @@ function authenticateToken(req, res, next) {
 function authorizeRole(roles) {
     return (req, res, next) => {
         // 1. Check if the user object and role exist
-        if (!req.user || !req.user.role) {
-            return res.status(403).json({ success: false, message: 'Insufficient permissions' });
-        }
+            if (!req.user || !req.user.role) {
+                return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+            }
+            // SUPERADMIN bypasses any role check
+            if (req.user.role === 'SUPERADMIN') {
+                return next();
+            }
 
-        // 2. Perform a case-insensitive comparison
+            // 2. Perform a case-insensitive comparison
         const hasPermission = roles.some(
             allowedRole => allowedRole.toLowerCase() === req.user.role.toLowerCase()
         );

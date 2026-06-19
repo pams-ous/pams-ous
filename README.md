@@ -52,7 +52,29 @@ DB_USER=root
 DB_PASSWORD="your_password_here"
 DB_NAME=people
 OTP_DELIVERY=console
+
+# Super‑Admin
+
+The development database seeds a permanent super‑admin account.
+
+```env
+SUPERADMIN_EMAIL=superadmin@local.test
+SUPERADMIN_PASSWORD=supersecret
 ```
+
+### Seeding the Super‑Admin
+
+The development database includes a script to seed the permanent super‑admin account defined in the `.env` file.
+
+```bash
+# Seed the default super‑admin (no DB reset)
+node backend/scripts/dev/seed-admin.js
+
+# Seed the super‑admin after resetting the database
+node backend/scripts/dev/seed-admin.js --clear
+```
+
+The script reads the credentials from the `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD` environment variables and prints them after a successful run.
 
 ### 3. Database Setup
 1. Open your MySQL client (e.g., MySQL Workbench).

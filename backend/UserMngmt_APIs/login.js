@@ -3,6 +3,7 @@ MODULARIZED LOGIN & APP ROUTING (UserMngmt_APIs/login.js)
 ===============================================================
 */
 const { verify_pass, hash_password } = require("./passwordUtil");
+const superadmin = require("../config/superadmin");
 const { getEmployeeDetails } = require("./dbChecks");
 const { generateToken, verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
@@ -197,7 +198,7 @@ async function initLoginRoutes(app, db, io) {
 
                     res.json({
                         success: true,
-                        token: generateToken({ id: userRecord.employee_id, email: email, role: userRecord.designation === 'Admin' ? 'ADMIN' : 'MEMBER' }),
+                        token: generateToken({ id: userRecord.employee_id, email: email, role: (email === superadmin.EMAIL) ? 'SUPERADMIN' : (userRecord.designation === 'Admin' ? 'ADMIN' : 'MEMBER') }),
                         user: {
                             id: userRecord.employee_id,
                             email: email,
@@ -221,6 +222,10 @@ async function initLoginRoutes(app, db, io) {
     // Update User Position/Role
     app.put('/api/users/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const userEmail = req.params.id;
+        // Prevent super‑admin demotion
+        if (userEmail === superadmin.EMAIL) {
+            return res.status(403).json({ success: false, message: 'Super‑admin role cannot be changed' });
+        }
         const { role } = req.body;
         const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
         

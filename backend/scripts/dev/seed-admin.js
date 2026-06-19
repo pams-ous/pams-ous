@@ -13,6 +13,7 @@ const { reset } = require('./reset-db');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const args = process.argv.slice(2);
+const superadmin = require('../../config/superadmin');
 
 function getArgValue(names) {
     for (const name of names) {
@@ -113,24 +114,15 @@ async function seed() {
             jobTitle: getArgValue(['--job-title']) || 'Director'
         });
     } else {
-        accountsToSeed = [
-            {
-                email: 'admin@local.test',
-                password: 'password123',
-                employeeCode: 'ADM-001',
-                firstName: 'System',
-                lastName: 'Admin',
-                jobTitle: 'Director'
-            },
-            {
-                email: 'staffadmin@local.test',
-                password: 'password123',
-                employeeCode: 'ADM-002',
-                firstName: 'Staff',
-                lastName: 'Admin',
-                jobTitle: 'Deputy Director'
-            }
-        ];
+        // Only super admin credential is seeded
+        accountsToSeed = [{
+          email: superadmin.EMAIL,
+          password: superadmin.PASSWORD,
+          employeeCode: superadmin.EMPLOYEE_CODE,
+          firstName: superadmin.FIRST_NAME,
+          lastName: superadmin.LAST_NAME,
+          jobTitle: superadmin.JOB_TITLE
+        }];
     }
 
     const dbName = process.env.DB_NAME || 'people';
