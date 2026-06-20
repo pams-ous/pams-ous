@@ -50,10 +50,10 @@ PREPARE stmt2 FROM @fk; EXECUTE stmt2; DEALLOCATE PREPARE stmt2;
 
 -- 4) Seed the dropdown's job titles (idempotent via the unique name key)
 INSERT INTO Designations (name, hierarchy_position, is_default) VALUES
-  ('Director',             10, 0),
-  ('Deputy Director',      20, 0),
-  ('Coordinator',          30, 0),
-  ('Supervisor',           40, 0)
+  ('Head', 10, 0),
+  ('Chief - Student Records', 20, 0),
+  ('Chief - Admission & Registration', 30, 0),
+  ('Encoder / Administrative Staff', 40, 0)
 ON DUPLICATE KEY UPDATE
   hierarchy_position = VALUES(hierarchy_position),
   is_default = VALUES(is_default);

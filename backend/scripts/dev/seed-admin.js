@@ -146,11 +146,10 @@ async function seed() {
         // 3. Seed Base Designations
         console.log('Seeding standard designations...');
         const designations = [
-            ['Director', 'Highest administrative/executive rank', 10, 0],
-            ['Deputy Director', 'Deputy administrative/executive rank', 20, 0],
-            ['Coordinator', 'Unit or group coordinator', 30, 0],
-            ['Administrative Staff', 'Office administrative/support staff', 40, 1],
-            ['Encoder', 'General staff/data encoder', 50, 0]
+            ['Head', 'Highest administrative/executive rank', 10, 0],
+            ['Chief - Student Records', 'Chief responsible for student records', 20, 0],
+            ['Chief - Admission & Registration', 'Chief responsible for admission and registration', 30, 0],
+            ['Encoder / Administrative Staff', 'Encoder and administrative staff role', 40, 0]
         ];
         for (const [name, desc, pos, def] of designations) {
             await db.execute(`
