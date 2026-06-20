@@ -55,12 +55,21 @@ OTP_DELIVERY=console
 
 # Super‑Admin
 
-The development database seeds a permanent super‑admin account.
+The development database seeds a permanent super‑admin account with the following default credentials. These values can be overridden via environment variables in `.env`.
 
 ```env
 SUPERADMIN_EMAIL=superadmin@local.test
 SUPERADMIN_PASSWORD=supersecret
 ```
+
+(Tentative) Additional default super‑admin properties (defined in `backend/config/superadmin.js`):
+- **Employee Code:** `SUPER-001`
+- **First Name:** `Super`
+- **Last Name:** `Admin`
+- **Job Title:** `Head`
+
+These defaults are used unless overridden in the configuration.
+
 
 ### Seeding the Super‑Admin
 

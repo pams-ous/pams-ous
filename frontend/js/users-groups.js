@@ -27,7 +27,7 @@
     let currentGroupLeaderEmail = null;
     let pendingDelete = null;
     let pendingDemote = null;
-    const currentUserId = 1;
+    const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('pams.user') || '{}').id || null; } catch { return null; } })();
 
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -470,9 +470,10 @@
                     onchange="window.Admin.handleRoleChange('${u.email}', this.value, '${u.role}')"
                     data-user-email="${u.email}" 
                     data-current-role="${u.role}"
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
-                    <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
-                    <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${u.id === currentUserId ? 'not-allowed' : 'pointer'}; ${u.id === currentUserId ? 'background-color:#f9fafb;' : ''}"
+                    ${u.id === currentUserId ? 'disabled' : ''}>
+                    <option value="MEMBER" ${u.role && u.role.toUpperCase() === 'MEMBER' ? 'selected' : ''}>Encoder</option>
+                    <option value="ADMIN" ${u.role && u.role.toUpperCase() === 'ADMIN' ? 'selected' : ''}>Administrator</option>
                 </select>
               </td>
               <td>
@@ -480,7 +481,8 @@
                     class="form-control" 
                     onchange="window.Admin.changeJobTitle('${u.email}', this.value)"
                     data-user-email="${u.email}" 
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${u.id === currentUserId ? 'not-allowed' : 'pointer'}; ${u.id === currentUserId ? 'background-color:#f9fafb;' : ''}"
+                    ${u.id === currentUserId ? 'disabled' : ''}>
                     <option value="">— Select Title —</option>
                     ${jobTitleOptions}
                 </select>
