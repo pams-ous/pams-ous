@@ -55,6 +55,9 @@ const db = mysql.createPool({
     database: process.env.DB_NAME || 'people'
 });
 
+module.exports = db;
+
+
 // =======================================================
 // 3. API MODULE INITIALIZATION & ROUTING
 // =======================================================
