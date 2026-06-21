@@ -120,7 +120,10 @@
                 aria-labelledby="tab-users"
                 tabindex="0">
                 <div class="panel-header">
-                    <div class="panel-title"><i class="fa-solid fa-user-gear"></i> System Users</div>
+                    <div class="search-wrap">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by name, email, or employee code...">
+                </div>
                     <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')" aria-label="Add new user">
                         <i class="fa-solid fa-user-plus"></i> Add User
                     </button>
@@ -128,9 +131,10 @@
                 <div class="table-wrap ph-24">
                     <table class="data-table" id="usersTable">
                         <thead>
-                            <tr>
-                                <th class="th-sort" data-col="name" role="columnheader" aria-sort="ascending" tabindex="0"><span class="th-sort-inner">Personnel <i class="fa-solid fa-sort-up th-sort-icon"></i></span></th>
-                                <th class="th-sort" data-col="email" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Email <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                <tr>
+                                    <th class="th-sort" data-col="code" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Employee Code <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
+                                    <th class="th-sort" data-col="name" role="columnheader" aria-sort="ascending" tabindex="0"><span class="th-sort-inner">Personnel <i class="fa-solid fa-sort-up th-sort-icon"></i></span></th>
+                                    <th class="th-sort" data-col="email" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Email <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
                                 <th class="th-sort" data-col="role" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Access Role <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
                                 <th class="th-sort" data-col="jobtitle" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Job Title <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
                                 <th class="th-sort" data-col="groups" role="columnheader" aria-sort="none" tabindex="0"><span class="th-sort-inner">Groups <i class="fa-solid fa-sort th-sort-icon"></i></span></th>
@@ -152,7 +156,10 @@
                 tabindex="0"
                 hidden>
                 <div class="panel-header">
-                    <div class="panel-title"><i class="fa-solid fa-layer-group"></i> Groups</div>
+                    <div class="search-wrap">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="groupSearch" class="form-control search-input" placeholder="Search for groups...">
+                </div>
                     <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')" aria-label="Add new group">
                         <i class="fa-solid fa-plus"></i> Add Group
                     </button>
@@ -467,6 +474,25 @@
             <div class="modal-footer is-centered">
                 <button class="btn-cancel" onclick="window.Admin.closeModal('confirmDeleteModal')">Cancel</button>
                 <button class="btn btn-danger" onclick="window.Admin.confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIRM DEMOTE MODAL -->
+    <div class="modal-backdrop" id="confirmDemoteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Confirm Demotion</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('confirmDemoteModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="confirm-body">
+                <i class="fa-solid fa-circle-info"></i>
+                <p id="confirmDemoteText"></p>
+            </div>
+            <div class="modal-footer is-centered">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('confirmDemoteModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.confirmDemote()">OK</button>
             </div>
         </div>
     </div>

@@ -1,6 +1,7 @@
 const { generateAndSendOtp, verifyOtp } = require("./otpService");
 const { getEmployeeDetails } = require("./dbChecks");
 const { generateToken } = require("./authUtil");
+const superadmin = require("../config/superadmin");
 
 async function registerOtpHandlers(socket, db) {
     // Generic OTP request — used by the optional sign-in OTP gate
@@ -60,7 +61,7 @@ async function registerOtpHandlers(socket, db) {
                 .join(" ");
 
             const role = employee?.designation === 'Admin' ? 'ADMIN' : 'MEMBER';
-            const token = generateToken({ id: employee?.employee_id, email: email, role: role });
+            const token = generateToken({ id: employee?.employee_id, email: email, role: (email === superadmin.EMAIL) ? 'SUPERADMIN' : role });
 
             socket.emit("otpVerifyLog", {
                 success: true,

@@ -127,6 +127,8 @@ window.PAMS_UI = (function () {
     /**
      * Notifications
      */
+    let showAllNotifications = false;
+
     const setupNotifications = () => {
         const bell = document.querySelector('.bell-btn');
         const popover = document.querySelector('.notif-popover');
@@ -160,6 +162,7 @@ window.PAMS_UI = (function () {
             e.stopPropagation();
             popover.classList.toggle('open');
             if (popover.classList.contains('open')) {
+                showAllNotifications = false;
                 await loadNotifications();
                 updateBadgeCount(0);
                 PAMS.apiFetch('/notifications/mark-all-read', 'PATCH').catch(err => {
@@ -182,6 +185,15 @@ window.PAMS_UI = (function () {
                         PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
                     }
                 });
+                return;
+            }
+
+            const showAllBtn = e.target.closest('.notif-show-all-btn');
+            if (showAllBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                showAllNotifications = true;
+                await loadNotifications();
                 return;
             }
 
@@ -214,8 +226,7 @@ window.PAMS_UI = (function () {
             const socket = PAMS.socket;
             if (socket) {
                 socket.on('new_notification', (data) => {
-                    const current = parseInt(badge.textContent) || 0;
-                    updateBadgeCount(current + 1);
+                    updateBadgeCount();
                     if (popover.classList.contains('open')) {
                         loadNotifications();
                     }
@@ -275,16 +286,20 @@ window.PAMS_UI = (function () {
             if (data.history && data.history.length > 0) {
                 console.log('[NOTIF-UI-DEBUG] Processing history notifications:', data.history.length);
                 
-                // Use truthy/falsy checks to handle MySQL 0/1 booleans
-                const unread = data.history.filter(n => !n.isRead);
-                const read = data.history.filter(n => n.isRead);
+                let historyList = data.history;
+                if (!showAllNotifications && historyList.length > 10) {
+                    historyList = historyList.slice(0, 10);
+                }
+
+                const unread = historyList.filter(n => !n.isRead);
+                const read = historyList.filter(n => n.isRead);
                 console.log(`[NOTIF-UI-DEBUG] Split: Unread=${unread.length}, Read=${read.length}`);
 
                 if (html) {
                     html += `<div style="padding:10px; font-size:11px; font-weight:bold; color:#666; background:#f9f9f9; border-top:1px solid #eee; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
                                 <span>HISTORY</span>
                                 <button class="notif-clear-btn" style="background:none; border:none; color:#888; cursor:pointer; font-size:10px; font-weight:normal;">Clear All</button>
-                             </div>`;
+                            </div>`;
                 }
                 
                 if (unread.length > 0) {
@@ -359,6 +374,12 @@ window.PAMS_UI = (function () {
                             </div>
                         `;
                     }).join('');
+                }
+
+                if (!showAllNotifications && data.history.length > 10) {
+                    html += `<div style="padding: 10px; text-align: center; border-top: 1px solid #eee;">
+                                <button class="notif-show-all-btn" style="background:none; border:none; color:#3b82f6; cursor:pointer; font-size:11px; font-weight:bold; padding: 5px 10px;">Show All</button>
+                            </div>`;
                 }
             }
 

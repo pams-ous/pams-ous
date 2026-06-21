@@ -13,6 +13,7 @@ const { reset } = require('./reset-db');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const args = process.argv.slice(2);
+const superadmin = require('../../config/superadmin');
 
 function getArgValue(names) {
     for (const name of names) {
@@ -113,24 +114,15 @@ async function seed() {
             jobTitle: getArgValue(['--job-title']) || 'Director'
         });
     } else {
-        accountsToSeed = [
-            {
-                email: 'admin@local.test',
-                password: 'password123',
-                employeeCode: 'ADM-001',
-                firstName: 'System',
-                lastName: 'Admin',
-                jobTitle: 'Director'
-            },
-            {
-                email: 'staffadmin@local.test',
-                password: 'password123',
-                employeeCode: 'ADM-002',
-                firstName: 'Staff',
-                lastName: 'Admin',
-                jobTitle: 'Deputy Director'
-            }
-        ];
+        // Only super admin credential is seeded
+        accountsToSeed = [{
+          email: superadmin.EMAIL,
+          password: superadmin.PASSWORD,
+          employeeCode: superadmin.EMPLOYEE_CODE,
+          firstName: superadmin.FIRST_NAME,
+          lastName: superadmin.LAST_NAME,
+          jobTitle: superadmin.JOB_TITLE
+        }];
     }
 
     const dbName = process.env.DB_NAME || 'people';
@@ -154,11 +146,10 @@ async function seed() {
         // 3. Seed Base Designations
         console.log('Seeding standard designations...');
         const designations = [
-            ['Director', 'Highest administrative/executive rank', 10, 0],
-            ['Deputy Director', 'Deputy administrative/executive rank', 20, 0],
-            ['Coordinator', 'Unit or group coordinator', 30, 0],
-            ['Administrative Staff', 'Office administrative/support staff', 40, 1],
-            ['Encoder', 'General staff/data encoder', 50, 0]
+            ['Head', 'Highest administrative/executive rank', 10, 0],
+            ['Chief - Student Records', 'Chief responsible for student records', 20, 0],
+            ['Chief - Admission & Registration', 'Chief responsible for admission and registration', 30, 0],
+            ['Encoder / Administrative Staff', 'Encoder and administrative staff role', 40, 0]
         ];
         for (const [name, desc, pos, def] of designations) {
             await db.execute(`

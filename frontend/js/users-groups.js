@@ -22,11 +22,13 @@
     // No online-first concept for groups; single-key sort only.
     // Leader: blank / "Unassigned" always sorts to the end regardless of direction.
     let groupSortState = { col: 'name', dir: 'asc' };
-
+    
     let currentManageGroupId = null;
     let currentGroupLeaderEmail = null;
     let pendingDelete = null;
-    const currentUserId = 1;
+    let pendingDemote = null;
+    const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('pams.user') || '{}').id || null; } catch { return null; } })();
+
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -63,13 +65,99 @@
                     `;
                 }
             });
+
+            socket.on('userSearchEmailResult', (data) => {
+                if (!data.success) {
+                    console.error("User email search failed:", data.rawData);
+                    return;
+                }
+                
+                // Update the local users cache with the filtered results
+                // Note: This overrides the global 'users' array for rendering
+                users = data.rawData.map(u => ({
+                    ...u,
+                    employeeCode: u.employee_code,
+                    name: `${u.first_name || ''} ${u.last_name || ''} ${u.suffix || ''}`.trim() || u.email,
+                    email: u.email,
+                    role: u.designation, // Based on schema.sql, designation is the role enum
+                    jobTitleId: u.job_title,
+                    activeStatus: u.active_status
+                }));
+                
+                renderUsers();
+            });
+
+            socket.on('groupSearchResult', (data) => {
+                if (!data.success) {
+                    console.error("Group search failed:", data.rawData);
+                    return;
+                }
+                
+                // Map DB columns to frontend expected properties
+                groups = data.rawData.map(g => ({
+                    id: g.group_id,
+                    name: g.group_name,
+                    desc: g.desc,
+                    leader: g.leader, // This depends on if the query joined with employees, 
+                                      // but for basic search we use what's in Job_Groups
+                    members: g.members || 0
+                }));
+                
+                renderGroups();
+            });
         }
 
         await loadAll();
         initSortHeaders();
         initGroupSortHeaders();
         initTabs();
+        initUserEmailSearch();
+        initGroupSearch();
     });
+
+    function initUserEmailSearch() {
+        const searchInput = document.getElementById('userEmailSearch');
+        if (!searchInput) return;
+
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                
+                if (!query) {
+                    await loadAll();
+                    return;
+                }
+
+                if (PAMS.socket) {
+                    PAMS.socket.emit('searchUsersByEmail', { query });
+                }
+            }, 300);
+        });
+    }
+
+    function initGroupSearch() {
+        const searchInput = document.getElementById('groupSearch');
+        if (!searchInput) return;
+
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                
+                if (!query) {
+                    await loadAll();
+                    return;
+                }
+
+                if (PAMS.socket) {
+                    PAMS.socket.emit('searchGroupsByName', { query });
+                }
+            }, 300);
+        });
+    }
 
     async function loadAll() {
         try {
@@ -98,6 +186,8 @@
     // This gives a deterministic, meaningful sort rather than leaving Actions unsorted.
     function getSortValue(u, col) {
         switch (col) {
+            case 'code':
+                return (u.employeeCode || '').toLowerCase();
             case 'name':
                 return (u.name || '').toLowerCase();
             case 'email':
@@ -371,17 +461,19 @@
 
             return `
             <tr>
+              <td class="td-code">${u.employeeCode || '—'}</td>
               <td class="td-name">${u.name || '—'}</td>
               <td class="td-email">${u.email}</td>
               <td>
                 <select 
                     class="form-control role-select-dropdown" 
-                    onchange="window.Admin.changeRole('${u.email}', this.value)"
+                    onchange="window.Admin.handleRoleChange('${u.email}', this.value, '${u.role}')"
                     data-user-email="${u.email}" 
                     data-current-role="${u.role}"
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
-                    <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Encoder / Admin. Staff</option>
-                    <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Administrator</option>
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${u.id === currentUserId ? 'not-allowed' : 'pointer'}; ${u.id === currentUserId ? 'background-color:#f9fafb;' : ''}"
+                    ${u.id === currentUserId ? 'disabled' : ''}>
+                    <option value="MEMBER" ${u.role && u.role.toUpperCase() === 'MEMBER' ? 'selected' : ''}>Encoder</option>
+                    <option value="ADMIN" ${u.role && u.role.toUpperCase() === 'ADMIN' ? 'selected' : ''}>Administrator</option>
                 </select>
               </td>
               <td>
@@ -389,7 +481,8 @@
                     class="form-control" 
                     onchange="window.Admin.changeJobTitle('${u.email}', this.value)"
                     data-user-email="${u.email}" 
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: pointer;">
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${u.id === currentUserId ? 'not-allowed' : 'pointer'}; ${u.id === currentUserId ? 'background-color:#f9fafb;' : ''}"
+                    ${u.id === currentUserId ? 'disabled' : ''}>
                     <option value="">— Select Title —</option>
                     ${jobTitleOptions}
                 </select>
@@ -535,6 +628,14 @@
             }
 
             try {
+                if (empCode) {
+                    const exists = users.find(u => u.email !== email && u.employeeCode === empCode);
+                    if (exists) {
+                        PAMS.toast(`Employee Code ${empCode} is already assigned to another user.`, 'warning');
+                        return;
+                    }
+                }
+
                 // 1. Update Profile Details
                 await apiFetch('/users/update-profile', 'PUT', { empCode, firstName, lastName, middleName, suffix, email });
 
@@ -585,13 +686,65 @@
         changeJobTitle: async (email, jobId) => {
             try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change job title: ${err.message}. Reverting...`, 'error'); await loadAll(); }
         },
+        
+        handleRoleChange: async (email, newRole, currentRole) => {
+            if (currentRole === 'ADMIN' && newRole === 'MEMBER') {
+                // Revert the select value immediately so it doesn't look changed until confirmed
+                const select = document.querySelector(`.role-select-dropdown[data-user-email="${email}"]`);
+                if (select) select.value = currentRole;
+                
+                const user = users.find(u => u.email === email);
+                window.Admin.openConfirmDemote(email, user?.name);
+                return;
+            }
+            await window.Admin.changeRole(email, newRole);
+        },
+
+        openConfirmDemote: (email, name) => {
+            pendingDemote = { email, name };
+            document.getElementById('confirmDemoteText').textContent = `Are you sure you want to demote this administrator?`;
+            openModal('confirmDemoteModal');
+        },
+        confirmDemote: async () => {
+            if (!pendingDemote) return;
+            const { email } = pendingDemote;
+            try {
+                await apiFetch(`/users/${email}`, 'PUT', { role: 'MEMBER' });
+                PAMS.toast('User demoted successfully!', 'success');
+                window.Admin.closeModal('confirmDemoteModal');
+                await loadAll();
+            } catch (err) {
+                PAMS.toast(`Error: ${err.message}`, 'error');
+            } finally {
+                pendingDemote = null;
+            }
+        },
 
         addGroup: async () => {
             const name = document.getElementById('newGroupName').value.trim();
             const desc = document.getElementById('newGroupDesc').value.trim();
             const leader = document.getElementById('newGroupLeader').value;
             if (!name) { PAMS.toast('Group name required.', 'warning'); return; }
-            try { await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); window.Admin.closeModal('addGroupModal'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
+            try { 
+                const res = await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); 
+                window.Admin.closeModal('addGroupModal'); 
+                
+                const groupId = res?.id || res?.group_id;
+                if (groupId) {
+                    // Pass the group object from the response directly to avoid race conditions with loadAll()
+                    const groupObj = {
+                        id: groupId,
+                        name: res.group_name || res.name || name,
+                        desc: res.desc || desc,
+                        leader: res.leader || ''
+                    };
+                    // Trigger modal immediately
+                    window.Admin.openManageMembers(groupObj);
+                }
+                
+                // Update background data
+                await loadAll(); 
+            } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         openEditGroup: (id) => {
             const g = groups.find(x => x.id === id);
@@ -633,9 +786,10 @@
             }
         },
 
-        openManageMembers: async (id) => {
+        openManageMembers: async (idOrGroup) => {
+            let id = typeof idOrGroup === 'object' ? idOrGroup.id : idOrGroup;
             currentManageGroupId = id;
-            const g = groups.find(x => x.id === id);
+            const g = typeof idOrGroup === 'object' ? idOrGroup : groups.find(x => x.id === id);
             if (!g) return;
 
             const leaderUser = users.find(u => u.name === g.leader);

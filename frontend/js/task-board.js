@@ -21,11 +21,19 @@
 
         wireRibbon();
 
+        // 200 char counters for description fields
         const ntDesc = document.getElementById('nt-desc');
         const ntDescCount = document.getElementById('nt-desc-count');
         if (ntDesc && ntDescCount) {
             ntDesc.addEventListener('input', () => {
                 ntDescCount.textContent = ntDesc.value.length;
+            });
+        }
+        const editDesc = document.getElementById('edit-desc');
+        const editDescCount = document.getElementById('edit-desc-count');
+        if (editDesc && editDescCount) {
+            editDesc.addEventListener('input', () => {
+                editDescCount.textContent = editDesc.value.length;
             });
         }
 
@@ -423,6 +431,13 @@
             document.getElementById('edit-id').value = id;
             document.getElementById('edit-title').value = t.title;
             document.getElementById('edit-desc').value = t.description || '';
+
+            // Sync the 200 char counter for the edit description field
+            const editDescCount = document.getElementById('edit-desc-count');
+            if (editDescCount) {
+                editDescCount.textContent = (t.description || '').length;
+            }
+
             document.getElementById('edit-status').value = t.status;
             document.getElementById('edit-priority').value = t.priority;
             document.getElementById('edit-due').value = t.dueDate.slice(0, 10);

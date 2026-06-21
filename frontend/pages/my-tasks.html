@@ -93,7 +93,7 @@
 
         <div class="content ph-32">
             <div class="panel my-tasks-panel">
-        <div class="panel-head">
+        <div class="panel-head flex items-center justify-between">
             <div class="panel-title">
                 <i class="fa-solid fa-clipboard-list"></i> Assigned to Me
             </div>
@@ -140,10 +140,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Update Notes</label>
-                    <textarea id="log-notes" class="form-control" rows="4"
-                        placeholder="What progress was made?" maxlength="200"></textarea>
-                        <div style="text-align: right; font-size: 0.75rem; color: var(--gray-500);
-                            margin-top: 4px;"><span id="log-notes-count">0</span>/200</div>
+                    <div class="textarea-wrap">
+                        <textarea id="log-notes" class="form-control" rows="4"
+                            placeholder="What progress was made?" maxlength="200"></textarea>
+                        <span class="char-count"><span id="log-notes-count">0</span>/200</span>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
