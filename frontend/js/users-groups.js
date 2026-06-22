@@ -458,6 +458,8 @@
             const jobTitleOptions = designations.map(d => 
                 `<option value="${d.id}" ${u.jobTitleId == d.id ? 'selected' : ''}>${d.name}</option>`
             ).join('');
+            // Prevent job‑title changes for the designated Super‑Admin (employee code SUPER-001)
+            const isSuperAdmin = u.employeeCode === 'SUPER-001';
 
             return `
             <tr>
@@ -470,22 +472,22 @@
                     onchange="window.Admin.handleRoleChange('${u.email}', this.value, '${u.role}')"
                     data-user-email="${u.email}" 
                     data-current-role="${u.role}"
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${u.id === currentUserId ? 'not-allowed' : 'pointer'}; ${u.id === currentUserId ? 'background-color:#f9fafb;' : ''}"
-                    ${u.id === currentUserId ? 'disabled' : ''}>
+                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${(isSuperAdmin || u.id === currentUserId) ? 'not-allowed' : 'pointer'}; ${(isSuperAdmin || u.id === currentUserId) ? 'background-color:#f9fafb;' : ''}"
+                    ${(isSuperAdmin || u.id === currentUserId) ? 'disabled' : ''}>
                     <option value="MEMBER" ${u.role && u.role.toUpperCase() === 'MEMBER' ? 'selected' : ''}>Encoder</option>
                     <option value="ADMIN" ${u.role && u.role.toUpperCase() === 'ADMIN' ? 'selected' : ''}>Administrator</option>
                 </select>
               </td>
-              <td>
-                <select 
-                    class="form-control" 
-                    onchange="window.Admin.changeJobTitle('${u.email}', this.value)"
-                    data-user-email="${u.email}" 
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${u.id === currentUserId ? 'not-allowed' : 'pointer'}; ${u.id === currentUserId ? 'background-color:#f9fafb;' : ''}"
-                    ${u.id === currentUserId ? 'disabled' : ''}>
-                    <option value="">— Select Title —</option>
-                    ${jobTitleOptions}
-                </select>
+               <td>
+                  <select 
+                      class="form-control" 
+                      onchange="window.Admin.changeJobTitle('${u.email}', this.value)"
+                      data-user-email="${u.email}" 
+                      style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${(isSuperAdmin || u.id === currentUserId) ? 'not-allowed' : 'pointer'}; ${(isSuperAdmin || u.id === currentUserId) ? 'background-color:#f9fafb;' : ''}"
+                      ${(isSuperAdmin || u.id === currentUserId) ? 'disabled' : ''}>
+                     <option value="">— Select Title —</option>
+                     ${jobTitleOptions}
+                 </select>
               </td>
               
               <td class="td-groups" style="max-width: 250px; white-space: normal;">
