@@ -162,16 +162,17 @@ app.post('/api/admin/sync/groups', authenticateToken, async (req, res) => {
         const [adminData] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [req.user.id]);
         const adminName = formatFullName(adminData[0]);
 
-                await recordNotification(db, {
-                    kind: "group_created",
-                    title: "New Group Created",
-                    body: `A new group "${name}" was created by ${adminName}`,
-                    relatedUrl: null,
-                    targetGroupId: newGroupId
-                }, req.app.get('io'));
+        const ioInstance = req.app.get('io');
+        console.log(`[GROUP CREATE] ioInstance=${!!ioInstance}, kind=group_created, name="${name}"`);
+        await recordNotification(db, {
+            kind: "group_created",
+            title: "New Group Created",
+            body: `A new group "${name}" was created by ${adminName}`,
+            relatedUrl: null
+        }, ioInstance);
+        console.log(`[GROUP CREATE] recordNotification completed for "${name}"`);
 
-
-        res.json({ success: true });
+        res.json({ success: true, group_id: newGroupId });
     } catch (e) { await connection.rollback(); res.status(500).json({ error: e.message }); } finally { connection.release(); }
 });
 

@@ -12,13 +12,21 @@ function notificationsRouter(db) {
     router.use(authenticateToken);
 
     // GET /api/notifications — Returns notifications targeted to the user, including read status.
+    // Supports pagination via ?limit=N&offset=N.
     router.get("/", async (req, res) => {
         try {
             const userId = req.user.id;
-            console.log(`[NOTIF-DEBUG] Fetching notifications for userId: ${userId}`);
+            const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+            const offset = parseInt(req.query.offset) || 0;
 
-            const [untracked] = await db.query("SELECT * FROM User_Notifications WHERE user_id = ?", [userId]);
-            console.log(`[NOTIF-DEBUG] Found ${untracked.length} read-trackers for this user.`);
+            console.log(`[NOTIF-DEBUG] Fetching notifications for userId: ${userId}, limit: ${limit}, offset: ${offset}`);
+
+            const [[{ totalCount }]] = await db.query(`
+                SELECT COUNT(*) as totalCount
+                FROM Notifications n
+                JOIN User_Notifications un ON n.notification_id = un.notification_id
+                WHERE un.user_id = ?
+            `, [userId]);
 
             const [history] = await db.query(`
                 SELECT 
@@ -30,15 +38,16 @@ function notificationsRouter(db) {
                 JOIN User_Notifications un ON n.notification_id = un.notification_id
                 WHERE un.user_id = ?
                 ORDER BY n.notif_date DESC
-                LIMIT 100
-            `, [userId]);
-            console.log(`[NOTIF-DEBUG] JOIN result: ${history.length} notifications found.`);
+                LIMIT ? OFFSET ?
+            `, [userId, limit, offset]);
+            console.log(`[NOTIF-DEBUG] JOIN result: ${history.length} notifications fetched (total available: ${totalCount}).`);
 
             const empId = req.user.id;
             const current = await loadCurrent(db, empId);
 
             res.json({
                 current,
+                totalCount,
                 history: history.map(r => {
                     const msg = r.notif_message;
                     let title = "System Notification";
@@ -247,14 +256,18 @@ async function recordNotification(db, { kind, title, body, relatedUrl, targetUse
             };
 
             if (targetUserId) {
+                console.log(`[NOTIF] Emitting new_notification (kind=${kind}) to user_${targetUserId}`);
                 io.to(`user_${targetUserId}`).emit('new_notification', notificationPayload);
             } else if (targetDesignationId || targetGroupId || notifiedUserIds.length > 0) {
                 // If it was a group/designation or global, we can either emit to all rooms or use a broadcast.
                 // To be safe and precise, we emit to the specific rooms we just populated.
+                console.log(`[NOTIF] Emitting new_notification (kind=${kind}) to ${notifiedUserIds.length} users`);
                 notifiedUserIds.forEach(uid => {
                     io.to(`user_${uid}`).emit('new_notification', notificationPayload);
                 });
             }
+        } else {
+            console.log(`[NOTIF] Skipping Socket.IO emit for kind=${kind} — io is falsy`);
         }
     } catch (err) {
         console.warn("Notification persist failed:", err.message);

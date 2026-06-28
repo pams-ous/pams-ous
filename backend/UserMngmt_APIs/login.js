@@ -88,6 +88,11 @@ async function registerLoginHandlers(socket, db, io) {
             socket.userId = userId;
             socket.join(`user_${userId}`);
             console.log(`[SESSION] ${email} (ID: ${userId}) joined room user_${userId}`);
+            // Verify the room was joined
+            const rooms = Array.from(socket.rooms || []);
+            console.log(`[SESSION] Socket ${socket.id} is in rooms:`, rooms);
+        } else {
+            console.warn(`[SESSION] No user found for email ${email} — room NOT joined`);
         }
 
         try {

@@ -27,6 +27,7 @@
     let currentGroupLeaderEmail = null;
     let pendingDelete = null;
     let pendingDemote = null;
+    let _loadGen = 0;
     const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('pams.user') || '{}').id || null; } catch { return null; } })();
 
 
@@ -60,14 +61,12 @@
                     return;
                 }
                 
-                // Update the local users cache with the filtered results
-                // Note: This overrides the global 'users' array for rendering
                 users = data.rawData.map(u => ({
                     ...u,
                     employeeCode: u.employee_code,
                     name: `${u.first_name || ''} ${u.last_name || ''} ${u.suffix || ''}`.trim() || u.email,
                     email: u.email,
-                    role: u.designation, // Based on schema.sql, designation is the role enum
+                    role: u.designation,
                     jobTitleId: u.job_title,
                     activeStatus: u.active_status
                 }));
@@ -81,13 +80,11 @@
                     return;
                 }
                 
-                // Map DB columns to frontend expected properties
                 groups = data.rawData.map(g => ({
                     id: g.group_id,
                     name: g.group_name,
                     desc: g.desc,
-                    leader: g.leader, // This depends on if the query joined with employees, 
-                                      // but for basic search we use what's in Job_Groups
+                    leader: g.leader,
                     members: g.members || 0
                 }));
                 
@@ -148,22 +145,26 @@
     }
 
     async function loadAll() {
+        const gen = ++_loadGen;
         try {
-            // EXPLICITLY USE THE NEW SYNC ROUTES
             try {
                 const uData = await apiFetch('/admin/sync/users');
+                if (gen !== _loadGen) return;
                 users = (uData && Array.isArray(uData.users)) ? uData.users : (Array.isArray(uData) ? uData : []);
-            } catch (err) { console.error("User fetch failed:", err); users = []; }
+            } catch (err) { console.error("User fetch failed:", err); if (gen === _loadGen) users = []; }
 
             try {
                 const gData = await apiFetch('/admin/sync/groups');
+                if (gen !== _loadGen) return;
                 groups = (gData && Array.isArray(gData.groups)) ? gData.groups : (Array.isArray(gData) ? gData : []);
-            } catch (err) { console.error("Group fetch failed:", err); groups = []; }
+            } catch (err) { console.error("Group fetch failed:", err); if (gen === _loadGen) groups = []; }
 
-            renderUsers(); 
-            renderGroups();
+            if (gen === _loadGen) {
+                renderUsers(); 
+                renderGroups();
+            }
         } catch (error) {
-            console.error("Fatal loadAll error:", error);
+            if (gen === _loadGen) console.error("Fatal loadAll error:", error);
         }
     }
 
@@ -524,7 +525,6 @@
                 <td>${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${g.leader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}</td>
                 <td style="text-align: center;"><span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;"><i class="fas fa-users" style="margin-right: 4px; color: #6b7280;"></i> ${g.members || 0}</span></td>
                 <td class="td-actions">
-                    <button class="action-btn view" onclick="window.Admin.openManageMembers(${g.id})" title="Manage Members" aria-label="Manage members of ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-users-cog"></i></button>
                     <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group" aria-label="Edit group ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-pen"></i></button>
                     <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${(g.name || '').replace(/'/g, "\\'")}')" title="Delete group" aria-label="Delete group ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-trash"></i></button>
                 </td>
@@ -554,7 +554,10 @@
 
     window.Admin = {
         openModal: (id) => {
-            if (id === 'addGroupModal') populateLeaderSelect('newGroupLeader');
+            if (id === 'addGroupModal') {
+                populateLeaderSelect('newGroupLeader');
+                window.Admin.renderNewMemberCheckboxes();
+            }
             if (id === 'addUserModal') populateDesignationSelect('newUserDesignation');
             openModal(id);
         },
@@ -715,34 +718,58 @@
             const desc = document.getElementById('newGroupDesc').value.trim();
             const leader = document.getElementById('newGroupLeader').value;
             if (!name) { PAMS.toast('Group name required.', 'warning'); return; }
+
+            const checkedEmails = Array.from(document.querySelectorAll('#newMemberCheckboxList .member-checkbox'))
+                .filter(cb => cb.checked || cb.disabled).map(cb => cb.value);
+
             try { 
                 const res = await apiFetch('/admin/sync/groups', 'POST', { name, desc, leaderEmail: leader }); 
-                window.Admin.closeModal('addGroupModal'); 
-                
+
                 const groupId = res?.id || res?.group_id;
-                if (groupId) {
-                    // Pass the group object from the response directly to avoid race conditions with loadAll()
-                    const groupObj = {
-                        id: groupId,
-                        name: res.group_name || res.name || name,
-                        desc: res.desc || desc,
-                        leader: res.leader || ''
-                    };
-                    // Trigger modal immediately
-                    window.Admin.openManageMembers(groupObj);
+                if (groupId && checkedEmails.length > 0) {
+                    await apiFetch(`/admin/sync/groups/${groupId}/members`, 'PUT', { members: checkedEmails });
                 }
-                
-                // Update background data
-                await loadAll(); 
+
+                window.Admin.closeModal('addGroupModal'); 
+                await loadAll();
+                PAMS.toast(`Group "${name}" created successfully.`, 'success');
             } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
-        openEditGroup: (id) => {
-            const g = groups.find(x => x.id === id);
-            if (!g) return;
+        openEditGroup: async (id) => {
+            let g = groups.find(x => x.id === id);
+            if (!g) {
+                try {
+                    const gData = await apiFetch('/admin/sync/groups');
+                    const allGroups = (gData && Array.isArray(gData.groups)) ? gData.groups : [];
+                    g = allGroups.find(x => x.id === id);
+                    if (!g) { PAMS.toast('Group not found.', 'error'); return; }
+                    groups = allGroups;
+                    renderGroups();
+                } catch (err) {
+                    PAMS.toast(`Error: ${err.message}`, 'error');
+                    return;
+                }
+            }
             document.getElementById('editGroupId').value = id;
             document.getElementById('editGroupName').value = g.name;
             document.getElementById('editGroupDesc').value = g.desc || '';
-            populateLeaderSelect('editGroupLeader', users.find(u => u.name === g.leader)?.email);
+
+            const leaderEmail = users.find(u => u.name === g.leader)?.email || '';
+            currentGroupLeaderEmail = leaderEmail;
+            populateLeaderSelect('editGroupLeader', leaderEmail);
+            currentManageGroupId = id;
+
+            document.getElementById('memberSearch').value = '';
+
+            try {
+                const res = await apiFetch(`/admin/sync/groups/${id}/members`);
+                const currentMemberEmails = res.members || [];
+                window.Admin.renderMemberCheckboxes(currentMemberEmails);
+            } catch (err) {
+                console.error('Could not load members:', err);
+                window.Admin.renderMemberCheckboxes([]);
+            }
+
             openModal('editGroupModal');
         },
         saveGroupEdit: async () => {
@@ -750,7 +777,16 @@
             const name = document.getElementById('editGroupName').value.trim();
             const desc = document.getElementById('editGroupDesc').value.trim();
             const leader = document.getElementById('editGroupLeader').value;
-            try { await apiFetch(`/admin/sync/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader }); window.Admin.closeModal('editGroupModal'); await loadAll(); } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
+            try {
+                await apiFetch(`/admin/sync/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader });
+
+                const checkedEmails = Array.from(document.querySelectorAll('.member-checkbox'))
+                    .filter(cb => cb.checked || cb.disabled).map(cb => cb.value);
+                await apiFetch(`/admin/sync/groups/${id}/members`, 'PUT', { members: checkedEmails });
+
+                window.Admin.closeModal('editGroupModal');
+                await loadAll();
+            } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         deleteGroup: (id, name) => {
             window.Admin.openConfirmDelete('group', id, name);
@@ -776,25 +812,6 @@
             }
         },
 
-        openManageMembers: async (idOrGroup) => {
-            let id = typeof idOrGroup === 'object' ? idOrGroup.id : idOrGroup;
-            currentManageGroupId = id;
-            const g = typeof idOrGroup === 'object' ? idOrGroup : groups.find(x => x.id === id);
-            if (!g) return;
-
-            const leaderUser = users.find(u => u.name === g.leader);
-            currentGroupLeaderEmail = leaderUser ? leaderUser.email : null;
-
-            document.getElementById('manageMembersGroupName').textContent = g.name;
-            document.getElementById('memberSearch').value = '';
-
-            try {
-                const res = await apiFetch(`/admin/sync/groups/${id}/members`);
-                const currentMemberEmails = res.members || []; 
-                window.Admin.renderMemberCheckboxes(currentMemberEmails);
-                openModal('manageMembersModal');
-            } catch (err) { PAMS.toast(`Could not load members: ${err.message}`, 'error'); }
-        },
         renderMemberCheckboxes: (currentMemberEmails) => {
             const container = document.getElementById('memberCheckboxList');
             if (!container) return;
@@ -820,14 +837,31 @@
                 el.style.display = (name.includes(query) || email.includes(query)) ? 'flex' : 'none';
             });
         },
-        saveGroupMembers: async () => {
-            const checkedEmails = Array.from(document.querySelectorAll('.member-checkbox'))
-                .filter(cb => cb.checked || cb.disabled).map(cb => cb.value);
-            try {
-                await apiFetch(`/admin/sync/groups/${currentManageGroupId}/members`, 'PUT', { members: checkedEmails });
-                window.Admin.closeModal('manageMembersModal');
-                await loadAll(); 
-            } catch (err) { PAMS.toast(`Failed to save members: ${err.message}`, 'error'); }
-        }
+
+        renderNewMemberCheckboxes: () => {
+            const container = document.getElementById('newMemberCheckboxList');
+            if (!container) return;
+            const leaderEmail = document.getElementById('newGroupLeader').value;
+            const sortedUsers = [...users].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            container.innerHTML = sortedUsers.map(u => {
+                const isLeader = u.email === leaderEmail;
+                return `
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
+                    <input type="checkbox" class="member-checkbox" value="${u.email}" ${isLeader ? 'checked disabled title="Leader is automatically a member"' : ''} style="margin-right: 10px;">
+                    <div style="flex-grow: 1;">
+                        <div style="font-weight: 500; color: ${isLeader ? '#ffd700' : '#333'}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
+                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                    </div>
+                </label>`;
+            }).join('');
+        },
+        filterNewMembers: () => {
+            const query = document.getElementById('newMemberSearch').value.toLowerCase();
+            document.querySelectorAll('#newMemberCheckboxList .member-checkbox-item').forEach(el => {
+                const name = el.dataset.name.toLowerCase();
+                const email = el.dataset.email.toLowerCase();
+                el.style.display = (name.includes(query) || email.includes(query)) ? 'flex' : 'none';
+            });
+        },
     };
 })();

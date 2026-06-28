@@ -127,7 +127,9 @@ window.PAMS_UI = (function () {
     /**
      * Notifications
      */
-    let showAllNotifications = false;
+    let notifHistory = [];
+    let notifTotalCount = 0;
+    let notifOffset = 0;
 
     const setupNotifications = () => {
         const bell = document.querySelector('.bell-btn');
@@ -162,7 +164,9 @@ window.PAMS_UI = (function () {
             e.stopPropagation();
             popover.classList.toggle('open');
             if (popover.classList.contains('open')) {
-                showAllNotifications = false;
+                notifHistory = [];
+                notifOffset = 0;
+                notifTotalCount = 0;
                 await loadNotifications();
                 updateBadgeCount(0);
                 PAMS.apiFetch('/notifications/mark-all-read', 'PATCH').catch(err => {
@@ -188,12 +192,11 @@ window.PAMS_UI = (function () {
                 return;
             }
 
-            const showAllBtn = e.target.closest('.notif-show-all-btn');
-            if (showAllBtn) {
+            const showMoreBtn = e.target.closest('.notif-show-more-btn');
+            if (showMoreBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                showAllNotifications = true;
-                await loadNotifications();
+                await loadNotifications(true);
                 return;
             }
 
@@ -226,12 +229,20 @@ window.PAMS_UI = (function () {
             const socket = PAMS.socket;
             if (socket) {
                 socket.on('new_notification', (data) => {
+                    console.log('[NOTIF-CLIENT] Received new_notification:', data?.kind, data?.title);
                     updateBadgeCount();
                     if (popover.classList.contains('open')) {
+                        notifHistory = [];
+                        notifOffset = 0;
+                        notifTotalCount = 0;
                         loadNotifications();
                     }
                 });
+            } else {
+                console.warn('[NOTIF-CLIENT] PAMS.socket is null — cannot listen for new_notification');
             }
+        } else {
+            console.warn('[NOTIF-CLIENT] io is undefined — socket.io library not loaded');
         }
     };
 
@@ -259,15 +270,27 @@ window.PAMS_UI = (function () {
         }
     };
 
-    const loadNotifications = async () => {
+    const loadNotifications = async (loadMore = false) => {
         const body = document.querySelector('.notif-body');
         if (!body) return;
 
-        body.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#888;">Loading...</div>';
+        if (!loadMore) {
+            body.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#888;">Loading...</div>';
+        }
 
         try {
-            const data = await PAMS.apiFetch('/notifications');
+            const limit = notifOffset === 0 ? 10 : 25;
+            const data = await PAMS.apiFetch(`/notifications?limit=${limit}&offset=${notifOffset}`);
             console.log('[NOTIF-UI-DEBUG] Received data from server:', data);
+
+            if (!loadMore) {
+                notifHistory = data.history || [];
+            } else {
+                notifHistory = [...notifHistory, ...(data.history || [])];
+            }
+            notifTotalCount = data.totalCount || 0;
+            notifOffset += (data.history || []).length;
+
             let html = '';
 
             if (data.current && data.current.length > 0) {
@@ -283,16 +306,11 @@ window.PAMS_UI = (function () {
                 `).join('');
             }
 
-            if (data.history && data.history.length > 0) {
-                console.log('[NOTIF-UI-DEBUG] Processing history notifications:', data.history.length);
-                
-                let historyList = data.history;
-                if (!showAllNotifications && historyList.length > 10) {
-                    historyList = historyList.slice(0, 10);
-                }
+            if (notifHistory.length > 0) {
+                console.log('[NOTIF-UI-DEBUG] Processing history notifications:', notifHistory.length);
 
-                const unread = historyList.filter(n => !n.isRead);
-                const read = historyList.filter(n => n.isRead);
+                const unread = notifHistory.filter(n => !n.isRead);
+                const read = notifHistory.filter(n => n.isRead);
                 console.log(`[NOTIF-UI-DEBUG] Split: Unread=${unread.length}, Read=${read.length}`);
 
                 if (html) {
@@ -376,9 +394,9 @@ window.PAMS_UI = (function () {
                     }).join('');
                 }
 
-                if (!showAllNotifications && data.history.length > 10) {
+                if (notifOffset < notifTotalCount) {
                     html += `<div style="padding: 10px; text-align: center; border-top: 1px solid #eee;">
-                                <button class="notif-show-all-btn" style="background:none; border:none; color:#3b82f6; cursor:pointer; font-size:11px; font-weight:bold; padding: 5px 10px;">Show All</button>
+                                <button class="notif-show-more-btn" style="background:none; border:none; color:#3b82f6; cursor:pointer; font-size:11px; font-weight:bold; padding: 5px 10px;">Show More</button>
                             </div>`;
                 }
             }
