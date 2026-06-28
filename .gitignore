@@ -1,6 +1,9 @@
 # Antigravity CLI
 .antigravitycli/
 
+# macOS index files
+._*
+
 # Other agents/tools
 backend/config/superadmin.js
 .claude/

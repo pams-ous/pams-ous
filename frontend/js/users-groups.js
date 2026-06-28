@@ -51,19 +51,7 @@
                 const matchIndex = users.findIndex(u => u.email === email);
                 if (matchIndex !== -1) users[matchIndex].activeStatus = status;
 
-                const targetTd = document.querySelector(`td[data-user-email="${email}"]`);
-                if (targetTd) {
-                    const isOnline = status.toLowerCase() === 'online';
-                    const badgeClass = isOnline ? 'status-online' : 'status-offline';
-                    const statusColor = isOnline ? '#28a745' : '#6c757d';
-                    targetTd.style.color = statusColor;
-                    targetTd.innerHTML = `
-                        <span class="status-badge ${badgeClass}">
-                            <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${statusColor};"></i>
-                            ${status || 'Offline'}
-                        </span>
-                    `;
-                }
+                renderUsers();
             });
 
             socket.on('userSearchEmailResult', (data) => {
