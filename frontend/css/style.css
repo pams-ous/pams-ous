@@ -1760,6 +1760,16 @@ body.sidebar-open .main {
   font-size: 1.2rem;
 }
 
+#addUserModal .modal {
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+#addUserModal .modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
 .modal-body {
   padding: 1.5rem;
 }

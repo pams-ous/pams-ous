@@ -371,13 +371,13 @@
 
     <!-- ADD GROUP MODAL -->
     <div class="modal-backdrop" id="addGroupModal">
-        <div class="modal" style="max-width: 550px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-header" style="position: sticky; top: 0; z-index: 10;">
+        <div class="modal" style="max-width: 550px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
                 <span class="modal-title">Create New Group</span>
                 <button class="modal-close" onclick="window.Admin.closeModal('addGroupModal')"><i
                         class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="overflow-y: auto; flex: 1; min-height: 0;">
                 <div class="form-group">
                     <label class="form-label">Group Name *</label>
                     <input type="text" id="newGroupName" class="form-control" placeholder="e.g. Student Records">
@@ -414,13 +414,13 @@
 
     <!-- EDIT GROUP MODAL -->
     <div class="modal-backdrop" id="editGroupModal">
-        <div class="modal" style="max-width: 550px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-header" style="position: sticky; top: 0; z-index: 10;">
+        <div class="modal" style="max-width: 550px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
                 <span class="modal-title">Edit Group</span>
                 <button class="modal-close" onclick="window.Admin.closeModal('editGroupModal')"><i
                         class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="overflow-y: auto; flex: 1; min-height: 0;">
                 <input type="hidden" id="editGroupId">
                 <div class="form-group">
                     <label class="form-label">Group Name</label>
