@@ -27,6 +27,7 @@
     let currentGroupLeaderEmail = null;
     let pendingDelete = null;
     let pendingDemote = null;
+    let pendingPromote = null;
     let _loadGen = 0;
     const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('pams.user') || '{}').id || null; } catch { return null; } })();
 
@@ -66,9 +67,10 @@
                     employeeCode: u.employee_code,
                     name: `${u.first_name || ''} ${u.last_name || ''} ${u.suffix || ''}`.trim() || u.email,
                     email: u.email,
-                    role: u.designation,
+                    role: u.designation === 'Admin' ? 'ADMIN' : 'MEMBER',
                     jobTitleId: u.job_title,
-                    activeStatus: u.active_status
+                    activeStatus: u.active_status,
+                    approvalStatus: u.approval_status
                 }));
                 
                 renderUsers();
@@ -503,8 +505,39 @@
             window.Admin.openConfirmDemote(email, user?.name);
             return;
           }
+          if (currentValue === 'MEMBER' && value === 'ADMIN') {
+            const selectedSpan = dd.querySelector('.custom-dropdown-selected');
+            if (selectedSpan) selectedSpan.textContent = 'Encoder';
+            const user = users.find(u => u.email === email);
+            window.Admin.openConfirmPromote(email, user?.name, 'ADMIN');
+            return;
+          }
           window.Admin.changeRole(email, value);
         } else if (type === 'jobtitle') {
+          if (value) {
+            const designation = designations.find(d => String(d.id) === String(value));
+            if (designation) {
+              const name = designation.name.toLowerCase();
+              let mappedRole = null;
+              if (name.includes('encoder')) {
+                mappedRole = 'MEMBER';
+              } else if (name.includes('head') || name.includes('chief')) {
+                mappedRole = 'ADMIN';
+              }
+              if (mappedRole) {
+                const user = users.find(u => u.email === email);
+                if (user && user.role !== mappedRole) {
+                  if (mappedRole === 'ADMIN' && user.role === 'MEMBER') {
+                    window.Admin.openConfirmPromote(email, user?.name, 'ADMIN');
+                  } else if (mappedRole === 'MEMBER' && user.role === 'ADMIN') {
+                    window.Admin.openConfirmDemote(email, user?.name);
+                  } else {
+                    window.Admin.changeRole(email, mappedRole);
+                  }
+                }
+              }
+            }
+          }
           window.Admin.changeJobTitle(email, value);
         }
       });
@@ -769,6 +802,26 @@
                 PAMS.toast(`Error: ${err.message}`, 'error');
             } finally {
                 pendingDemote = null;
+            }
+        },
+
+        openConfirmPromote: (email, name, newRole) => {
+            pendingPromote = { email, name, newRole };
+            document.getElementById('confirmPromoteText').textContent = `Are you sure you want to promote "${name || email}" to ${newRole === 'ADMIN' ? 'Administrator' : 'Encoder'}?`;
+            window.Admin.openModal('confirmPromoteModal');
+        },
+        confirmPromote: async () => {
+            if (!pendingPromote) return;
+            const { email, newRole } = pendingPromote;
+            try {
+                await apiFetch(`/users/${email}`, 'PUT', { role: newRole });
+                PAMS.toast('User promoted successfully!', 'success');
+                window.Admin.closeModal('confirmPromoteModal');
+                await loadAll();
+            } catch (err) {
+                PAMS.toast(`Error: ${err.message}`, 'error');
+            } finally {
+                pendingPromote = null;
             }
         },
 

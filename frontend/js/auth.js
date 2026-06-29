@@ -265,6 +265,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const isSignup = formId === 'signupForm';
         if (!isSignup) setupMethodToggle(form);
 
+        if (isSignup) {
+            const desSel = form.querySelector('select[name="designationIds"]');
+            const subBtn = form.querySelector('button[type="submit"]');
+
+            const updateSignupBtn = () => {
+                const v = Number(desSel.value);
+                subBtn.innerHTML = [1, 2, 3].includes(v)
+                    ? '<i class="fas fa-user-plus" aria-hidden="true"></i> Request admin account'
+                    : '<i class="fas fa-user-plus" aria-hidden="true"></i> Create Account';
+            };
+
+            desSel.addEventListener('change', updateSignupBtn);
+
+            const optObs = new MutationObserver(() => {
+                if (desSel.options.length > 0 && desSel.options[0].value !== '') {
+                    updateSignupBtn();
+                    optObs.disconnect();
+                }
+            });
+            optObs.observe(desSel, { childList: true, subtree: true });
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 

@@ -508,6 +508,24 @@
         </div>
     </div>
 
+    <!-- CONFIRM PROMOTE MODAL -->
+    <div class="modal-backdrop" id="confirmPromoteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <span class="modal-title">Confirm Promotion</span>
+                <button class="modal-close" onclick="window.Admin.closeModal('confirmPromoteModal')"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="confirm-body">
+                <i class="fa-solid fa-circle-info"></i>
+                <p id="confirmPromoteText"></p>
+            </div>
+            <div class="modal-footer is-centered">
+                <button class="btn-cancel" onclick="window.Admin.closeModal('confirmPromoteModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="window.Admin.confirmPromote()">OK</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Configuration and API Logic -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
