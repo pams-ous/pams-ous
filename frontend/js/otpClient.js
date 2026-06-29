@@ -4,7 +4,7 @@
  *
  * Public API:
  *   PAMSOtp.runLoginOtp({ email })
- *     - Used by personnel-auth.html and admin-login.html when "Sign in with email OTP"
+ *     - Used by login.html when "Sign in with email OTP"
  *       is ticked. The login form has already verified the password server-side and
  *       the backend has emitted awaitingOtp:true. This shows the modal, lets the user
  *       enter the code, and resolves with { email, empName } on success.

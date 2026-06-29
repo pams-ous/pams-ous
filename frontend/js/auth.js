@@ -1,15 +1,3 @@
-/**
- * auth.js
- * Purpose: Handles authentication logic for both Admin and Personnel portals.
- *
- * NOTE on transport: the original mock layer below uses fetch() to a REST API that
- * doesn't actually exist on the backend (the backend speaks Socket.IO). It still
- * works only because CONFIG.USE_MOCK_API = true. The OTP layer (otpClient.js) talks
- * to the real backend over Socket.IO, so OTP works end-to-end regardless of mock
- * mode — but the surrounding login/signup mocks remain mocks until the two halves
- * are unified.
- */
-
 const togglePasswordVisibility = (inputId, btn) => {
     const input = document.getElementById(inputId);
     const icon = btn.querySelector('i');
@@ -25,16 +13,15 @@ const togglePasswordVisibility = (inputId, btn) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // If the user is already authenticated, and we are on an auth/login page, auto-redirect to the dashboard
     const isAuthPage = /\/auth\//.test(location.pathname) || location.pathname.endsWith('index.html');
     if (isAuthPage && typeof PAMS !== 'undefined' && PAMS.getToken()) {
         const depth = location.pathname.split('/').length - 2;
         const prefix = depth > 0 ? '../'.repeat(depth) : '';
+        const user = PAMS.getUser();
         window.location.replace(prefix + 'pages/dashboard.html');
         return;
     }
 
-    // 1. UI Toggle Logic — wires a Sign In / Sign Up pair of tabs to the matching forms.
     const wireSignInSignupTabs = ({ loginBtnId, signupBtnId, loginFormId, signupFormId, onSignup }) => {
         const loginBtn = document.getElementById(loginBtnId);
         const signupBtn = document.getElementById(signupBtnId);
@@ -62,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return loginBtn;
     };
 
-    const showLoginBtn = wireSignInSignupTabs({
+    wireSignInSignupTabs({
         loginBtnId: 'showLogin',
         signupBtnId: 'showSignup',
         loginFormId: 'loginForm',
@@ -70,18 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
         onSignup: () => loadDesignations()
     });
 
-    const showAdminLoginBtn = wireSignInSignupTabs({
-        loginBtnId: 'showAdminLogin',
-        signupBtnId: 'showAdminSignup',
-        loginFormId: 'adminLoginForm',
-        signupFormId: 'adminSignupForm',
-        onSignup: () => loadDesignations()
-    });
-
-const setSession = (token, user) => {
+    const setSession = (token, user) => {
         PAMS.setToken(token);
         PAMS.setUser(user);
-        
         if (user && user.email) {
             localStorage.setItem('PAMS_userEmail', user.email);
         }
@@ -117,24 +95,12 @@ const setSession = (token, user) => {
             }
         }
 
-        const optionsHtml = designations
-            .filter(d => {
-                // If we are on the Admin portal, exclude the base staff role
-                if (location.pathname.includes('admin-login.html')) {
-                    return d.name !== 'Encoder / Administrative Staff';
-                }
-                return true;
-            })
-            .map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        const optionsHtml = designations.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
         selects.forEach(sel => {
             sel.innerHTML = optionsHtml;
         });
     };
 
-    /**
-     * Performs the existing (mock) auth request. The OTP gate sits on top of this
-     * so the mock and the OTP layer can coexist while the backend transport unifies.
-     */
     const performAuthRequest = async (endpoint, data) => {
         const url = `${CONFIG.API_BASE_URL}/api/${endpoint}`;
 
@@ -173,7 +139,6 @@ const setSession = (token, user) => {
         }
     };
 
-    // Wire the Password / Email-OTP segmented toggle on a login form.
     const setupMethodToggle = (form) => {
         const toggle = form.querySelector('.method-toggle');
         if (!toggle) return;
@@ -190,8 +155,6 @@ const setSession = (token, user) => {
                 b.setAttribute('aria-selected', active ? 'true' : 'false');
             });
 
-            // Show/hide per-method sections — and also flip `required` so hidden
-            // fields don't block submit.
             form.querySelectorAll('[data-method-only]').forEach((el) => {
                 const visible = el.dataset.methodOnly === mode;
                 el.classList.toggle('hidden', !visible);
@@ -221,30 +184,11 @@ const setSession = (token, user) => {
         applyMode(form.dataset.authMode || 'password');
     };
 
-    // Build a mock session for the OTP path so the existing redirect logic still works.
-    // DEPRECATED: Now using real server-side role and token.
-    /*
-    const mockUserFromOtp = (email, empName, type) => {
-        const [firstName, ...rest] = (empName || '').split(' ').filter(Boolean);
-        const lastName = rest.length ? rest[rest.length - 1] : '';
-        const role = type === 'Admin Access' || email.includes('admin') ? 'ADMIN' : 'MEMBER';
-        return {
-            id: 1,
-            email,
-            role,
-            firstName: firstName || 'User',
-            lastName
-        };
-    };
-    */
-
-    const SIGNUP_FORM_IDS = new Set(['signupForm', 'adminSignupForm']);
-
     const setupFormHandler = (formId, endpoint, type) => {
         const form = document.getElementById(formId);
         if (!form) return;
 
-        const isSignup = SIGNUP_FORM_IDS.has(formId);
+        const isSignup = formId === 'signupForm';
         if (!isSignup) setupMethodToggle(form);
 
         form.addEventListener('submit', async (e) => {
@@ -256,7 +200,6 @@ const setSession = (token, user) => {
             const originalText = submitBtn.innerHTML;
             const authMode = form.dataset.authMode || 'password';
 
-            // Signup-side validation
             if (isSignup) {
                 if (data.password !== data.confirmPassword) {
                     PAMS.toast('Passwords do not match.', 'warning');
@@ -272,7 +215,6 @@ const setSession = (token, user) => {
                 }
             }
 
-            // Login-side: OTP mode needs only email; nothing else can be missing.
             if (!isSignup && authMode === 'otp') {
                 if (!data.email) {
                     PAMS.toast('Please enter your email to receive a code.', 'warning');
@@ -284,7 +226,6 @@ const setSession = (token, user) => {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             try {
-                // ─── REGISTRATION (OTP REQUIRED) ──────────────────────────────
                 if (isSignup) {
                     const regPayload = {
                         tempEmpCode: data.employeeCode,
@@ -298,75 +239,45 @@ const setSession = (token, user) => {
                         designationId: data.designationIds ? data.designationIds[0] : null
                     };
 
-                    // If signing up via Admin portal, assign ADMIN role for designations 1, 2, 3
-                    if (formId === 'adminSignupForm') {
-                        if ([1, 2, 3].includes(regPayload.designationId)) {
-                            regPayload.role = 'ADMIN';
-                        } else {
-                            regPayload.role = 'MEMBER';
-                        }
+                    if ([1, 2, 3].includes(regPayload.designationId)) {
+                        regPayload.role = 'ADMIN';
+                    } else {
+                        regPayload.role = 'MEMBER';
                     }
 
                     await window.PAMSOtp.runRegistrationOtp({
                         formData: regPayload
                     });
-                    PAMS.toast(`${type} successful! You can now sign in.`, 'success');
-                    const backToLogin = formId === 'adminSignupForm' ? showAdminLoginBtn : showLoginBtn;
-                    backToLogin && backToLogin.click();
+                    PAMS.toast('Registration successful! You can now sign in.', 'success');
+                    document.getElementById('showLogin').click();
                     return;
                 }
 
-                // ─── LOGIN: Email OTP mode (passwordless) ─────────────────────
                 if (authMode === 'otp') {
                     const otpResult = await window.PAMSOtp.runLoginOtp({ email: data.email });
                     const user = {
-                        id: 1, // We don't have the ID from the OTP flow yet, but we have role and token.
+                        id: 1,
                         email: otpResult.email,
                         role: otpResult.role,
                         firstName: (otpResult.empName || '').split(' ')[0] || 'User',
                         lastName: (otpResult.empName || '').split(' ').slice(1).join(' ') || ''
                     };
 
-                    if (type === 'Personnel Sign-In' && user.role === 'ADMIN') {
-                        PAMS.showLoader('Administrator Detected', 'Redirecting to the Admin Portal...');
-                        setTimeout(() => {
-                            window.location.replace('admin-login.html');
-                        }, 1200);
-                        return;
-                    }
-                    if (type === 'Admin Access' && user.role !== 'ADMIN') {
-                        PAMS.toast('Access Denied: This portal is for administrators only.', 'error');
-                        return;
-                    }
-
                     setSession(otpResult.token, user);
                     PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
                     setTimeout(() => {
-                        window.location.replace('../pages/dashboard.html');
+                        redirectAfterLogin(user);
                     }, 1200);
                     return;
                 }
 
-                // ─── LOGIN: Password mode (existing mock path) ────────────────
                 const result = await performAuthRequest(endpoint, data);
-
-                if (type === 'Personnel Sign-In' && result.user?.role === 'ADMIN') {
-                    PAMS.showLoader('Administrator Detected', 'Redirecting to the Admin Portal...');
-                    setTimeout(() => {
-                        window.location.replace('admin-login.html');
-                    }, 1200);
-                    return;
-                }
-                if (type === 'Admin Access' && result.user?.role !== 'ADMIN') {
-                    PAMS.toast('Access Denied: This portal is for administrators only.', 'error');
-                    return;
-                }
 
                 if (result.token) {
                     setSession(result.token, result.user);
                     PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
                     setTimeout(() => {
-                        window.location.replace('../pages/dashboard.html');
+                        redirectAfterLogin(result.user);
                     }, 1200);
                 } else if (result.success) {
                     PAMS.toast(`${type} successful!`, 'success');
@@ -375,7 +286,6 @@ const setSession = (token, user) => {
                 }
             } catch (error) {
                 if (error && error.message === 'cancelled') {
-                    // User closed the OTP modal — silently abort.
                 } else {
                     PAMS.toast(`Error: ${error.message || error}`, 'error');
                 }
@@ -386,8 +296,10 @@ const setSession = (token, user) => {
         });
     };
 
-    setupFormHandler('adminLoginForm', 'auth/login', 'Admin Access');
-    setupFormHandler('adminSignupForm', 'auth/register', 'Admin Registration');
-    setupFormHandler('loginForm', 'auth/login', 'Personnel Sign-In');
-    setupFormHandler('signupForm', 'auth/register', 'Personnel Registration');
+    const redirectAfterLogin = (user) => {
+        window.location.replace('../pages/dashboard.html');
+    };
+
+    setupFormHandler('loginForm', 'auth/login', 'Sign In');
+    setupFormHandler('signupForm', 'auth/register', 'Registration');
 });
