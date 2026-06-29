@@ -414,6 +414,111 @@ body {
   border-color: var(--maroon);
 }
 
+/* ── Custom dropdown widget ────────────────────────── */
+.custom-dropdown {
+  position: relative;
+  display: inline-flex;
+  min-width: 100px;
+}
+
+.custom-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--text);
+  background: var(--white);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .15s ease;
+  line-height: 1.4;
+}
+
+.custom-dropdown-selected {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.custom-dropdown-trigger:hover {
+  border-color: var(--maroon);
+}
+
+.custom-dropdown.is-open .custom-dropdown-trigger {
+  border-color: var(--maroon);
+}
+
+.custom-dropdown-trigger .arrow {
+  font-size: 0.55rem;
+  color: var(--gray-500);
+  flex-shrink: 0;
+  transition: transform .15s ease;
+}
+
+.custom-dropdown.is-open .custom-dropdown-trigger .arrow {
+  transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  min-width: 100%;
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  z-index: 2100;
+  display: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.custom-dropdown.is-open .custom-dropdown-menu {
+  display: block;
+}
+
+.custom-dropdown-option {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s ease;
+}
+
+.custom-dropdown-option:hover {
+  background: #f3f0f0;
+}
+
+.custom-dropdown-option.is-selected {
+  background: var(--pale-gold);
+  color: var(--maroon);
+  font-weight: 600;
+}
+
+.custom-dropdown.is-disabled .custom-dropdown-trigger {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border-color: var(--gray-200);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.custom-dropdown.is-disabled .custom-dropdown-trigger:hover {
+  border-color: var(--gray-200);
+}
+
 /* Badges */
 .badge {
   display: inline-block;

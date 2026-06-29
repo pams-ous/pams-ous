@@ -440,6 +440,8 @@
 
             document.getElementById('edit-status').value = t.status;
             document.getElementById('edit-priority').value = t.priority;
+            document.getElementById('edit-status').dispatchEvent(new Event('change', { bubbles: true }));
+            document.getElementById('edit-priority').dispatchEvent(new Event('change', { bubbles: true }));
             document.getElementById('edit-due').value = t.dueDate.slice(0, 10);
             openModal('editModal');
         },
@@ -506,11 +508,12 @@
         openDeleteFromView: () => { closeModal('viewModal'); window.TaskBoard.openDeleteTask(viewingId); },
         closeModal: (id) => closeModal(id),
         clearFilters: () => {
-            ['filterGroup', 'filterPriority', 'filterAssignee', 'tbSearch'].forEach(id => {
+            ['filterGroup', 'filterPriority', 'filterAssignee'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.value = '';
+                if (el) { el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); }
             });
-            renderList();
+            const search = document.getElementById('tbSearch');
+            if (search) { search.value = ''; search.dispatchEvent(new Event('input', { bubbles: true })); }
         },
         exportVisibleTasks: () => {
             // Grab the exact list of tasks currently visible on the screen

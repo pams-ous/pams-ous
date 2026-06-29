@@ -12,6 +12,77 @@ const togglePasswordVisibility = (inputId, btn) => {
     }
 };
 
+window.initCustomSelect = function (selectEl) {
+    if (!selectEl || selectEl._customSelect || selectEl.closest('.custom-dropdown')) return;
+    selectEl._customSelect = true;
+
+    var buildMenu = function () {
+        var menu = wrapper.querySelector('.custom-dropdown-menu');
+        menu.innerHTML = Array.from(selectEl.options).map(function (opt) {
+            return '<div class="custom-dropdown-option' + (opt.selected ? ' is-selected' : '') + '" data-value="' + opt.value.replace(/"/g, '&quot;') + '">' + opt.label + '</div>';
+        }).join('');
+        var selected = wrapper.querySelector('.custom-dropdown-selected');
+        selected.textContent = selectEl.options[selectEl.selectedIndex] ? selectEl.options[selectEl.selectedIndex].label : '';
+    };
+
+    var selectedText = selectEl.options[selectEl.selectedIndex] ? selectEl.options[selectEl.selectedIndex].label : '';
+    var wrapper = document.createElement('div');
+    wrapper.className = 'custom-dropdown' + (selectEl.disabled ? ' is-disabled' : '');
+    wrapper.innerHTML = '<div class="custom-dropdown-trigger" tabindex="0">' +
+        '<span class="custom-dropdown-selected">' + selectedText + '</span>' +
+        '<i class="fa-solid fa-chevron-down arrow"></i></div>' +
+        '<div class="custom-dropdown-menu"></div>';
+
+    var initiallyHidden = selectEl.style.display === 'none';
+    selectEl.style.display = 'none';
+    if (initiallyHidden) wrapper.style.display = 'none';
+    selectEl.parentNode.insertBefore(wrapper, selectEl);
+    buildMenu();
+    selectEl.addEventListener('change', function () { buildMenu(); });
+
+    var trigger = wrapper.querySelector('.custom-dropdown-trigger');
+    trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (selectEl.disabled) return;
+        var isOpen = wrapper.classList.contains('is-open');
+        document.querySelectorAll('.custom-dropdown.is-open').forEach(function (d) {
+            if (d !== wrapper) d.classList.remove('is-open');
+        });
+        wrapper.classList.toggle('is-open', !isOpen);
+    });
+
+    wrapper.querySelector('.custom-dropdown-menu').addEventListener('click', function (e) {
+        var opt = e.target.closest('.custom-dropdown-option');
+        if (!opt) return;
+        if (selectEl.disabled) return;
+
+        selectEl.value = opt.dataset.value;
+        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+        wrapper.querySelectorAll('.custom-dropdown-option').forEach(function (o) { o.classList.remove('is-selected'); });
+        opt.classList.add('is-selected');
+        wrapper.querySelector('.custom-dropdown-selected').textContent = opt.textContent;
+        wrapper.classList.remove('is-open');
+        e.stopPropagation();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (e.target !== trigger && !wrapper.contains(e.target)) {
+            wrapper.classList.remove('is-open');
+        }
+    });
+
+    var observer = new MutationObserver(function () { buildMenu(); });
+    observer.observe(selectEl, { childList: true, subtree: true });
+
+    var styleObserver = new MutationObserver(function () {
+        wrapper.style.display = selectEl.style.display === 'none' ? 'none' : '';
+    });
+    styleObserver.observe(selectEl, { attributes: true, attributeFilter: ['style'] });
+
+    return wrapper;
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const isAuthPage = /\/auth\//.test(location.pathname) || location.pathname.endsWith('index.html');
     if (isAuthPage && typeof PAMS !== 'undefined' && PAMS.getToken()) {
@@ -98,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const optionsHtml = designations.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
         selects.forEach(sel => {
             sel.innerHTML = optionsHtml;
+            if (typeof window.initCustomSelect === 'function') {
+                window.initCustomSelect(sel);
+            }
         });
     };
 

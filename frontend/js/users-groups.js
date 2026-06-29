@@ -98,6 +98,7 @@
         initTabs();
         initUserEmailSearch();
         initGroupSearch();
+        initCustomDropdowns();
     });
 
     function initUserEmailSearch() {
@@ -432,6 +433,89 @@
         });
     }
 
+    // ── Custom dropdown helper ─────────────────────────────────────────────
+    function createCustomDropdownHtml(type, email, currentValue, isDisabled) {
+      const disabledClass = isDisabled ? ' is-disabled' : '';
+      let optionsHtml, displayText;
+
+      if (type === 'role') {
+        const items = [
+          { value: 'MEMBER', label: 'Encoder' },
+          { value: 'ADMIN', label: 'Administrator' }
+        ];
+        const sel = items.find(o => o.value === currentValue);
+        displayText = sel ? sel.label : 'Select Role';
+        optionsHtml = items.map(o =>
+          `<div class="custom-dropdown-option${o.value === currentValue ? ' is-selected' : ''}" data-cd-opt-value="${o.value}">${o.label}</div>`
+        ).join('');
+      } else {
+        const placeholder = { value: '', label: '— Select Title —' };
+        const sel = designations.find(d => String(d.id) === String(currentValue));
+        displayText = sel ? sel.name : placeholder.label;
+        optionsHtml = `<div class="custom-dropdown-option${!currentValue ? ' is-selected' : ''}" data-cd-opt-value="">${placeholder.label}</div>` +
+          designations.map(d =>
+            `<div class="custom-dropdown-option${String(d.id) === String(currentValue) ? ' is-selected' : ''}" data-cd-opt-value="${d.id}">${d.name}</div>`
+          ).join('');
+      }
+
+      return `<div class="custom-dropdown${disabledClass}" data-cd-type="${type}" data-cd-email="${email}" data-cd-value="${currentValue || ''}">
+        <div class="custom-dropdown-trigger" tabindex="0">
+          <span class="custom-dropdown-selected">${displayText}</span>
+          <i class="fa-solid fa-chevron-down arrow"></i>
+        </div>
+        <div class="custom-dropdown-menu">${optionsHtml}</div>
+      </div>`;
+    }
+
+    function initCustomDropdowns() {
+      const body = document.getElementById('usersBody');
+      if (!body) return;
+
+      body.addEventListener('click', (e) => {
+        const trigger = e.target.closest('.custom-dropdown-trigger');
+        if (trigger) {
+          const dd = trigger.closest('.custom-dropdown');
+          if (!dd || dd.classList.contains('is-disabled')) return;
+          body.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+            if (d !== dd) d.classList.remove('is-open');
+          });
+          dd.classList.toggle('is-open');
+          return;
+        }
+
+        const opt = e.target.closest('.custom-dropdown-option');
+        if (!opt) return;
+        const dd = opt.closest('.custom-dropdown');
+        if (!dd || dd.classList.contains('is-disabled')) return;
+        e.stopPropagation();
+        dd.classList.remove('is-open');
+
+        const email = dd.dataset.cdEmail;
+        const type = dd.dataset.cdType;
+        const value = opt.dataset.cdOptValue;
+        const currentValue = dd.dataset.cdValue;
+
+        if (type === 'role') {
+          if (currentValue === 'ADMIN' && value === 'MEMBER') {
+            const selectedSpan = dd.querySelector('.custom-dropdown-selected');
+            if (selectedSpan) selectedSpan.textContent = 'Administrator';
+            const user = users.find(u => u.email === email);
+            window.Admin.openConfirmDemote(email, user?.name);
+            return;
+          }
+          window.Admin.changeRole(email, value);
+        } else if (type === 'jobtitle') {
+          window.Admin.changeJobTitle(email, value);
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#usersBody .custom-dropdown')) {
+          body.querySelectorAll('.custom-dropdown.is-open').forEach(d => d.classList.remove('is-open'));
+        }
+      });
+    }
+
     function renderUsers() {
         if (!window.Admin) window.Admin = {};
         window.Admin.refreshData = loadAll;
@@ -444,10 +528,7 @@
                 ? u.groups.map(gName => `<span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; display: inline-block; margin: 2px;">${gName}</span>`).join('') 
                 : '<span style="color:#9ca3af; font-style:italic; font-size: 0.8rem;">Unassigned</span>';
 
-            const jobTitleOptions = designations.map(d => 
-                `<option value="${d.id}" ${u.jobTitleId == d.id ? 'selected' : ''}>${d.name}</option>`
-            ).join('');
-            // Prevent job‑title changes for the designated Super‑Admin (employee code SUPER-001)
+            // Prevent job‑title / role changes for the designated Super‑Admin (employee code SUPER-001)
             const isSuperAdmin = u.employeeCode === 'SUPER-001';
 
             return `
@@ -455,29 +536,8 @@
               <td class="td-code">${u.employeeCode || '—'}</td>
               <td class="td-name">${u.name || '—'}</td>
               <td class="td-email">${u.email}</td>
-              <td>
-                <select 
-                    class="form-control role-select-dropdown" 
-                    onchange="window.Admin.handleRoleChange('${u.email}', this.value, '${u.role}')"
-                    data-user-email="${u.email}" 
-                    data-current-role="${u.role}"
-                    style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${(isSuperAdmin || u.id === currentUserId) ? 'not-allowed' : 'pointer'}; ${(isSuperAdmin || u.id === currentUserId) ? 'background-color:#f9fafb;' : ''}"
-                    ${(isSuperAdmin || u.id === currentUserId) ? 'disabled' : ''}>
-                    <option value="MEMBER" ${u.role && u.role.toUpperCase() === 'MEMBER' ? 'selected' : ''}>Encoder</option>
-                    <option value="ADMIN" ${u.role && u.role.toUpperCase() === 'ADMIN' ? 'selected' : ''}>Administrator</option>
-                </select>
-              </td>
-               <td>
-                  <select 
-                      class="form-control" 
-                      onchange="window.Admin.changeJobTitle('${u.email}', this.value)"
-                      data-user-email="${u.email}" 
-                      style="font-size: 0.75rem; padding: 0.2rem 0.5rem; width: auto; display: inline-block; cursor: ${(isSuperAdmin || u.id === currentUserId) ? 'not-allowed' : 'pointer'}; ${(isSuperAdmin || u.id === currentUserId) ? 'background-color:#f9fafb;' : ''}"
-                      ${(isSuperAdmin || u.id === currentUserId) ? 'disabled' : ''}>
-                     <option value="">— Select Title —</option>
-                     ${jobTitleOptions}
-                 </select>
-              </td>
+              <td>${createCustomDropdownHtml('role', u.email, u.role, isSuperAdmin || u.id === currentUserId)}</td>
+               <td>${createCustomDropdownHtml('jobtitle', u.email, u.jobTitleId, isSuperAdmin || u.id === currentUserId)}</td>
               
               <td class="td-groups" style="max-width: 250px; white-space: normal;">
                   ${groupTags}
