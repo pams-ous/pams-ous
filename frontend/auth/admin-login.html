@@ -11,32 +11,28 @@
 
 <body class="login-container">
     <div class="login-box">
-        <a href="../index.html" class="color-maroon fw-600 d-block mb-4 back-link no-underline">
-            <i class="fas fa-arrow-left"></i> Back to Selection
-        </a>
-        <img src="../assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo">
-        <h1 class="color-maroon fw-700 text-sm mt-1">ADMINISTRATOR ACCESS</h1>
-        <p class="color-gray text-xs mb-4">Secure Portal for System Management</p>
+        <div class="login-header">
+            <a href="../index.html" class="color-maroon fw-600 d-block mb-4 back-link no-underline">
+                <i class="fas fa-arrow-left"></i> Back to Selection
+            </a>
+            <img src="../assets/pup_ous_seal.webp" alt="PUP Logo" class="login-logo">
+            <h1 class="color-maroon fw-700 text-sm mt-1">ADMINISTRATOR ACCESS</h1>
+            <p class="color-gray text-xs mb-4">Secure Portal for System Management</p>
 
-        <div class="auth-toggle mt-4" role="tablist" aria-label="Admin authentication">
-            <button id="showAdminLogin" class="active" role="tab" aria-selected="true">Sign In</button>
-            <button id="showAdminSignup" role="tab" aria-selected="false">Sign Up</button>
+            <div class="auth-toggle mt-4" role="tablist" aria-label="Admin authentication">
+                <button id="showAdminLogin" class="active" role="tab" aria-selected="true">Sign In</button>
+                <button id="showAdminSignup" role="tab" aria-selected="false">Sign Up</button>
+            </div>
         </div>
 
         <!-- Admin Login Form -->
-        <form class="mt-4" id="adminLoginForm" aria-label="Administrator Login Form" data-auth-mode="password">
-             <div class="auth-toggle method-toggle" role="tablist" aria-label="Choose sign-in method">
-                 <button type="button" data-method="password" class="active" role="tab" aria-selected="true">
-                     <i class="fa-solid fa-key method-icon" aria-hidden="true"></i>Security Key
-                 </button>
-             </div>
-
+        <form class="mt-4" id="adminLoginForm" aria-label="Administrator Login Form">
             <div class="form-group">
                 <label class="form-label" for="admin-email">Admin Email</label>
                 <input type="email" id="admin-email" name="email" class="form-control" placeholder="admin@pup.edu.ph"
                     required aria-required="true">
             </div>
-            <div class="form-group" data-method-only="password">
+            <div class="form-group">
                 <label class="form-label" for="admin-key">Security Key</label>
                 <div class="password-field-wrap">
                     <input type="password" id="admin-key" name="password" class="form-control" placeholder="••••••••"
@@ -55,7 +51,7 @@
                 <a href="../pages/terms-and-conditions.html"
                     aria-label="Read the PAMS Terms and Conditions">Terms and Conditions</a>.
             </p>
-            <div class="mt-3 text-xs text-center" data-method-only="password">
+            <div class="mt-3 text-xs text-center">
                 <a href="forgot-password.html" class="color-maroon fw-600 no-underline">Forgot your password?</a>
             </div>
             <div class="mt-3 text-xs color-gray text-center">

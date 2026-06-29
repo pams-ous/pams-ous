@@ -543,10 +543,9 @@
         }
     }
 
-    function populateLeaderSelect(id, selectedEmail) {
-        const sel = document.getElementById(id);
-        if (!sel) return;
-        sel.innerHTML = '<option value="">— Select Leader —</option>' + users.map(u => `<option value="${u.email}" ${u.email === selectedEmail ? 'selected' : ''}>${u.name || u.email}</option>`).join('');
+    function getLeaderEmail(prefix) {
+        const checked = document.querySelector(`#${prefix}LeaderCheckboxList input[name="${prefix}Leader"]:checked`);
+        return checked ? checked.value : '';
     }
 
     const openModal = (id) => document.getElementById(id)?.classList.add('open');
@@ -555,7 +554,7 @@
     window.Admin = {
         openModal: (id) => {
             if (id === 'addGroupModal') {
-                populateLeaderSelect('newGroupLeader');
+                window.Admin.renderNewLeaderCheckboxes();
                 window.Admin.renderNewMemberCheckboxes();
             }
             if (id === 'addUserModal') populateDesignationSelect('newUserDesignation');
@@ -716,7 +715,7 @@
         addGroup: async () => {
             const name = document.getElementById('newGroupName').value.trim();
             const desc = document.getElementById('newGroupDesc').value.trim();
-            const leader = document.getElementById('newGroupLeader').value;
+            const leader = getLeaderEmail('new');
             if (!name) { PAMS.toast('Group name required.', 'warning'); return; }
 
             const checkedEmails = Array.from(document.querySelectorAll('#newMemberCheckboxList .member-checkbox'))
@@ -756,7 +755,7 @@
 
             const leaderEmail = users.find(u => u.name === g.leader)?.email || '';
             currentGroupLeaderEmail = leaderEmail;
-            populateLeaderSelect('editGroupLeader', leaderEmail);
+            window.Admin.renderEditLeaderCheckboxes(leaderEmail);
             currentManageGroupId = id;
 
             document.getElementById('memberSearch').value = '';
@@ -776,7 +775,7 @@
             const id = document.getElementById('editGroupId').value;
             const name = document.getElementById('editGroupName').value.trim();
             const desc = document.getElementById('editGroupDesc').value.trim();
-            const leader = document.getElementById('editGroupLeader').value;
+            const leader = getLeaderEmail('edit');
             try {
                 await apiFetch(`/admin/sync/groups/${id}`, 'PUT', { name, desc, leaderEmail: leader });
 
@@ -841,7 +840,7 @@
         renderNewMemberCheckboxes: () => {
             const container = document.getElementById('newMemberCheckboxList');
             if (!container) return;
-            const leaderEmail = document.getElementById('newGroupLeader').value;
+            const leaderEmail = getLeaderEmail('new');
             const sortedUsers = [...users].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             container.innerHTML = sortedUsers.map(u => {
                 const isLeader = u.email === leaderEmail;
@@ -862,6 +861,56 @@
                 const email = el.dataset.email.toLowerCase();
                 el.style.display = (name.includes(query) || email.includes(query)) ? 'flex' : 'none';
             });
+        },
+
+        renderNewLeaderCheckboxes: () => {
+            const container = document.getElementById('newLeaderCheckboxList');
+            if (!container) return;
+            const sortedUsers = [...users].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            container.innerHTML = sortedUsers.map(u => `
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
+                    <input type="radio" name="newLeader" value="${u.email}" style="margin-right: 10px; accent-color: var(--maroon, #800000);" onchange="window.Admin.renderNewMemberCheckboxes()">
+                    <div style="flex-grow: 1;">
+                        <div style="font-weight: 500; color: #333;">${u.name || u.email}</div>
+                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                    </div>
+                </label>`).join('');
+        },
+        filterNewLeaders: () => {
+            const query = document.getElementById('newLeaderSearch').value.toLowerCase();
+            document.querySelectorAll('#newLeaderCheckboxList .member-checkbox-item').forEach(el => {
+                const name = el.dataset.name.toLowerCase();
+                const email = el.dataset.email.toLowerCase();
+                el.style.display = (name.includes(query) || email.includes(query)) ? 'flex' : 'none';
+            });
+        },
+
+        renderEditLeaderCheckboxes: (selectedEmail) => {
+            const container = document.getElementById('editLeaderCheckboxList');
+            if (!container) return;
+            const sortedUsers = [...users].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            container.innerHTML = sortedUsers.map(u => `
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
+                    <input type="radio" name="editLeader" value="${u.email}" ${u.email === selectedEmail ? 'checked' : ''} style="margin-right: 10px; accent-color: var(--maroon, #800000);" onchange="window.Admin.onEditLeaderChange('${u.email}')">
+                    <div style="flex-grow: 1;">
+                        <div style="font-weight: 500; color: #333;">${u.name || u.email}</div>
+                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                    </div>
+                </label>`).join('');
+        },
+        filterEditLeaders: () => {
+            const query = document.getElementById('editLeaderSearch').value.toLowerCase();
+            document.querySelectorAll('#editLeaderCheckboxList .member-checkbox-item').forEach(el => {
+                const name = el.dataset.name.toLowerCase();
+                const email = el.dataset.email.toLowerCase();
+                el.style.display = (name.includes(query) || email.includes(query)) ? 'flex' : 'none';
+            });
+        },
+        onEditLeaderChange: (email) => {
+            currentGroupLeaderEmail = email;
+            const checkedEmails = Array.from(document.querySelectorAll('#memberCheckboxList .member-checkbox:checked'))
+                .map(cb => cb.value);
+            window.Admin.renderMemberCheckboxes(checkedEmails);
         },
     };
 })();

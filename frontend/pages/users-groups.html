@@ -388,7 +388,14 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Group Leader</label>
-                    <select id="newGroupLeader" class="form-control" onchange="window.Admin.renderNewMemberCheckboxes()"></select>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+                        Select the group leader. The leader is automatically included as a member.
+                    </p>
+                    <div style="margin-bottom: 12px; position: relative;">
+                        <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
+                        <input type="text" id="newLeaderSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterNewLeaders()" style="padding-left: 30px; width: 100%;">
+                    </div>
+                    <div id="newLeaderCheckboxList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;"></div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
@@ -432,7 +439,14 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Group Leader</label>
-                    <select id="editGroupLeader" class="form-control"></select>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+                        Select the group leader. The leader is automatically included as a member.
+                    </p>
+                    <div style="margin-bottom: 12px; position: relative;">
+                        <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
+                        <input type="text" id="editLeaderSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterEditLeaders()" style="padding-left: 30px; width: 100%;">
+                    </div>
+                    <div id="editLeaderCheckboxList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;"></div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">

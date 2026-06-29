@@ -948,10 +948,10 @@ body.sidebar-open .main {
   background: var(--white);
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, .35);
-  padding: 2.5rem 2rem;
+  padding: 0 2rem 2.5rem;
   width: 100%;
   max-width: 420px;
-  height: 650px;
+  height: 90vh;
   max-height: 90vh;
   text-align: center;
   display: flex;
@@ -991,7 +991,18 @@ body.sidebar-open .main {
 
 .back-link {
   text-decoration: none;
-  text-align: left;
+  text-align: center;
+}
+
+.login-header {
+  position: sticky;
+  top: 0;
+  padding-top: 2.5rem;
+  background: var(--white);
+  z-index: 2;
+  width: 100%;
+  border-radius: 16px 16px 0 0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .auth-toggle {
