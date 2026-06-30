@@ -257,13 +257,15 @@ window.PAMS_UI = (function () {
 
         bell.onclick = async (e) => {
             e.stopPropagation();
+            const wasOpen = popover.classList.contains('open');
             popover.classList.toggle('open');
-            if (popover.classList.contains('open')) {
+            if (!wasOpen) {
                 notifHistory = [];
                 notifOffset = 0;
                 notifTotalCount = 0;
                 await loadNotifications();
                 updateBadgeCount(0);
+            } else {
                 PAMS.apiFetch('/notifications/mark-all-read', 'PATCH').catch(err => {
                     console.error('Failed to mark read:', err);
                 });
@@ -316,6 +318,11 @@ window.PAMS_UI = (function () {
 
         document.addEventListener('click', (e) => {
             if (!popover.contains(e.target) && e.target !== bell) {
+                if (popover.classList.contains('open')) {
+                    PAMS.apiFetch('/notifications/mark-all-read', 'PATCH').catch(err => {
+                        console.error('Failed to mark read:', err);
+                    });
+                }
                 popover.classList.remove('open');
             }
         });
