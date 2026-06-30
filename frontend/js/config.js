@@ -3,15 +3,21 @@
  * Purpose: Centralized configuration for the PUP OUS - PAMS Frontend.
  */
 
+// Resolve the backend origin.
+// - If the page is already served by the backend (same origin), use it as-is.
+// - If served by a separate frontend dev server (e.g. Live Server on :5500),
+//   fall back to the backend on port 3000 on the same hostname.
+const BACKEND_PORT = '3000';
+const BACKEND_ORIGIN = (window.location.port && window.location.port !== BACKEND_PORT)
+    ? `${window.location.protocol}//${window.location.hostname}:${BACKEND_PORT}`
+    : window.location.origin;
+
 const CONFIG = {
     // Backend API Configuration
-    // Dynamically use the current origin (works for 127.0.0.1:3000, ngrok, or production)
-    // If using a separate frontend dev server (e.g. Live Server on 5500), 
-    // you can hardcode the backend URL here.
-    API_BASE_URL: window.location.origin,
+    API_BASE_URL: BACKEND_ORIGIN,
 
     // Backend Socket.IO server
-    BACKEND_SOCKET_URL: window.location.origin,
+    BACKEND_SOCKET_URL: BACKEND_ORIGIN,
 
     // System Metadata
     SYSTEM_NAME: 'PUP OUS - PAMS',

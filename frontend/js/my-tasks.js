@@ -137,7 +137,7 @@
                         ${currentView === 'completed'
                             ? `<button class="act-btn act-reopen" title="Reopen (Set to In Progress)" aria-label="Reopen task" onclick="window.MyTasks.reopenTask(${t.id})"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>`
                             : `<button class="act-btn act-complete" title="Mark as Completed" aria-label="Mark task as completed" onclick="window.MyTasks.completeTask(${t.id})"${isTerminal ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>`}
-                        <button class="act-btn act-view" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
+                        <button class="act-btn act-view" title="View Details" aria-label="View task details" onclick="window.MyTasks.openViewTask(${t.id})"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
                         <button class="act-btn act-delete" title="Remove" onclick="window.MyTasks.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </td>
@@ -276,6 +276,7 @@
                 await apiFetch('/tasks/updates', 'POST', { taskId, email: getUser().email, notes, statusChange: statusChange || null, attachmentUrl: attachmentUrl || null });
                 closeModal('logUpdateModal');
                 await loadTasks();
+                PAMS.toast('Task update logged successfully.', 'success');
             } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         openDeleteTask: (id) => {
@@ -292,9 +293,11 @@
                 return;
             }
             try {
+                const deleted = tasks.find(x => x.id == deleteTarget);
                 await apiFetch(`/tasks/${deleteTarget}`, 'DELETE');
                 closeModal('deleteModal');
                 await loadTasks();
+                PAMS.toast(`Task "${deleted?.title || ''}" deleted successfully.`, 'success');
             } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         completeTask: async (id) => {
@@ -308,6 +311,7 @@
             try {
                 await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
                 await loadTasks();
+                PAMS.toast(`Task "${t.title}" marked as completed.`, 'success');
             } catch (err) {
                 PAMS.toast(err.message, 'error');
             }
@@ -323,6 +327,7 @@
             try {
                 await apiFetch(`/tasks/${id}`, 'PUT', { status: 'IN PROGRESS' });
                 await loadTasks();
+                PAMS.toast(`Task "${t.title}" reopened.`, 'success');
             } catch (err) {
                 PAMS.toast(err.message, 'error');
             }

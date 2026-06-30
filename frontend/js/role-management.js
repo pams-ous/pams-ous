@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 console.log(`Successfully updated user ${userEmail} to ${newRole}`);
+                PAMS.toast(`Role updated to ${newRole} successfully.`, 'success');
             } catch (error) {
                 console.error('Error updating role:', error);
                 PAMS.toast(`Failed to update role: ${error.message}`, 'error');

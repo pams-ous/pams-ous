@@ -77,6 +77,24 @@ const { authenticateToken } = require("./UserMngmt_APIs/authMiddleware");
 const taskRoutes = require('./TaskMngmt_APIs/taskRoutes');
 app.use(express.json());
 
+// --- GLOBAL CORS ---
+// Must be registered BEFORE any routes so every /api/* endpoint (notifications,
+// admin sync, tasks, etc.) gets the Access-Control headers, not just the routes
+// declared after initLoginRoutes(). Mirrors the allow-list used by the socket
+// server and login.js.
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('.ngrok-free.dev') || origin === process.env.FRONTEND_ORIGIN)) {
+        res.header("Access-Control-Allow-Origin", origin);
+    } else {
+        res.header("Access-Control-Allow-Origin", process.env.BACKEND_ORIGIN || "http://127.0.0.1:5500");
+    }
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") return res.sendStatus(200);
+    next();
+});
+
 app.use("/api/notifications", notificationsRouter(db));
 
 // ==========================================

@@ -674,7 +674,8 @@
             try {
                 await apiFetch('/users', 'POST', { code, firstName, lastName, middleName, suffix, email, role, password, designationId });
                 window.Admin.closeModal('addUserModal');
-                await loadAll(); 
+                await loadAll();
+                PAMS.toast(`User "${firstName} ${lastName}" added successfully.`, 'success');
             } catch (error) { PAMS.toast(`Failed to add user: ${error.message}`, 'error'); }
         },
         openEditUser: (email) => {
@@ -741,7 +742,7 @@
             }
         },
         toggleUser: async (id) => {
-            try { await apiFetch(`/users/${id}/toggle-status`, 'PATCH'); await loadAll(); } catch (err) { PAMS.toast(err.message, 'error'); }
+            try { await apiFetch(`/users/${id}/toggle-status`, 'PATCH'); await loadAll(); PAMS.toast('User status updated successfully.', 'success'); } catch (err) { PAMS.toast(err.message, 'error'); }
         },
         openResetPassword: (id, name) => {
             document.getElementById('resetPassUserId').value = id;
@@ -766,10 +767,10 @@
             } catch (err) { PAMS.toast(`Failed to approve user: ${err.message}`, 'error'); }
         },
         changeRole: async (email, newRole) => {
-            try { await apiFetch(`/users/${email}`, 'PUT', { role: newRole }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change role: ${err.message}. Reverting...`, 'error'); await loadAll(); }
+            try { await apiFetch(`/users/${email}`, 'PUT', { role: newRole }); await loadAll(); PAMS.toast(`Role changed to ${newRole} successfully.`, 'success'); } catch (err) { PAMS.toast(`Failed to change role: ${err.message}. Reverting...`, 'error'); await loadAll(); }
         },
         changeJobTitle: async (email, jobId) => {
-            try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); } catch (err) { PAMS.toast(`Failed to change job title: ${err.message}. Reverting...`, 'error'); await loadAll(); }
+            try { await apiFetch('/users/job-title', 'PUT', { email, jobTitleId: jobId }); await loadAll(); PAMS.toast('Job title updated successfully.', 'success'); } catch (err) { PAMS.toast(`Failed to change job title: ${err.message}. Reverting...`, 'error'); await loadAll(); }
         },
         
         handleRoleChange: async (email, newRole, currentRole) => {
@@ -898,6 +899,7 @@
 
                 window.Admin.closeModal('editGroupModal');
                 await loadAll();
+                PAMS.toast(`Group "${name}" updated successfully.`, 'success');
             } catch (err) { PAMS.toast(`Error: ${err.message}`, 'error'); }
         },
         deleteGroup: (id, name) => {

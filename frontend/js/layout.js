@@ -280,6 +280,7 @@ window.PAMS_UI = (function () {
                         await PAMS.apiFetch('/notifications/clear', 'POST');
                         loadNotifications();
                         updateBadgeCount(0);
+                        PAMS.toast('All notifications cleared.', 'success');
                     } catch (err) {
                         PAMS.toast('Failed to clear notifications: ' + err.message, 'error');
                     }
@@ -307,6 +308,7 @@ window.PAMS_UI = (function () {
             try {
                 await PAMS.apiFetch(`/notifications/${notifId}/${action}`, 'POST');
                 loadNotifications();
+                PAMS.toast(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully.`, 'success');
             } catch (err) {
                 PAMS.toast('Action failed: ' + err.message, 'error');
             }

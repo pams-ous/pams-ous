@@ -9,7 +9,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:reset": "node scripts/dev/reset-db.js",
     "db:seed": "node scripts/dev/seed-admin.js",
-    "db:seed:clear": "node scripts/dev/seed-admin.js --clear"
+    "db:seed:clear": "node scripts/dev/seed-admin.js --clear",
+    "db:seed:dummy": "node scripts/dev/seed-dummy.js",
+    "db:seed:alice": "node scripts/dev/seed-alice-tasks.js"
   },
   "keywords": [],
   "author": "",

@@ -1657,7 +1657,7 @@ body.sidebar-open .main {
 
 .ribbon-btn.ghost {
   background: var(--white);
-  color: var(--text);
+  color: var(--gray-500);
   border: 1.5px solid var(--gray-200);
   transition: var(--transition);
 }
@@ -1980,6 +1980,7 @@ body.sidebar-open .main {
   border-radius: 8px;
   border: 1.5px solid var(--gray-200);
   background: var(--white);
+  color: var(--gray-500);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -2006,15 +2007,10 @@ body.sidebar-open .main {
   background: var(--gray-100);
 }
 
-.act-complete {
-  background: var(--green-bg);
-  color: var(--green-text);
-  border-color: var(--green-text);
-  transition: var(--transition);
-}
-
 .act-complete:hover {
-  filter: brightness(0.88);
+  border-color: var(--green-text);
+  color: var(--green-text);
+  background: var(--green-bg);
 }
 
 .act-complete:disabled,
@@ -2036,14 +2032,16 @@ body.sidebar-open .main {
 }
 
 .ribbon-btn.complete {
-  background: var(--green-bg);
-  color: var(--green-text);
-  border: 1.5px solid var(--green-text);
+  background: var(--white);
+  color: var(--gray-500);
+  border: 1.5px solid var(--gray-200);
   transition: var(--transition);
 }
 
 .ribbon-btn.complete:hover {
-  filter: brightness(0.90);
+  background: var(--green-bg);
+  color: var(--green-text);
+  border-color: var(--green-text);
 }
 
 .ribbon-btn.complete:disabled,

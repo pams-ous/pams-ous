@@ -82,7 +82,7 @@ module.exports = {
             // complete anything; everyone else only their own (assigned to them
             // directly, or to a group they belong to).
             const role = req.user.role ? req.user.role.toLowerCase() : 'staff';
-            const isManager = role === 'admin' || role === 'chief';
+            const isManager = role === 'admin' || role === 'chief' || role === 'superadmin';
             let myGroupIds = [];
             if (!isManager) {
                 const [groupRows] = await db.query(
@@ -351,7 +351,7 @@ module.exports = {
             }
 
             // Enforce Role & Modification Boundary Rules
-            const isAuthorizedModifier = (userRole === 'admin' || userRole === 'chief');
+            const isAuthorizedModifier = (userRole === 'admin' || userRole === 'chief' || userRole === 'superadmin');
             
             if (!isAuthorizedModifier) {
                 // Regular personnel cannot change core task metadata

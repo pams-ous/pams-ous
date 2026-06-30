@@ -269,7 +269,7 @@
             <div class="tb-row-actions">
                 <button class="ribbon-btn complete" title="${t.canComplete === false ? 'You can only complete tasks assigned to you' : 'Mark as Completed'}" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED' || t.canComplete === false) ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
                 <button class="ribbon-btn ghost" title="Edit Details" onclick="window.TaskBoard.openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
-                <button class="ribbon-btn ghost act-delete" title="Remove" onclick="window.TaskBoard.openDeleteTask(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
+                <button class="ribbon-btn ghost act-delete" title="${t.canComplete === false ? 'You can only delete tasks assigned to you' : 'Remove'}" aria-label="Delete '${t.title.replace(/'/g, '&#39;')}'" onclick="window.TaskBoard.openDeleteTask(${t.id})"${t.canComplete === false ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-trash-can"></i></button>
             </div>
         </div>`;
     }
@@ -408,10 +408,11 @@
             }
             
             try { 
-                await apiFetch('/tasks', 'POST', body); 
-                closeModal('newTaskModal'); 
-                await loadAll(); 
-            } catch (err) { 
+                await apiFetch('/tasks', 'POST', body);
+                closeModal('newTaskModal');
+                await loadAll();
+                PAMS.toast(`Task "${titleVal}" created successfully.`, 'success');
+            } catch (err) {
                 PAMS.toast(err.message, 'error'); 
             }
         },
@@ -466,10 +467,11 @@
             }
             
             try { 
-                await apiFetch(`/tasks/${id}`, 'PUT', body); 
-                closeModal('editModal'); 
-                await loadAll(); 
-            } catch (err) { 
+                await apiFetch(`/tasks/${id}`, 'PUT', body);
+                closeModal('editModal');
+                await loadAll();
+                PAMS.toast(`Task "${body.title}" updated successfully.`, 'success');
+            } catch (err) {
                 PAMS.toast(err.message, 'error'); 
             }
         },
@@ -485,7 +487,8 @@
                 tasks = tasks.filter(x => x.id != viewingId);
                 closeModal('deleteModal'); renderList(); return;
             }
-            try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); }
+            const deleted = tasks.find(x => x.id == viewingId);
+            try { await apiFetch(`/tasks/${viewingId}`, 'DELETE'); closeModal('deleteModal'); await loadAll(); PAMS.toast(`Task "${deleted?.title || ''}" deleted successfully.`, 'success'); }
             catch (err) { PAMS.toast(err.message, 'error'); }
         },
         completeTask: async (id) => {
@@ -500,6 +503,7 @@
             try {
                 await apiFetch(`/tasks/${id}`, 'PUT', { status: 'COMPLETED' });
                 await loadAll();
+                PAMS.toast(`Task "${t.title}" marked as completed.`, 'success');
             } catch (err) {
                 PAMS.toast(err.message, 'error');
             }
@@ -560,6 +564,8 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            PAMS.toast(`Exported ${list.length} task${list.length === 1 ? '' : 's'} to CSV.`, 'success');
         }
     };
 })();
