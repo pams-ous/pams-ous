@@ -8,6 +8,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    const container = document.querySelector('.forgot-password-content');
+    container.classList.add('step-1');
+
     const requestForm = document.getElementById('requestForm');
     const confirmForm = document.getElementById('confirmForm');
     const doneStep = document.getElementById('doneStep');
@@ -63,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await window.PAMSOtp.runPasswordResetRequest({ email });
             resetEmail = email;
+            container.classList.remove('step-1');
             hide(requestForm);
             show(confirmForm);
             setHint(`We sent a 6-digit code to ${email}. Enter it below along with your new password.`);

@@ -1071,12 +1071,20 @@ body.sidebar-open .main {
 .login-box.forgot-password-box {
   justify-content: center;
   padding: 2rem;
-  height: 80vh;
-  max-height: 80vh;
+  height: 90vh;
+  max-height: 90vh;
 }
 
 .forgot-password-content {
+  width: 100%;
+}
+
+.forgot-password-content.step-1 {
   margin-top: -6rem;
+}
+
+.forgot-password-content #requestForm {
+  margin-top: 4rem;
 }
 
 .login-box form {
@@ -2995,6 +3003,13 @@ body.sidebar-open .main {
   color: var(--gray-500);
   margin-top: 2px;
   line-height: 1.4;
+}
+
+.td-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .action-btn {

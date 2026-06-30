@@ -572,7 +572,7 @@
               <td>${createCustomDropdownHtml('role', u.email, u.role, isSuperAdmin || u.id === currentUserId)}</td>
                <td>${createCustomDropdownHtml('jobtitle', u.email, u.jobTitleId, isSuperAdmin || u.id === currentUserId)}</td>
               
-              <td class="td-groups" style="max-width: 250px; white-space: normal;">
+              <td class="td-groups" style="max-width: 250px; white-space: normal; text-align: center;">
                   ${groupTags}
               </td>
 
