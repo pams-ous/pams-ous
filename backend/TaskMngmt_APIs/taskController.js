@@ -223,10 +223,8 @@ module.exports = {
 
     createTask: async (req, res) => {
         try {
-            // --- ROLE SECURITY CHECK ---
-            // Ensure only ADMIN role can create tasks
             const userRole = req.user.role ? req.user.role.toUpperCase() : '';
-            if (userRole !== 'ADMIN') {
+            if (userRole !== 'ADMIN' && userRole !== 'SUPERADMIN') {
                 return res.status(403).json({ message: 'Insufficient permissions to create tasks. Admin access required.' });
             }
 

@@ -232,7 +232,7 @@ async function initLoginRoutes(app, db, io) {
             return res.status(403).json({ success: false, message: 'Super‑admin role cannot be changed' });
         }
         const { role } = req.body;
-        const designation = role === 'ADMIN' ? 'Admin' : 'Encoder';
+        const designation = role === 'ADMIN' ? 'Admin' : 'Admin. Staff';
         
         try {
             const [user] = await db.query('SELECT employee_id FROM Employees WHERE email = ? LIMIT 1', [userEmail]);
@@ -335,6 +335,17 @@ async function initLoginRoutes(app, db, io) {
             await db.query('DELETE FROM Job_Groups WHERE group_id = ?', [req.params.id]);
             res.json({ success: true, message: "Group deleted!" });
         } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    // Public endpoint for signup form (no auth required)
+    app.get('/api/designations/public', async (req, res) => {
+        try {
+            const [rows] = await db.query('SELECT designation_id AS id, name, hierarchy_position, is_default FROM Designations ORDER BY hierarchy_position ASC');
+            res.json(rows);
+        } catch (err) {
+            console.error("Error fetching designations:", err);
+            res.status(500).json({ error: err.message });
+        }
     });
 }
 

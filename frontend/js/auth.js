@@ -144,10 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!needsLoading) return;
 
         const fallback = [
-            { id: 4, name: 'Encoder / Administrative Staff' },
+            { id: 4, name: 'Admin. Staff' },
             { id: 3, name: 'Chief - Student Records' },
             { id: 2, name: 'Chief - Admission & Registration' },
-            { id: 1, name: 'Head' }
+            { id: 1, name: 'Head' },
+            { id: 5, name: 'Student Assistant' }
         ];
 
         let designations = fallback;

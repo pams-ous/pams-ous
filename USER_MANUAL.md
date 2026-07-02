@@ -44,7 +44,7 @@ accomplishment monitoring, and report generation for PUP-OUS.
 - **Task management** — a task board for tracking assignments from creation to completion.
 - **Professional reports** — audit-proof report snapshots that preserve historical task states.
 - **Secure authentication** — JWT session tokens + Email OTP (one-time passcode) verification.
-- **Role-Based Access Control (RBAC)** — separate **Admin** and **Personnel (Encoder)** portals.
+- **Role-Based Access Control (RBAC)** — separate **Admin** and **Admin. Staff** portals.
 
 **Tech stack**
 
@@ -379,7 +379,7 @@ After signing in as an admin you have access to:
 - **Users & Groups** (`pages/users-groups.html`) —
   - View all personnel; **approve** pending registrations.
   - Create / edit / delete **groups** (Job Groups) and assign a group **leader** and members.
-  - Manage designations (Director, Deputy Director, Coordinator, Administrative Staff, Encoder).
+  - Manage designations (Director, Deputy Director, Coordinator, Administrative Staff, Admin. Staff).
 - **Task Board** (`pages/task-board.html`) — create and assign tasks to individuals or groups,
   set priority (low / medium / high / urgent) and due dates, and track status
   (pending → in progress → completed / cancelled).
@@ -389,7 +389,7 @@ After signing in as an admin you have access to:
 
 ### 5.4 Personnel Portal
 
-Personnel (Encoder role) can:
+Personnel (Admin. Staff role) can:
 
 - **My Tasks** (`pages/my-tasks.html`) — view tasks assigned to them or their group, post
   task updates (progress notes, attachments) and change task status.
@@ -442,7 +442,7 @@ Run these from the `backend` folder.
 | "Not allowed by CORS" in browser console | The browser origin isn't whitelisted. Allowed origins: localhost, `127.0.0.1`, `*.ngrok-free.dev`, and the `FRONTEND_ORIGIN`/`BACKEND_ORIGIN` from `.env`. |
 | ngrok URL not printed | Ensure ngrok is installed, on PATH, and the authtoken is configured (`ngrok config add-authtoken …`). The launcher polls `http://localhost:4040`. |
 | Port 3000 already in use | Another process is using the port. Stop it, or change `PORT` in `.env`. |
-| Can't sign in as admin | Seed an admin account ([3.6](#36-seed-administrator-accounts)). Self-registered users are Encoders, not admins. |
+| Can't sign in as admin | Seed an admin account ([3.6](#36-seed-administrator-accounts)). Self-registered users are Admin. Staff, not admins. |
 | New user can't fully use the system | Their `approval_status` is `PENDING`. An admin must approve them in Users & Groups. |
 
 ---

@@ -1,65 +1,83 @@
 # Agent Guidance for PAMS‑OUS
 
 ## Commands (run inside `backend/`)
-- `npm install` — install deps
-- `npm start` / `npm run dev` — runs `server.js` on `0.0.0.0:3000`
+- `npm install` — install deps (lockfile present)
+- `npm start` — `node server.js` on `0.0.0.0:3000`
+- `npm run dev` — `nodemon server.js` (auto-restart on changes)
 - `npm run db:reset` — truncates all tables (dev only)
-- `npm run db:seed` — seeds super-admin from `.env`
+- `npm run db:seed` — seeds super-admin + designations + sample group from `.env`
 - `npm run db:seed:clear` — reset then seed
-- Generate `JWT_SECRET`: `openssl rand -base64 32`
-- No tests, lint, or typecheck configured — `npm test` exits with error
+- `npm run db:seed:dummy` — seed with dummy task data
+- `npm run db:seed:alice` — seed Alice's demo tasks
+- `node scripts/dev/seed-admin.js --file scripts/dev/admins.example.json` — batch seed from JSON
+- `JWT_SECRET` generate: `openssl rand -base64 32`
+- No tests, lint, or typecheck — `npm test` exits with error
 
 ## Setup
-- Copy `backend/.env.example` → `backend/.env`. `.env` is gitignored.
-- `dns.setDefaultResultOrder('ipv4first')` in `server.js` — required for Gmail SMTP on macOS.
-- CORS allows `localhost`, `127.0.0.1`, `.ngrok-free.dev`, plus `FRONTEND_ORIGIN`/`BACKEND_ORIGIN` from env.
-- `OTP_SETUP.md` has full OTP/Gmail App Password walkthrough.
-- `backend/config/superadmin.js` is gitignored (seeds default super-admin props).
+- Copy `backend/.env.example` → `backend/.env` (`.env` is in both root and `backend/.gitignore`).
+- `dns.setDefaultResultOrder('ipv4first')` in `server.js:13` — required for Gmail SMTP on macOS.
+- CORS allows `localhost`, `127.0.0.1`, `.ngrok-free.dev`, plus `FRONTEND_ORIGIN`/`BACKEND_ORIGIN` from env. CORS middleware headers also fall back to `BACKEND_ORIGIN || "http://127.0.0.1:5500"`.
+- `backend/config/superadmin.js` reads `SUPERADMIN_EMAIL`/`SUPERADMIN_PASSWORD` from env and **exits the process** if missing. This file is gitignored.
+- For ngrok dev: `node server_run_script/launcher.js` spawns server + ngrok, prints public URL.
+- Port resolution: `process.env.PORT || process.env.port || 3000` (lowercase `port` fallback).
 
 ## Database
-- Create MySQL DB named `people`, then import `database/sql/schema.sql` (drops/recreates all tables).
-- Run migration files in `database/sql/` after schema. All idempotent (`IF NOT EXISTS`):
+- Create MySQL DB named `people`, import `database/sql/schema.sql` (drops/recreates all tables).
+- Run migration files in order from `database/sql/`. All idempotent (`IF NOT EXISTS`):
   - `migration_add_job_title.sql` — `Designations` table + `Employees.job_title` column
   - `migration_notifications.sql` — targeting columns on `Notifications`, creates `User_Notifications`
   - `migration_tasks_preserve_on_user_delete.sql` — task FKs `SET NULL` instead of `CASCADE`
-- **If "System Users" tab shows no users**, the DB is missing `Employees.job_title`. Run `migration_add_job_title.sql`. See `database/FIX_no_users_showing.md`.
-- `server.js` exports the MySQL pool via `module.exports = db`. Other modules (e.g. `TaskMngmt_APIs/db.js`) `require('../server')` to get it.
+  - `migration_rename_encoder_to_admin_staff.sql` — renames `Encoder` role to `Admin. Staff`, adds `Student Assistant` job title
+  - `otp_codes.sql` — OTP code storage table
+- Standalone migration: `node backend/UserMngmt_APIs/migrate_approval.js` — adds `approval_status` column if missing.
+- **If "System Users" tab shows no users**, DB is missing `Employees.job_title`. Run `migration_add_job_title.sql`. See `database/FIX_no_users_showing.md`.
+- `server.js:58` exports the MySQL pool via `module.exports = db`. Other modules `require('../server')` to get it (see `TaskMngmt_APIs/db.js`).
+- `reset-db.js` exports `{ reset }` — importable for programmatic wipe.
 
 ## Architecture
-- **Single entry point: `backend/server.js`** — creates HTTP server, Express, Socket.IO, MySQL pool. Wires all REST routes AND one `io.on('connection')` that registers every module's Socket.IO listeners.
-- REST route init order: registration → manage → login → dashboard → report → taskRoutes. Inline REST routes in server.js for admin sync (`/api/admin/sync/users`, `/api/admin/sync/groups`).
-- `TaskMngmt_APIs/taskRoutes.js` uses Express Router (`authenticateToken` + `authorizeRole` on specific routes).
-- All other modules communicate **over Socket.IO** with `{ success, rawData }` emit shape.
+- **Single entry: `backend/server.js`** — Express 5, Socket.IO, MySQL pool. Wires REST routes AND one `io.on('connection')` that registers every module's Socket.IO listeners.
+- REST init order (server.js:345-349): registration → manage → login → dashboard → report. Inline REST routes for admin sync (`/api/admin/sync/users`, `/api/admin/sync/groups`). Also: `taskRoutes` at `/api/tasks`, `notificationsRouter` at `/api/notifications`.
+- Socket.IO emit shape: `{ success, rawData }`.
+- `backend/package.json` `"main"` is stale (`UserMngmt_APIs/login.js`) — actual entry is `server.js`.
+- `backend/UserMngmt_APIs/` — auth, registration, search, OTP, notifications, password reset, dbChecks, userUtils, passwordUtil, login, migrate_approval, mailer, otpService, smsAdapter
+- `backend/TaskMngmt_APIs/` — taskRoutes, taskController, dashboardHandlers, taskModel, db.js (re-exports server pool)
+- `backend/ReportMngmt_APIs/` — reportHandlers.js
+- `frontend/js/` — `api.js` (global `PAMS`), `layout.js` (`PAMS_UI`), `otpClient.js` (`PAMSOtp`), `config.js` (`CONFIG`), `boot.js` (auth guard + sidebar restore in `<head>`). Page-specific scripts: `auth.js`, `dashboard.js`, `forgotPassword.js`, `landing.js`, `loader.js`, `my-tasks.js`, `reports.js`, `role-management.js`, `task-board.js`, `toast.js`, `users-groups.js`.
+- `security/` — repo root directory, not served (contains audit markdown reports).
 
-### Directory layout
-- `backend/UserMngmt_APIs/` — auth, registration, search, OTP, notifications, password reset, dbChecks, userUtils, passwordUtil
-- `backend/TaskMngmt_APIs/` — task routes, controller, dashboard handlers, models
-- `backend/ReportMngmt_APIs/` — `reportHandlers.js`
-- `frontend/js/` — `api.js` (global `PAMS`), `layout.js` (`PAMS_UI`), `otpClient.js` (`PAMSOtp`), `config.js` (`CONFIG`)
-- `frontend/js/boot.js` runs in `<head>` — auth guard + sidebar state restore before page render
-
-### Stale files
-- `.claude/agents/pams-ous-backend.md` describes an older architecture where `login.js` was the entry point. The current entry point is `server.js`. Ignore the `.claude/` agents files.
-- `frontend/docus/for_agents.txt` is the canonical frontend coding standards reference (CSS variables, ARIA, CONFIG mocking).
+### Global frontend namespaces
+- `window.PAMS` — session mgmt, navigation helpers, socket, API calls (api.js)
+- `window.PAMS_UI` — sidebar, notifications popover, RBAC chrome (layout.js)
+- `window.PAMSOtp` — OTP modal flows (otpClient.js)
+- `window.CONFIG` — frozen config object (config.js)
+- `window.togglePasswordVisibility` — global helper in layout.js
+- `window.initCustomSelect` — custom dropdown enhancer in layout.js
 
 ## Frontend
-- Vanilla JS, no framework. Frontend is purely static files served by `express.static` from `server.js`.
-- `CONFIG.API_BASE_URL` defaults to `window.location.origin` (works for `:3000` dev or ngrok). Hardcode if using Live Server on `:5500`.
-- `CONFIG.USE_MOCK_API: false` — all login/OTP flows talk to real backend.
-- Socket.IO initialized with `transports: ['websocket']` (no long-polling).
-- Pages: `frontend/auth/` (login) and `frontend/pages/` (dashboard, tasks, reports, users-groups). Path helpers: `PAMS.authUrl()`, `PAMS.pageUrl()`.
+- Vanilla JS, no framework. Served by `express.static` from `server.js`.
+- `CONFIG.API_BASE_URL` auto-detects backend origin: same port → `window.location.origin`, other port → `protocol + hostname:3000`. Hardcode if using Live Server on `:5500`.
+- `CONFIG.USE_MOCK_API: false` — all flows talk to real backend.
+- Socket.IO client loaded via CDN in auth HTML pages (not bundled).
+- Socket transport: `PAMS.socket` uses `['websocket']` only; `PAMSOtp` uses `['websocket', 'polling']` (fallback).
+- Pages: `frontend/auth/` (login, forgot-password) and `frontend/pages/` (dashboard, my-tasks, task-board, reports, users-groups, terms-and-conditions). Path helpers: `PAMS.authUrl()`, `PAMS.pageUrl()`.
+- CSS variables: `--maroon` (primary), `--gold` (secondary), `--maroon-hover`, `--gold-hover`. See `frontend/docus/for_agents.txt` for full frontend conventions.
+- `frontend/package-lock.json` is empty (no JS dependencies).
+- `boot.js` runs in `<head>` — restores sidebar state via `sidebar-pre-open` class on `<html>`, and redirects to login if unauthenticated.
 
 ## Auth
 - JWT in `Authorization: Bearer <token>` header. Middleware: `authenticateToken`, `authorizeRole(roles)`.
-- Roles: `SUPERADMIN`, `Admin`, `MEMBER`. `SUPERADMIN` bypasses all role checks.
+- Roles: `SUPERADMIN`, `Admin`, `Chief`, `MEMBER`. `SUPERADMIN` bypasses all role checks.
 - Session in localStorage: `authToken`, `user` (JSON), `PAMS_userEmail`.
 
 ## OTP
 - `OTP_DELIVERY=console` — prints code to stdout, stores plaintext in `otp_codes.payload.__dev_code`. `OTP_DELIVERY=both` for email + local store. Never use `console`/`both` in production.
 - `OTP_DELIVERY=email` (default) sends via Gmail SMTP — requires valid `SMTP_PASSWORD` in `.env`.
 
+## CommonJS
+- `"type": "commonjs"` in `backend/package.json`. No ESM imports.
+
 ## CI / Deploy
 - `.github/workflows/deploy.yml` — pushes `frontend/` to GitHub Pages on push to `main`.
 
-## CommonJS
-- `"type": "commonjs"` in `backend/package.json`. No ESM imports.
+## Stale / ignore
+- `.claude/agents/pams-ous-backend.md` describes an older architecture where `login.js` was the entry point and used a per-feature `io.on('connection')` pattern. The current codebase uses a single `io.on('connection')` in `server.js` that registers all handlers. Ignore.

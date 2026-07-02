@@ -442,7 +442,7 @@
 
       if (type === 'role') {
         const items = [
-          { value: 'MEMBER', label: 'Encoder' },
+          { value: 'MEMBER', label: 'Admin. Staff' },
           { value: 'ADMIN', label: 'Administrator' }
         ];
         const sel = items.find(o => o.value === currentValue);
@@ -453,10 +453,10 @@
       } else {
         const placeholder = { value: '', label: '— Select Title —' };
         const sel = designations.find(d => String(d.id) === String(currentValue));
-        displayText = sel ? sel.name : placeholder.label;
+        displayText = sel ? labelForDesignation(sel.name) : placeholder.label;
         optionsHtml = `<div class="custom-dropdown-option${!currentValue ? ' is-selected' : ''}" data-cd-opt-value="">${placeholder.label}</div>` +
           designations.map(d =>
-            `<div class="custom-dropdown-option${String(d.id) === String(currentValue) ? ' is-selected' : ''}" data-cd-opt-value="${d.id}">${d.name}</div>`
+            `<div class="custom-dropdown-option${String(d.id) === String(currentValue) ? ' is-selected' : ''}" data-cd-opt-value="${d.id}">${labelForDesignation(d.name)}</div>`
           ).join('');
       }
 
@@ -507,7 +507,7 @@
           }
           if (currentValue === 'MEMBER' && value === 'ADMIN') {
             const selectedSpan = dd.querySelector('.custom-dropdown-selected');
-            if (selectedSpan) selectedSpan.textContent = 'Encoder';
+            if (selectedSpan) selectedSpan.textContent = 'Admin. Staff';
             const user = users.find(u => u.email === email);
             window.Admin.openConfirmPromote(email, user?.name, 'ADMIN');
             return;
@@ -519,7 +519,7 @@
             if (designation) {
               const name = designation.name.toLowerCase();
               let mappedRole = null;
-              if (name.includes('encoder')) {
+              if (name.includes('admin. staff') || name.includes('staff') || name.includes('assistant')) {
                 mappedRole = 'MEMBER';
               } else if (name.includes('head') || name.includes('chief')) {
                 mappedRole = 'ADMIN';
@@ -625,11 +625,15 @@
         `).join('');
     }
 
+    function labelForDesignation(name) {
+        return name === 'Admin. Staff' ? 'Administrative Staff' : name;
+    }
+
     function populateDesignationSelect(id, selectedId) {
         const sel = document.getElementById(id);
         if (!sel) return;
         const sorted = [...designations].sort((a, b) => (a.hierarchy_position || 100) - (b.hierarchy_position || 100));
-        sel.innerHTML = sorted.map(d => `<option value="${d.id}" ${selectedId == d.id ? 'selected' : ''}>${d.name}</option>`).join('');
+        sel.innerHTML = sorted.map(d => `<option value="${d.id}" ${selectedId == d.id ? 'selected' : ''}>${labelForDesignation(d.name)}</option>`).join('');
         if (!selectedId) {
             const def = sorted.find(d => d.is_default);
             if (def) sel.value = String(def.id);
@@ -808,7 +812,7 @@
 
         openConfirmPromote: (email, name, newRole) => {
             pendingPromote = { email, name, newRole };
-            document.getElementById('confirmPromoteText').textContent = `Are you sure you want to promote "${name || email}" to ${newRole === 'ADMIN' ? 'Administrator' : 'Encoder'}?`;
+            document.getElementById('confirmPromoteText').textContent = `Are you sure you want to promote "${name || email}" to ${newRole === 'ADMIN' ? 'Administrator' : 'Admin. Staff'}?`;
             window.Admin.openModal('confirmPromoteModal');
         },
         confirmPromote: async () => {

@@ -149,7 +149,8 @@ async function seed() {
             ['Head', 'Highest administrative/executive rank', 10, 0],
             ['Chief - Student Records', 'Chief responsible for student records', 20, 0],
             ['Chief - Admission & Registration', 'Chief responsible for admission and registration', 30, 0],
-            ['Encoder / Administrative Staff', 'Encoder and administrative staff role', 40, 0]
+            ['Admin. Staff', 'Admin. Staff role', 40, 0],
+            ['Student Assistant', 'Student Assistant role', 50, 0]
         ];
         for (const [name, desc, pos, def] of designations) {
             await db.execute(`

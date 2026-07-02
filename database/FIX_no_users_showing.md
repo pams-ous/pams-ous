@@ -57,7 +57,7 @@ Get-Content database/sql/schema.sql | mysql -u root -p people
    with a `users` array (no `error`).
 3. In the app, **hard-refresh** the Users & Groups page: `Ctrl + Shift + R`.
 4. The System Users tab now lists users, and the **Job Title** dropdown offers
-   Director / Deputy Director / Coordinator / Administrative Staff / Encoder.
+    Director / Deputy Director / Coordinator / Administrative Staff / Admin. Staff.
 
 ## Still empty?
 - Confirm you're pointed at the right DB: check `DB_NAME` in `backend/.env`.

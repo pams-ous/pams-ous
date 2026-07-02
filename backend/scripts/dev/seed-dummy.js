@@ -20,12 +20,12 @@ const DUMMY_PASSWORD = 'password123';
 
 // Dummy member accounts. employee_code is the natural key used for idempotency.
 const MEMBERS = [
-    { code: 'DUMMY-001', firstName: 'Alice', lastName: 'Santos', middleName: 'M', email: 'alice.santos@local.test', designation: 'Encoder' },
-    { code: 'DUMMY-002', firstName: 'Benedict', lastName: 'Reyes', middleName: 'C', email: 'ben.reyes@local.test', designation: 'Encoder' },
-    { code: 'DUMMY-003', firstName: 'Carla', lastName: 'Dela Cruz', middleName: 'L', email: 'carla.delacruz@local.test', designation: 'Encoder' },
+    { code: 'DUMMY-001', firstName: 'Alice', lastName: 'Santos', middleName: 'M', email: 'alice.santos@local.test', designation: 'Admin. Staff' },
+    { code: 'DUMMY-002', firstName: 'Benedict', lastName: 'Reyes', middleName: 'C', email: 'ben.reyes@local.test', designation: 'Admin. Staff' },
+    { code: 'DUMMY-003', firstName: 'Carla', lastName: 'Dela Cruz', middleName: 'L', email: 'carla.delacruz@local.test', designation: 'Admin. Staff' },
     { code: 'DUMMY-004', firstName: 'Daniel', lastName: 'Lim', middleName: 'P', email: 'daniel.lim@local.test', designation: 'Admin' },
-    { code: 'DUMMY-005', firstName: 'Erika', lastName: 'Tan', middleName: 'V', email: 'erika.tan@local.test', designation: 'Encoder' },
-    { code: 'DUMMY-006', firstName: 'Francis', lastName: 'Gomez', middleName: 'R', email: 'francis.gomez@local.test', designation: 'Encoder' }
+    { code: 'DUMMY-005', firstName: 'Erika', lastName: 'Tan', middleName: 'V', email: 'erika.tan@local.test', designation: 'Admin. Staff' },
+    { code: 'DUMMY-006', firstName: 'Francis', lastName: 'Gomez', middleName: 'R', email: 'francis.gomez@local.test', designation: 'Admin. Staff' }
 ];
 
 // Dummy job groups, keyed by group_name.

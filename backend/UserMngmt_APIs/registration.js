@@ -132,8 +132,8 @@ async function handleConfirm(db, socket, data, io) {
 
         // Set system role based on designation ID
         // 1: Head, 2: Chief - Admission, 3: Chief - Records -> Admin
-        // 4: Encoder/Staff -> Encoder
-        const systemRole = [1, 2, 3].includes(Number(p.designationId)) ? 'Admin' : 'Encoder';
+        // 4: Staff -> Admin. Staff
+        const systemRole = [1, 2, 3].includes(Number(p.designationId)) ? 'Admin' : 'Admin. Staff';
         
         let approvalStatus = 'APPROVED';
         if (systemRole === 'Admin') {
@@ -236,8 +236,8 @@ async function initRegistrationRoutes(app, db) {
             const employee_id = code ? code : crypto.randomUUID();
             const employee_code = code ? code : null;
 
-            // Use the role provided by the admin, defaulting to Encoder
-            const systemRole = role === 'ADMIN' ? 'Admin' : 'Encoder';
+            // Use the role provided by the admin, defaulting to Admin. Staff
+            const systemRole = role === 'ADMIN' ? 'Admin' : 'Admin. Staff';
             
             let approvalStatus = 'APPROVED';
             if (systemRole === 'Admin') {

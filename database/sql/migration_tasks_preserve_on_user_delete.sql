@@ -6,7 +6,7 @@
 --
 -- Change: switch both FKs to ON DELETE SET NULL so the task rows survive
 --         and only the reference to the deleted user is cleared. This
---         requires assigned_by to be nullable (it was NOT NULL).
+--         requires assigned_by to be nullable (it was NOT NULL).x
 --
 -- Task list / detail queries already LEFT JOIN Employees on both columns,
 -- so a NULL assigned_by / assigned_to_user renders safely (no creator /

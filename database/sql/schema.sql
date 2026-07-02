@@ -22,7 +22,7 @@ CREATE TABLE `Employees` (
   `middle_name` varchar(45) DEFAULT NULL,
   `suffix` varchar(45) DEFAULT NULL,
   `job_title` int DEFAULT NULL,
-  `designation` enum('Encoder','Admin') NOT NULL DEFAULT 'Encoder',
+  `designation` enum('Admin. Staff','Admin') NOT NULL DEFAULT 'Admin. Staff',
   `email` varchar(45) NOT NULL,
   `password` varchar(255) NOT NULL,
   `active_status` enum('Online','Offline') NOT NULL DEFAULT 'Offline',
