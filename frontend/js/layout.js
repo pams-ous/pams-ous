@@ -519,6 +519,76 @@ window.PAMS_UI = (function () {
     };
 
     /**
+     * Global keyboard handler for modals:
+     *   Escape  — closes the topmost visible modal backdrop
+     *   Enter   — clicks the confirm/primary action button on the topmost modal
+     * Covers both class-toggle (.open) and inline-display patterns.
+     */
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            for (let i = backdrops.length - 1; i >= 0; i--) {
+                const bd = backdrops[i];
+                if (bd.classList.contains('open') || bd.style.display === 'flex') {
+                    const closeBtn = bd.querySelector('.modal-close');
+                    if (closeBtn) {
+                        e.preventDefault();
+                        closeBtn.click();
+                        return;
+                    }
+                }
+            }
+            return;
+        }
+
+        if (e.key === 'Enter') {
+            const tag = e.target.tagName;
+            if (tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (e.shiftKey) return;
+
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            for (let i = backdrops.length - 1; i >= 0; i--) {
+                const bd = backdrops[i];
+                if (bd.classList.contains('open') || bd.style.display === 'flex') {
+                    const btn = findConfirmButton(bd);
+                    if (btn) {
+                        e.preventDefault();
+                        btn.click();
+                        return;
+                    }
+                }
+            }
+
+            const otpBackdrop = document.querySelector('.otp-backdrop');
+            if (otpBackdrop) {
+                const submitBtn = otpBackdrop.querySelector('[data-otp-submit]');
+                if (submitBtn) {
+                    e.preventDefault();
+                    submitBtn.click();
+                }
+            }
+        }
+    });
+
+    /**
+     * Find the primary confirm/action button inside a modal backdrop.
+     * Priority: known dynamic IDs → last non-cancel button in .modal-footer.
+     */
+    function findConfirmButton(backdrop) {
+        const idBtn = backdrop.querySelector('#logoutModalConfirm')
+                   || backdrop.querySelector('#confirm-modal-ok');
+        if (idBtn) return idBtn;
+
+        const footer = backdrop.querySelector('.modal-footer');
+        if (footer) {
+            const btns = footer.querySelectorAll('button:not(.btn-cancel):not(.modal-close)');
+            return btns[btns.length - 1] || null;
+        }
+
+        return null;
+    }
+
+    /**
      * Initialization
      */
     const init = () => {

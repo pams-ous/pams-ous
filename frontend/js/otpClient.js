@@ -211,12 +211,22 @@
         const resendBtn = root.querySelector('[data-otp-resend]');
 
         return new Promise((resolve, reject) => {
+            const onKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    reject(new Error('cancelled'));
+                }
+            };
+
             const cleanup = () => {
                 stopExpiry();
                 stopResend && stopResend();
                 root.remove();
                 document.body.style.overflow = '';
+                document.removeEventListener('keydown', onKeydown);
             };
+
+            document.addEventListener('keydown', onKeydown);
 
             closeBtn.addEventListener('click', () => {
                 cleanup();
