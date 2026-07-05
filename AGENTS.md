@@ -18,7 +18,7 @@
 - `dns.setDefaultResultOrder('ipv4first')` in `server.js:13` — required for Gmail SMTP on macOS.
 - CORS allows `localhost`, `127.0.0.1`, `.ngrok-free.dev`, plus `FRONTEND_ORIGIN`/`BACKEND_ORIGIN` from env. CORS middleware headers also fall back to `BACKEND_ORIGIN || "http://127.0.0.1:5500"`.
 - `backend/config/superadmin.js` reads `SUPERADMIN_EMAIL`/`SUPERADMIN_PASSWORD` from env and **exits the process** if missing. This file is gitignored.
-- For ngrok dev: `node server_run_script/launcher.js` spawns server + ngrok, prints public URL.
+- For ngrok dev: `node server_run_script/launcher-gui.js` spawns server + ngrok, opens browser GUI at localhost:3456.
 - Port resolution: `process.env.PORT || process.env.port || 3000` (lowercase `port` fallback).
 
 ## Database
@@ -39,6 +39,7 @@
 - REST init order (server.js:345-349): registration → manage → login → dashboard → report. Inline REST routes for admin sync (`/api/admin/sync/users`, `/api/admin/sync/groups`). Also: `taskRoutes` at `/api/tasks`, `notificationsRouter` at `/api/notifications`.
 - Socket.IO emit shape: `{ success, rawData }`.
 - `backend/package.json` `"main"` is stale (`UserMngmt_APIs/login.js`) — actual entry is `server.js`.
+- `notificationsRouter` at `/api/notifications` is a factory: `notificationsRouter(db)` returns a Router instance. Only router in the project that takes `db` as an argument at mount time.
 - `backend/UserMngmt_APIs/` — auth, registration, search, OTP, notifications, password reset, dbChecks, userUtils, passwordUtil, login, migrate_approval, mailer, otpService, smsAdapter
 - `backend/TaskMngmt_APIs/` — taskRoutes, taskController, dashboardHandlers, taskModel, db.js (re-exports server pool)
 - `backend/ReportMngmt_APIs/` — reportHandlers.js
@@ -80,4 +81,4 @@
 - `.github/workflows/deploy.yml` — pushes `frontend/` to GitHub Pages on push to `main`.
 
 ## Stale / ignore
-- `.claude/agents/pams-ous-backend.md` describes an older architecture where `login.js` was the entry point and used a per-feature `io.on('connection')` pattern. The current codebase uses a single `io.on('connection')` in `server.js` that registers all handlers. Ignore.
+- `.claude/agents/` — both the backend and frontend agent files describe older per-module socket patterns and conventions. The current codebase uses a single `io.on('connection')` in `server.js` that registers all handlers (backend), and the frontend conventions source of truth is `frontend/docus/for_agents.txt` (not the `.claude` file).
