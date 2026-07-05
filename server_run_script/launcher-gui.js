@@ -54,10 +54,11 @@ function startServer() {
   serverRunning = true;
   broadcast({ type: 'status', server: true, ngrok: ngrokRunning, ngrokUrl });
   setupProcessLogging(serverProc, 'server');
-  serverProc.on('close', (code) => {
+  serverProc.on('close', (code, signal) => {
     serverRunning = false;
     serverProc = null;
-    broadcast({ type: 'log', text: `Server exited with code ${code}`, source: 'system' });
+    const msg = signal ? `Server killed (${signal})` : `Server exited with code ${code}`;
+    broadcast({ type: 'log', text: msg, source: 'system' });
     broadcast({ type: 'status', server: false, ngrok: ngrokRunning, ngrokUrl });
   });
 }
@@ -70,24 +71,27 @@ function stopServer() {
 
 function startNgrok() {
   if (ngrokProc) return;
-  broadcast({ type: 'log', text: 'Starting ngrok...', source: 'system' });
+  broadcast({ type: 'log', text: 'Starting ngrok tunnel...', source: 'ngrok' });
   ngrokProc = spawn('ngrok', ['http', '3000']);
   ngrokRunning = true;
   ngrokUrl = '';
   broadcast({ type: 'status', server: serverRunning, ngrok: true, ngrokUrl: '' });
   setupProcessLogging(ngrokProc, 'ngrok');
-  ngrokProc.on('close', (code) => {
+  ngrokProc.on('close', (code, signal) => {
     ngrokRunning = false;
     ngrokUrl = '';
+    ngrokUrlNotified = false;
+    ngrokWaitingNotified = false;
     ngrokProc = null;
-    broadcast({ type: 'log', text: `Ngrok exited with code ${code}`, source: 'system' });
+    const msg = signal ? `Ngrok tunnel killed (${signal})` : `Ngrok tunnel exited with code ${code}`;
+    broadcast({ type: 'log', text: msg, source: 'ngrok' });
     broadcast({ type: 'status', server: serverRunning, ngrok: false, ngrokUrl: '' });
   });
 }
 
 function stopNgrok() {
   if (!ngrokProc) return;
-  broadcast({ type: 'log', text: 'Stopping ngrok...', source: 'system' });
+  broadcast({ type: 'log', text: 'Stopping ngrok tunnel...', source: 'ngrok' });
   ngrokProc.kill('SIGKILL');
 }
 
@@ -101,6 +105,9 @@ function stopAll() {
   stopNgrok();
 }
 
+let ngrokUrlNotified = false;
+let ngrokWaitingNotified = false;
+
 function fetchNgrokUrl() {
   http.get('http://localhost:4040/api/tunnels', (res) => {
     let data = '';
@@ -112,10 +119,19 @@ function fetchNgrokUrl() {
           const newUrl = tunnels[0].public_url;
           if (newUrl !== ngrokUrl) {
             ngrokUrl = newUrl;
+            ngrokUrlNotified = true;
+            ngrokWaitingNotified = false;
+            broadcast({ type: 'log', text: `Ngrok tunnel is running at ${newUrl}`, source: 'ngrok' });
             broadcast({ type: 'status', server: serverRunning, ngrok: ngrokRunning, ngrokUrl });
           }
         }
-      } catch (e) { /* ngrok API not ready yet */ }
+      } catch (e) {
+        /* ngrok API not ready yet */
+        if (ngrokRunning && !ngrokUrlNotified && !ngrokWaitingNotified) {
+          ngrokWaitingNotified = true;
+          broadcast({ type: 'log', text: 'Waiting for ngrok tunnel to start...', source: 'ngrok' });
+        }
+      }
     });
   }).on('error', () => { /* ngrok not running */ });
 }
@@ -162,9 +178,9 @@ body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .log-area::-webkit-scrollbar{width:6px}
 .log-area::-webkit-scrollbar-track{background:transparent}
 .log-area::-webkit-scrollbar-thumb{background:#d0d7de;border-radius:3px}
-.log-entry{padding:0 20px;white-space:pre-wrap;word-break:break-all}
+.log-entry{padding:0 20px;white-space:pre-wrap;overflow-wrap:break-word}
 .log-entry .ts{color:#aaa;margin-right:10px}
-.log-entry .tag{display:inline-block;width:52px;margin-right:6px;font-weight:600}
+.log-entry .tag{display:inline-block;min-width:60px;margin-right:6px;font-weight:600}
 .log-entry.server .tag{color:#15803d}
 .log-entry.ngrok .tag{color:#1d4ed8}
 .log-entry.system .tag{color:#8250df}
