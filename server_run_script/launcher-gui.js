@@ -47,8 +47,13 @@ function setupProcessLogging(proc, source) {
   proc.stderr.on('data', flush);
 }
 
+function clearLog() {
+  broadcast({ type: 'clear-log' });
+}
+
 function startServer() {
   if (serverProc) return;
+  clearLog();
   broadcast({ type: 'log', text: 'Starting server...', source: 'system' });
   serverProc = spawn('node', [serverPath], { cwd: BACKEND_DIR });
   serverRunning = true;
@@ -103,6 +108,16 @@ function startAll() {
 function stopAll() {
   stopServer();
   stopNgrok();
+}
+
+function restartAll() {
+  clearLog();
+  stopServer();
+  stopNgrok();
+  setTimeout(() => {
+    startServer();
+    startNgrok();
+  }, 300);
 }
 
 let ngrokUrlNotified = false;
@@ -198,6 +213,7 @@ function serveHTML(res) {
   <div class="all-btns">
     <button class="btn btn-start" onclick="fetch('/api/start-all',{method:'POST'})">Start All</button>
     <button class="btn btn-stop" onclick="fetch('/api/stop-all',{method:'POST'})">Stop All</button>
+    <button class="btn btn-start" onclick="fetch('/api/restart-all',{method:'POST'})">Restart</button>
   </div>
   <div class="cards">
     <div class="card">
@@ -234,7 +250,9 @@ function serveHTML(res) {
 const evtSource = new EventSource('/events');
 evtSource.onmessage = function(e) {
   const data = JSON.parse(e.data);
-  if (data.type === 'log') {
+  if (data.type === 'clear-log') {
+    document.getElementById('logArea').innerHTML = '';
+  } else if (data.type === 'log') {
     const el = document.getElementById('logArea');
     const div = document.createElement('div');
     div.className = 'log-entry ' + data.source;
@@ -287,6 +305,7 @@ function handleAPI(req, res, pathname) {
     let ok = false;
     if (pathname === '/api/start-all') { startAll(); ok = true; }
     else if (pathname === '/api/stop-all') { stopAll(); ok = true; }
+    else if (pathname === '/api/restart-all') { restartAll(); ok = true; }
     res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok }));
   });

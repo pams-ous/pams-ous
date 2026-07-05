@@ -65,6 +65,10 @@
                 users = data.rawData.map(u => ({
                     ...u,
                     employeeCode: u.employee_code,
+                    firstName: u.first_name,
+                    lastName: u.last_name,
+                    middleName: u.middle_name,
+                    suffix: u.suffix,
                     name: `${u.first_name || ''} ${u.last_name || ''} ${u.suffix || ''}`.trim() || u.email,
                     email: u.email,
                     role: u.designation === 'Admin' ? 'ADMIN' : 'MEMBER',
