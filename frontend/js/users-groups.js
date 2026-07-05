@@ -163,11 +163,26 @@
             } catch (err) { console.error("Group fetch failed:", err); if (gen === _loadGen) groups = []; }
 
             if (gen === _loadGen) {
+                reapplyActiveFilters();
                 renderUsers(); 
                 renderGroups();
             }
         } catch (error) {
             if (gen === _loadGen) console.error("Fatal loadAll error:", error);
+        }
+    }
+
+    function reapplyActiveFilters() {
+        const userSearch = document.getElementById('userEmailSearch');
+        if (userSearch && userSearch.value.trim()) {
+            const q = userSearch.value.trim().toLowerCase();
+            users = users.filter(u => (u.email || '').toLowerCase().includes(q));
+        }
+
+        const groupSearch = document.getElementById('groupSearch');
+        if (groupSearch && groupSearch.value.trim()) {
+            const q = groupSearch.value.trim().toLowerCase();
+            groups = groups.filter(g => (g.name || '').toLowerCase().includes(q));
         }
     }
 

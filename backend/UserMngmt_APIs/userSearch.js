@@ -77,7 +77,13 @@ async function registerSearchHandlers(socket, db) {
         const groupQuery = data.query;
         const wildcardGroup = `%${groupQuery}%`;
 
-        const sql = `SELECT * FROM Job_Groups WHERE group_name LIKE ?;`;
+        const sql = `
+            SELECT g.group_id, g.group_name, g.\`desc\`,
+              (SELECT e.email FROM Employees e JOIN Employees_Groups eg ON e.employee_id = eg.employee_id WHERE eg.group_id = g.group_id AND eg.role = 'Leader' LIMIT 1) AS leader_email,
+              (SELECT CONCAT(e.first_name, ' ', e.last_name) FROM Employees e JOIN Employees_Groups eg ON e.employee_id = eg.employee_id WHERE eg.group_id = g.group_id AND eg.role = 'Leader' LIMIT 1) AS leader,
+              (SELECT COUNT(DISTINCT employee_id) FROM Employees_Groups WHERE group_id = g.group_id) AS members
+            FROM Job_Groups g
+            WHERE g.group_name LIKE ?;`;
 
         try {
             const [results] = await db.query(sql, [wildcardGroup]);
