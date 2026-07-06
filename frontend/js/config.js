@@ -42,3 +42,10 @@ if (Object.freeze) {
     Object.freeze(CONFIG);
     Object.freeze(CONFIG.OTP);
 }
+
+// Auto-update copyright year on every page
+document.addEventListener('DOMContentLoaded', function () {
+    var el = document.querySelectorAll('.cr-year');
+    var y = new Date().getFullYear();
+    for (var i = 0; i < el.length; i++) { el[i].textContent = y; }
+});

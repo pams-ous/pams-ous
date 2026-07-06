@@ -1,0 +1,77 @@
+﻿/* 
+   Project: PUP OUS â€“ Personnel Daily Accomplishment Report System
+   Version: 0.1.0-alpha
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
+
+/* Hide print layout on screen */
+.print-only-report {
+  display: none;
+}
+
+.no-transition,
+.no-transition * {
+  transition: none !important;
+}
+
+/* â”€â”€â”€ VARIABLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+:root {
+  /* Brand Colors */
+  --maroon: #800000;
+  --dark-maroon: #5a0000;
+  --deep-maroon: #3d0000;
+  --maroon-hover: #5a0000;
+
+  --gold: #DAA520;
+  --light-gold: #FFD700;
+  --pale-gold: #fff3cd;
+  --gold-hover: #b8860b;
+
+  /* Neutrals */
+  --white: #ffffff;
+  --off-white: #f8f4f4;
+  --gray-100: #f4f4f4;
+  --gray-200: #e9ecef;
+  --gray-500: #6c757d;
+  --gray-700: #495057;
+  --text: #2d2d2d;
+
+  /* Layout & Accents */
+  --sidebar-w: 260px;
+  --sb-w-collapsed: 72px;
+  --sb-w-expanded: 260px;
+  --sb-bg: linear-gradient(180deg, #3d0510 0%, #6B0A1A 35%, #a8000d 100%);
+  --sb-accent: #ffd700;
+  --header-h: 64px;
+  --radius: 10px;
+  --radius-lg: 24px;
+  --shadow: 0 2px 12px rgba(0, 0, 0, .10);
+  --shadow-lg: 0 4px 24px rgba(0, 0, 0, .15);
+  --transition: all 0.2s ease-in-out;
+
+  /* Status Colors */
+  --red-bg: #fde8e8;
+  --red-bg-strong: #fca5a5;
+  --red-border: #f5b8b8;
+  --red-text: #b91c1c;
+  --green-bg: #dcfce7;
+  --green-text: #15803d;
+  --blue-bg: #dbeafe;
+  --blue-text: #1d4ed8;
+  --amber-bg: #fef3c7;
+  --amber-text: #92400e;
+
+  /* Target build variables */
+  --pup-maroon: #6B0A1A;
+  --pup-maroon-dark: #5a0816;
+  --red-danger: #dc2626;
+  --text-primary: #1a1a2e;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --border-light: #e5e7eb;
+  --border-lighter: #f0f0f0;
+}
