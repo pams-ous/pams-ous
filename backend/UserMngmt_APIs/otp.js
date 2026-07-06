@@ -56,6 +56,15 @@ async function registerOtpHandlers(socket, db) {
             }
 
             const employee = await getEmployeeDetails(db, email);
+
+            if (employee?.approval_status === 'PENDING') {
+                return socket.emit("otpVerifyLog", {
+                    success: false,
+                    purpose: "login",
+                    rawData: "Your account is pending admin approval."
+                });
+            }
+
             const empName = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
                 .filter(Boolean)
                 .join(" ");
