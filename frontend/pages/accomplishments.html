@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard – PUP OUS - PAMS</title>
+    <title>Accomplishments – PUP OUS - PAMS</title>
     <link rel="stylesheet" href="../css/1-variables.css">
     <link rel="stylesheet" href="../css/2-base.css">
     <link rel="stylesheet" href="../css/3-layout.css">
@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="../css/responsive.css">
     <link rel="icon" type="image/webp" href="../assets/pup_ous_seal.webp">
     <script src="../js/boot.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -32,7 +31,7 @@
 
         <nav class="nav-group">
             <div class="nav-label">Main</div>
-            <a href="dashboard.html" class="nav-item active">
+            <a href="dashboard.html" class="nav-item">
                 <i class="fa-solid fa-table-columns"></i> Dashboard
             </a>
             <a href="task-board.html" class="nav-item">
@@ -48,11 +47,11 @@
             <a href="reports.html" class="nav-item">
                 <i class="fa-solid fa-chart-bar"></i> Reports
             </a>
+            <a href="accomplishments.html" class="nav-item active">
+                <i class="fa-regular fa-circle-check"></i> Accomplishments
+            </a>
             <a href="users-groups.html" class="nav-item">
                 <i class="fa-solid fa-users"></i> Users & Groups
-            </a>
-            <a href="accomplishments.html" class="nav-item">
-                <i class="fa-regular fa-circle-check"></i> Accomplishments
             </a>
         </nav>
 
@@ -72,17 +71,12 @@
 
     <!-- MAIN -->
     <main class="main">
-        <div class="alert-banner hidden" id="alertBanner">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span id="alertText"></span> <a href="my-tasks.html">View Tasks</a>
-        </div>
-
         <div class="content">
             <!-- Page Header -->
             <div class="page-header">
                 <div class="header-left">
-                    <h1>Dashboard</h1>
-                    <p id="welcomeText">Welcome back</p>
+                    <h1>Accomplishments</h1>
+                    <p>All logged task activity</p>
                 </div>
                 <div class="header-right">
                     <span class="header-date" id="headerDate"></span>
@@ -96,57 +90,15 @@
                             <div class="notif-body"></div>
                         </div>
                     </div>
-                    <button class="btn btn-primary" data-admin-only onclick="window.location.href='task-board.html'">
-                        <i class="fa-solid fa-plus"></i> Add Task
-                    </button>
                 </div>
             </div>
 
-            <!-- Stat Cards -->
-            <div class="stat-grid">
-                <div class="stat-card s-total">
-                    <div class="stat-icon-wrap"><i class="fa-solid fa-list-check"></i></div>
-                    <div class="stat-body">
-                        <div class="stat-num" id="cnt-total">0</div>
-                        <div class="stat-lbl">Total Tasks</div>
-                    </div>
+            <!-- Accomplishments List -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title"><i class="fa-regular fa-circle-check"></i> All Accomplishments</div>
                 </div>
-                <div class="stat-card s-done">
-                    <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
-                    <div class="stat-body">
-                        <div class="stat-num" id="cnt-completed">0</div>
-                        <div class="stat-lbl">Completed</div>
-                    </div>
-                </div>
-                <div class="stat-card s-progress">
-                    <div class="stat-icon-wrap"><i class="fa-solid fa-circle-notch"></i></div>
-                    <div class="stat-body">
-                        <div class="stat-num" id="cnt-inprogress">0</div>
-                        <div class="stat-lbl">In Progress</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts Row -->
-            <div class="charts-row">
-                <div class="panel">
-                    <div class="panel-head">
-                        <div class="panel-title"><i class="fa-solid fa-chart-bar"></i> Tasks by Status per Group</div>
-                    </div>
-                    <div class="bar-box">
-                        <canvas id="barChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bottom Row -->
-            <div class="bottom-row">
-                <div class="panel">
-                    <div class="panel-head">
-                        <div class="panel-title"><i class="fa-solid fa-users"></i> Group Progress</div>
-                    </div>
-                    <div class="gp-list" id="gpList"></div>
-                </div>
+                <div class="acc-list" id="accList"></div>
             </div>
         </div>
     </main>
@@ -157,7 +109,7 @@
     <script src="../js/api.js"></script>
     <script src="../js/toast.js"></script>
     <script src="../js/layout.js"></script>
-    <script src="../js/dashboard.js"></script>
+    <script src="../js/accomplishments.js"></script>
 </body>
 
 </html>

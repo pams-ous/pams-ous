@@ -35,10 +35,6 @@
                         { group: 'Admission', pending: 1, inProgress: 2, completed: 5, cancelled: 0 },
                         { group: 'Head Office', pending: 0, inProgress: 1, completed: 2, cancelled: 0 }
                     ],
-                    recentUpdates: [
-                        { name: 'Juan Dela Cruz', text: 'Completed student record filing', time: new Date() },
-                        { name: 'Maria Santos', text: 'Started admission review', time: new Date(Date.now() - 3600000) }
-                    ],
                     groupProgress: [
                         { name: 'Student Records', completed: 8, total: 14 },
                         { name: 'Admission', completed: 5, total: 8 }
@@ -90,25 +86,7 @@
             });
         }
 
-        // 4. Recent accomplishments
-        const accList = document.getElementById('accList');
-        if (accList) {
-            if (s.recentUpdates.length === 0) {
-                accList.innerHTML = '<div class="text-xs color-gray text-center py-4">No recent activity.</div>';
-            } else {
-                accList.innerHTML = s.recentUpdates.map(u => `
-                    <div class="acc-item">
-                        <div class="acc-dot ${/complet/i.test(u.text) ? 'green' : 'blue'}"></div>
-                        <div class="acc-body">
-                            <div class="acc-text"><strong>${u.name}</strong>: ${u.text}</div>
-                            <div class="acc-time"><i class="fa-regular fa-clock"></i> ${new Date(u.time).toLocaleTimeString()}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        // 6. Group progress
+        // 4. Group progress
         const gpList = document.getElementById('gpList');
         if (gpList) {
             if (s.groupProgress.length === 0) {

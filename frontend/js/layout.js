@@ -130,7 +130,7 @@ window.PAMS_UI = (function () {
 
             // Redirect if on an admin-only page
             const path = location.pathname.split('/').pop().toLowerCase();
-            const adminPages = ['reports.html', 'users-groups.html'];
+            const adminPages = ['reports.html', 'users-groups.html', 'accomplishments.html'];
             if (adminPages.includes(path)) {
                 window.location.replace(PAMS.pageUrl('dashboard.html'));
             }
