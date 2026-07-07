@@ -118,6 +118,7 @@ async function registerReportHandlers(socket, db, io) {
      * 3. GENERATE NEW REPORT
      */
     socket.on("generateReport", async (data) => {
+        let conn;
         try {
             if (!await requireAdmin(socket, db)) return;
             const { reportType, scopeType, scopeValue, periodStart, periodEnd } = data;
@@ -140,7 +141,10 @@ async function registerReportHandlers(socket, db, io) {
                 scopeGroupId = parseInt(scopeValue);
             }
 
-            const [reportResult] = await db.query(
+            conn = await db.getConnection();
+            await conn.beginTransaction();
+
+            const [reportResult] = await conn.query(
                 `INSERT INTO Report (report_type, generated_by, scope_type, scope_user_id, scope_group_id, period_start, period_end) 
                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [reportType, adminId, scopeType, scopeUserId, scopeGroupId, startDateTime, endDateTime]
@@ -168,17 +172,17 @@ async function registerReportHandlers(socket, db, io) {
                 taskParams.push(scopeUserId);
             }
 
-            const [tasks] = await db.query(taskSql, taskParams);
+            const [tasks] = await conn.query(taskSql, taskParams);
 
             for (const t of tasks) {
-                const [latestUpdate] = await db.query(
+                const [latestUpdate] = await conn.query(
                     "SELECT update_id FROM Task_Updates WHERE task_id = ? AND logged_at <= ? ORDER BY logged_at DESC LIMIT 1",
                     [t.task_id, endDateTime]
                 );
                 const updateId = latestUpdate[0]?.update_id || null;
 
                 // Find the task's status as of endDateTime (the end of the report period)
-                const [statusRows] = await db.query(
+                const [statusRows] = await conn.query(
                     `SELECT COALESCE(
                         (SELECT status_change FROM Task_Updates WHERE task_id = ? AND logged_at <= ? AND status_change IS NOT NULL ORDER BY logged_at DESC LIMIT 1),
                         (SELECT status FROM Tasks WHERE task_id = ?)
@@ -187,11 +191,15 @@ async function registerReportHandlers(socket, db, io) {
                 );
                 const historicalStatus = statusRows[0]?.status || 'pending';
 
-                await db.query(
+                await conn.query(
                     "INSERT INTO Report_Entries (task_id, report_id, task_update_id, historical_status) VALUES (?, ?, ?, ?)",
                     [t.task_id, reportId, updateId, historicalStatus]
                 );
             }
+
+            await conn.commit();
+            conn.release();
+            conn = null;
 
             io.emit("reportGenerated", { reportId, title: `${reportType} Report Created`, by: socket.userEmail });
 
@@ -213,6 +221,10 @@ async function registerReportHandlers(socket, db, io) {
             });
 
         } catch (err) {
+            if (conn) {
+                try { await conn.rollback(); } catch (_) {}
+                try { conn.release(); } catch (_) {}
+            }
             console.error("Generation failed:", err);
             socket.emit("reportLog", { success: false, rawData: `Generation failed: ${err.message}` });
         }
