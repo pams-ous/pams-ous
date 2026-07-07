@@ -41,9 +41,16 @@ async function registerReportHandlers(socket, db, io) {
     /**
      * 1. GET ALL REPORTS (History List)
      */
-    socket.on("getReports", async () => {
+    socket.on("getReports", async (data) => {
         try {
             if (!await requireAdmin(socket, db)) return;
+            const page = Math.max(1, parseInt(data?.page, 10) || 1);
+            const pageSize = Math.min(100, Math.max(1, parseInt(data?.pageSize, 10) || 10));
+            const offset = (page - 1) * pageSize;
+
+            const countQuery = `SELECT COUNT(*) AS total FROM Report`;
+            const [[{ total }]] = await db.query(countQuery);
+
             const query = `
                 SELECT r.report_id, r.report_type, r.scope_type, r.generated_at,
                        CONCAT_WS(' ', e.first_name, e.last_name) AS generated_by_name,
@@ -53,14 +60,16 @@ async function registerReportHandlers(socket, db, io) {
                 LEFT JOIN Employees e ON r.generated_by = e.employee_id
                 LEFT JOIN Employees target_e ON r.scope_user_id = target_e.employee_id
                 LEFT JOIN Job_Groups target_g ON r.scope_group_id = target_g.group_id
-                ORDER BY r.generated_at DESC;
+                ORDER BY r.generated_at DESC
+                LIMIT ? OFFSET ?;
             `;
-            const [rows] = await db.query(query);
+            const [rows] = await db.query(query, [pageSize, offset]);
             
             socket.emit("reportLog", { 
                 success: true, 
                 stage: "list", 
-                data: rows 
+                data: rows,
+                pagination: { page, pageSize, total }
             });
         } catch (err) {
             socket.emit("reportLog", { success: false, stage: "error", rawData: `List failed: ${err.message}` });

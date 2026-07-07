@@ -345,6 +345,47 @@
   background-color: var(--maroon);
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--gray-200);
+  margin-top: 8px;
+}
+
+.pagination-btn {
+  background: var(--white);
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--gray-700);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--maroon);
+  color: var(--maroon);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
+
 .report-card {
   position: relative;
   border: 1.5px solid var(--gray-100);

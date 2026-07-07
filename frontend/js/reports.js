@@ -35,6 +35,9 @@
     let searchQuery = '';
     let sortMode = 'date-desc';
     let expandedTasks = new Set();
+    let currentPage = 1;
+    let pageSize = 10;
+    let totalReports = 0;
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -83,6 +86,11 @@
             switch (result.stage) {
                 case 'list':
                     reports = result.data || [];
+                    if (result.pagination) {
+                        currentPage = result.pagination.page;
+                        pageSize = result.pagination.pageSize;
+                        totalReports = result.pagination.total;
+                    }
                     renderHistory();
                     if (reports.length > 0 && !activeReportId) {
                         selectReport(reports[0].report_id);
@@ -95,6 +103,7 @@
 
                 case 'generate':
                     PAMS.toast(result.rawData || "Report generated successfully!", 'success');
+                    currentPage = 1;
                     loadReports(); // Refresh the list
                     break;
 
@@ -108,6 +117,7 @@
 
         // Listen for real-time broadcasts
         PAMS.socket.on('reportGenerated', (data) => {
+            currentPage = 1;
             loadReports(); 
         });
 
@@ -129,7 +139,7 @@
         }
 
         if (PAMS.socket && PAMS.socket.connected) {
-            PAMS.socket.emit('getReports');
+            PAMS.socket.emit('getReports', { page: currentPage, pageSize });
         } else {
             console.warn("Cannot load reports: Socket disconnected.");
         }
@@ -255,6 +265,31 @@
                 </div>
             </div>
         `).join('');
+
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const container = document.getElementById('paginationControls');
+        if (!container) return;
+
+        const totalPages = Math.max(1, Math.ceil(totalReports / pageSize));
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="pagination">
+                <button class="pagination-btn" onclick="window.Reports.goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>
+                    <i class="fa-solid fa-chevron-left"></i> Prev
+                </button>
+                <span class="pagination-info">Page ${currentPage} of ${totalPages}</span>
+                <button class="pagination-btn" onclick="window.Reports.goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        `;
     }
 
     function renderReportPreview(tasks) {
@@ -849,6 +884,14 @@
             if (PAMS.socket) {
                 PAMS.socket.emit('deleteReport', reportToDelete);
             }
+        },
+        goToPage: (page) => {
+            if (page < 1) return;
+            const totalPages = Math.max(1, Math.ceil(totalReports / pageSize));
+            if (page > totalPages) return;
+            currentPage = page;
+            activeReportId = null;
+            loadReports();
         },
         onSearch: (q) => { searchQuery = q || ''; renderHistory(); },
         onSort: (mode) => { sortMode = mode || 'date-desc'; renderHistory(); },
