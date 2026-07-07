@@ -37,8 +37,8 @@ module.exports = {
 
         const query = `
             SELECT 
-                t.task_id as id, t.title, t.description, t.priority, t.status, 
-                t.due_date as dueDate, t.created_at as createdAt,
+                t.task_id as id, t.title, t.description, t.status,
+                t.created_at as createdAt,
                 t.updated_at as updatedAt,
                 t.assigned_to_user,
                 t.assigned_to_group,
@@ -68,17 +68,15 @@ module.exports = {
     },
 
     create: async (taskData) => {
-        const { title, description, priority, dueDate, status, assignedBy, assignedToUser, assignedToGroup } = taskData;
+        const { title, description, status, assignedBy, assignedToUser, assignedToGroup } = taskData;
         const query = `
             INSERT INTO Tasks 
-            (title, description, priority, due_date, status, assigned_by, assigned_to_user, assigned_to_group)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (title, description, status, assigned_by, assigned_to_user, assigned_to_group)
+            VALUES (?, ?, ?, ?, ?, ?)
         `;
         const [result] = await db.query(query, [
             title, 
             description, 
-            priority, 
-            dueDate, 
             status, 
             assignedBy, 
             assignedToUser, 
@@ -94,8 +92,6 @@ module.exports = {
         // Complete coverage logic for full updates
         if (updateData.title !== undefined) { fields.push('title = ?'); values.push(updateData.title); }
         if (updateData.description !== undefined) { fields.push('description = ?'); values.push(updateData.description); }
-        if (updateData.priority !== undefined) { fields.push('priority = ?'); values.push(updateData.priority); }
-        if (updateData.dueDate !== undefined) { fields.push('due_date = ?'); values.push(updateData.dueDate); }
         if (updateData.status !== undefined) { fields.push('status = ?'); values.push(updateData.status); }
         
         if (fields.length === 0) return 0;

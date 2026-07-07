@@ -46,28 +46,7 @@ module.exports = {
                 }
             }
 
-            // Check for newly overdue tasks to notify users
-            const [overdueTasks] = await db.query(`
-                SELECT t.task_id, t.title, a.first_name, a.last_name, a.suffix, t.assigned_to_user
-                FROM Tasks t
-                JOIN Employees a ON t.assigned_to_user = a.employee_id
-                WHERE t.status NOT IN ('completed', 'cancelled')
-                  AND t.due_date < CURDATE()
-                  AND NOT EXISTS (
-                      SELECT 1 FROM Notifications 
-                      WHERE notif_message LIKE CONCAT('%"', t.title, '" is now overdue%') 
-                      AND DATE(notif_date) = CURDATE()
-                  )
-            `);
-            for (const ot of overdueTasks) {
-                await recordNotification(db, {
-                    kind: "task_overdue",
-                    title: "Task Overdue",
-                    body: `Task "${ot.title}" assigned to ${formatFullName(ot)} is now overdue`,
-                    relatedUrl: null,
-                    targetUserId: ot.assigned_to_user
-                }, req.app.get('io'));
-            }
+            // Check for newly overdue tasks to notify users — removed (due date no longer tracked)
 
             // capture the query string sent by the admin checkbox (?completedSince=all)
             const { completedSince } = req.query;
@@ -117,9 +96,7 @@ module.exports = {
                     id: t.id,
                     title: t.title,
                     description: t.description,
-                    priority: t.priority ? t.priority.toUpperCase() : 'MEDIUM',
                     status: t.status ? t.status.toUpperCase() : 'PENDING',
-                    dueDate: t.dueDate,
                     createdAt: t.createdAt,
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
                     assignee: assigneeObj,
@@ -203,9 +180,7 @@ module.exports = {
                     id: t.id,
                     title: t.title,
                     description: t.description,
-                    priority: t.priority ? t.priority.toUpperCase() : 'MEDIUM',
                     status: t.status ? t.status.toUpperCase() : 'PENDING',
-                    dueDate: t.dueDate,
                     createdAt: t.createdAt,
                     updatedAt: t.updatedAt || t.createdAt, 
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
@@ -228,31 +203,14 @@ module.exports = {
                 return res.status(403).json({ message: 'Insufficient permissions to create tasks. Admin access required.' });
             }
 
-            const { title, description, priority, dueDate, assigneeEmail, groupId } = req.body;
+            const { title, description, assigneeEmail, groupId } = req.body;
         
             // --- STRICT SERVER-SIDE VALIDATION ---
             if (!title || !title.trim()) {
                 return res.status(400).json({ message: 'Task title is required.' });
             }
-            if (!priority || !priority.trim()) {
-                return res.status(400).json({ message: 'Priority is required.' });
-            }
-            if (!dueDate || !dueDate.trim()) {
-                return res.status(400).json({ message: 'Due date is required.' });
-            }
             if (!assigneeEmail && !groupId) {
                 return res.status(400).json({ message: 'Task must be assigned to a user or group.' });
-            }
-
-            // Prevent past dates from bypassing the UI
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-
-            if (dueDate < todayStr) {
-                return res.status(400).json({ message: 'Due date cannot be set in the past.' });
             }
 
             let assignedToUser = null;
@@ -286,8 +244,6 @@ module.exports = {
             const newTaskId = await Task.create({
                 title: title.trim(),
                 description: description ? description.trim() : null,
-                priority: priority ? priority.toLowerCase() : 'medium', // Safe handling fallback
-                dueDate: dueDate || null,
                 status: 'in progress',    
                 assignedBy: creatorId,
                 assignedToUser: assignedToUser,
@@ -339,7 +295,7 @@ module.exports = {
     updateTask: async (req, res) => {
         try {
             const { id } = req.params;
-            const { title, description, priority, dueDate, status } = req.body; 
+            const { title, description, status } = req.body; 
             const userRole = req.user.role ? req.user.role.toLowerCase() : 'staff';
 
             // Fetch the existing task to perform status/permission business rule checks
@@ -353,7 +309,7 @@ module.exports = {
             
             if (!isAuthorizedModifier) {
                 // Regular personnel cannot change core task metadata
-                if (title || description || priority || dueDate) {
+                if (title || description) {
                     return res.status(403).json({ message: 'Insufficient permissions to alter core task details.' });
                 }
             }
@@ -387,8 +343,6 @@ module.exports = {
             if (isAuthorizedModifier) {
                 if (title) updatePayload.title = title.trim();
                 if (description !== undefined) updatePayload.description = description ? description.trim() : null;
-                if (priority) updatePayload.priority = priority.toLowerCase();
-                if (dueDate !== undefined) updatePayload.dueDate = dueDate || null;
             }
             
             if (status) updatePayload.status = status.toLowerCase(); 

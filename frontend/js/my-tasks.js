@@ -58,9 +58,9 @@
             const me = getUser();
             if (CONFIG.USE_MOCK_API) {
                 const allMock = [
-                    { id: 1, title: 'Process Student Appeals', priority: 'URGENT', status: 'IN PROGRESS', dueDate: '2026-05-25', updatedAt: '2026-05-27', assignedByName: 'Admin', description: 'Review the latest batch of appeals for the summer semester.' },
-                    { id: 2, title: 'Update Faculty Records', priority: 'MEDIUM', status: 'PENDING', dueDate: '2026-06-01', updatedAt: '2026-05-26', assignedByName: 'Head', description: 'Verify employment certificates and update database.' },
-                    { id: 3, title: 'Office Inventory', priority: 'LOW', status: 'COMPLETED', dueDate: '2026-05-15', updatedAt: '2026-05-14', assignedByName: 'System', description: 'Annual inventory of office equipment and supplies.' }
+                    { id: 1, title: 'Process Student Appeals', status: 'IN PROGRESS', updatedAt: '2026-05-27', assignedByName: 'Admin', description: 'Review the latest batch of appeals for the summer semester.' },
+                    { id: 2, title: 'Update Faculty Records', status: 'PENDING', updatedAt: '2026-05-26', assignedByName: 'Head', description: 'Verify employment certificates and update database.' },
+                    { id: 3, title: 'Office Inventory', status: 'COMPLETED', updatedAt: '2026-05-14', assignedByName: 'System', description: 'Annual inventory of office equipment and supplies.' }
                 ];
                 tasks = currentView === 'completed'
                     ? allMock.filter(t => t.status === 'COMPLETED')
@@ -91,46 +91,27 @@
         const banner = document.getElementById('alertBanner');
         const alertText = document.getElementById('alertText');
         if (banner && alertText) {
-            if (currentView === 'active') {
-                const overdueCount = tasks.filter(t =>
-                    t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && new Date(t.dueDate) < today
-                ).length;
-                if (overdueCount > 0) {
-                    alertText.textContent = `${overdueCount} task${overdueCount > 1 ? 's are' : ' is'} overdue.`;
-                    banner.classList.remove('hidden');
-                } else {
-                    banner.classList.add('hidden');
-                }
-            } else {
-                banner.classList.add('hidden');
-            }
+            // Overdue banner removed — due date no longer tracked
+            banner.classList.add('hidden');
         }
 
         if (data.length === 0) {
             const emptyMsg = currentView === 'completed'
                 ? 'No completed tasks yet.'
                 : 'No matching tasks found.';
-            tbody.innerHTML = `<tr><td colspan="7" class="log-empty">${emptyMsg}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="log-empty">${emptyMsg}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = data.map((t, i) => {
-            // Completed view: never show overdue highlight (also, isOverdue logic already
-            // excludes COMPLETED status, so this is belt-and-suspenders for safety).
-            const isOverdue = currentView === 'active'
-                && t.status !== 'COMPLETED' && t.status !== 'CANCELLED'
-                && new Date(t.dueDate) < today;
-            const pCls = { URGENT: 'badge-urgent', HIGH: 'badge-urgent', MEDIUM: 'badge-in_progress', LOW: 'badge-pending' }[t.priority] || '';
             const sCls = 'badge-' + t.status.toLowerCase().replace(' ', '_');
             const isTerminal = t.status === 'COMPLETED' || t.status === 'CANCELLED';
 
             return `
-            <tr class="${isOverdue ? 'task-overdue' : ''}"${isOverdue ? ' aria-label="Overdue task"' : ''}>
+            <tr>
                 <td>${i + 1}</td>
-                <td class="task-name" title="${t.title.replace(/"/g, '&quot;')}">${t.title}${isOverdue ? '<span class="overdue-tag" title="This task is past its due date"><i class="fa-solid fa-clock" aria-hidden="true"></i> OVERDUE</span>' : ''}</td>
-                <td><span class="badge ${pCls}">${t.priority}</span></td>
+                <td class="task-name" title="${t.title.replace(/"/g, '&quot;')}">${t.title}</td>
                 <td><span class="badge ${sCls}">${t.status}</span></td>
-                <td class="td-nowrap">${fmtDate(t.dueDate)}</td>
                 <td class="td-nowrap">${fmtDate(t.updatedAt)}</td>
                 <td class="td-nowrap">
                     <div class="flex gap-2">
@@ -213,8 +194,6 @@
                 bodyEl.innerHTML = `
                     <div class="detail-grid">
                         <div class="detail-item"><label>Task Name</label><div class="val">${t.title}</div></div>
-                        <div class="detail-item"><label>Due Date</label><div class="val">${fmtDate(t.dueDate)}</div></div>
-                        <div class="detail-item"><label>Priority</label><div class="val">${t.priority}</div></div>
                         <div class="detail-item"><label>Status</label><div class="val">${t.status}</div></div>
                         <div class="detail-item"><label>Assigned To</label><div class="val">${t.assignedToName || '—'}</div></div>
                         <div class="detail-item"><label>Assigned By</label><div class="val">${t.assignedByName || '—'}</div></div>
