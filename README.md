@@ -410,21 +410,6 @@ This spawns the server + ngrok tunnel and opens a management GUI at `http://loca
 
 ---
 
-## Contributing
-
-We welcome contributions! To get started:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes
-4. Ensure the server starts without errors: `npm start`
-5. Commit and push
-6. Open a Pull Request
-
-Please read [AGENTS.md](AGENTS.md) for detailed guidance on code conventions, architecture patterns, and project-specific rules.
-
----
-
 ## License
 
 ```
