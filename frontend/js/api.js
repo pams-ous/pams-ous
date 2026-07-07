@@ -235,7 +235,7 @@ window.PAMS = (function () {
         const socket = io(socketUrl, {
             auth: { token },
             transports: ['websocket'] // Force WebSocket to ensure instant disconnect events
-        }); 
+});
         
         if (token) {
             socket.emit('register_session', { token });
