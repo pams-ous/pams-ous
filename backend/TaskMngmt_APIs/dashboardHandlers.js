@@ -75,6 +75,31 @@ function dashboardAPI(app, io, db) {
             res.status(500).json({ success: false, message: "Failed to load dashboard statistics." });
         }
     });
+
+    /**
+     * GET /api/accomplishments
+     * Returns all task updates (accomplishments) with user name and task title, newest first.
+     */
+    app.get('/api/accomplishments', async (req, res) => {
+        try {
+            const [accomplishments] = await db.query(`
+                SELECT 
+                    CONCAT(e.first_name, ' ', e.last_name) as name, 
+                    tu.updated_text as text, 
+                    tu.logged_at as time,
+                    t.title as task_title
+                FROM Task_Updates tu
+                JOIN Employees e ON tu.updated_by = e.employee_id
+                JOIN Tasks t ON tu.task_id = t.task_id
+                ORDER BY tu.logged_at DESC
+            `);
+
+            res.json({ success: true, accomplishments });
+        } catch (err) {
+            console.error("Accomplishments Error:", err);
+            res.status(500).json({ success: false, message: "Failed to load accomplishments." });
+        }
+    });
 }
 
 async function registerDashboardHandlers(socket, db, io) {
