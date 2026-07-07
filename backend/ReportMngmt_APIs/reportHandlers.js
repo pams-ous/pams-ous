@@ -23,6 +23,20 @@ async function requireAdmin(socket, db) {
     return true;
 }
 
+const rateLimitMap = new Map();
+
+function checkRateLimit(socket, event, maxCalls = 1, windowMs = 10000) {
+    const key = `${socket.id}:${event}`;
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+    if (entry && (now - entry) < windowMs) {
+        socket.emit("reportLog", { success: false, rawData: `Rate limit exceeded. Please wait ${Math.ceil((windowMs - (now - entry)) / 1000)}s.` });
+        return false;
+    }
+    rateLimitMap.set(key, now);
+    return true;
+}
+
 async function registerReportHandlers(socket, db, io) {
     /**
      * 1. GET ALL REPORTS (History List)
@@ -124,6 +138,7 @@ async function registerReportHandlers(socket, db, io) {
         let conn;
         try {
             if (!await requireAdmin(socket, db)) return;
+            if (!checkRateLimit(socket, 'generateReport', 1, 10000)) return;
             const { reportType, scopeType, scopeValue, periodStart, periodEnd } = data;
             
             if (!periodStart || typeof periodStart !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(periodStart)) {
@@ -265,6 +280,7 @@ async function registerReportHandlers(socket, db, io) {
     socket.on("deleteReport", async (reportId) => {
         try {
             if (!await requireAdmin(socket, db)) return;
+            if (!checkRateLimit(socket, 'deleteReport', 1, 5000)) return;
             const adminEmail = socket.userEmail;
             let adminName = 'An administrator';
             
