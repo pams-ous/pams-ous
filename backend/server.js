@@ -346,7 +346,9 @@ initRegistrationRoutes(app, db);
 initManageRoutes(app, db);
 initLoginRoutes(app, db, io);
 dashboardAPI(app, io, db);
-await initReportModule(db);
+(async () => {
+    await initReportModule(db);
+})();
 
 // Single Socket Connection Handler
 io.on('connection', async (socket) => {
