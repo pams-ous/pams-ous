@@ -6,6 +6,22 @@
 
 const { recordNotification } = require('../UserMngmt_APIs/notifications');
 const { formatFullName } = require('../UserMngmt_APIs/userUtils');
+const superadmin = require("../config/superadmin");
+
+async function requireAdmin(socket, db) {
+    const email = socket.userEmail;
+    if (!email) {
+        socket.emit("reportLog", { success: false, rawData: "Authentication required. Please log in." });
+        return false;
+    }
+    if (email === superadmin.EMAIL) return true;
+    const [rows] = await db.query("SELECT designation FROM Employees WHERE email = ?", [email]);
+    if (!rows.length || rows[0].designation !== 'Admin') {
+        socket.emit("reportLog", { success: false, rawData: "Access denied. Admin privileges required." });
+        return false;
+    }
+    return true;
+}
 
 async function registerReportHandlers(socket, db, io) {
     /**
@@ -13,6 +29,7 @@ async function registerReportHandlers(socket, db, io) {
      */
     socket.on("getReports", async () => {
         try {
+            if (!await requireAdmin(socket, db)) return;
             const query = `
                 SELECT r.report_id, r.report_type, r.scope_type, r.generated_at,
                        CONCAT_WS(' ', e.first_name, e.last_name) AS generated_by_name,
@@ -41,6 +58,7 @@ async function registerReportHandlers(socket, db, io) {
      */
     socket.on("getReportDetails", async (reportId) => {
         try {
+            if (!await requireAdmin(socket, db)) return;
             const taskQuery = `
                 SELECT t.task_id, t.title, t.description,
                        COALESCE(re.historical_status, t.status) AS historical_status,
@@ -100,13 +118,14 @@ async function registerReportHandlers(socket, db, io) {
      * 3. GENERATE NEW REPORT
      */
     socket.on("generateReport", async (data) => {
-        const { reportType, scopeType, scopeValue, periodStart, periodEnd, generatedByEmail } = data;
-        
-        // Normalize start and end date boundaries to include full days
-        const startDateTime = periodStart.includes(' ') || periodStart.includes('T') ? periodStart : `${periodStart} 00:00:00`;
-        const endDateTime = periodEnd.includes(' ') || periodEnd.includes('T') ? periodEnd : `${periodEnd} 23:59:59`;
-
         try {
+            if (!await requireAdmin(socket, db)) return;
+            const { reportType, scopeType, scopeValue, periodStart, periodEnd, generatedByEmail } = data;
+            
+            // Normalize start and end date boundaries to include full days
+            const startDateTime = periodStart.includes(' ') || periodStart.includes('T') ? periodStart : `${periodStart} 00:00:00`;
+            const endDateTime = periodEnd.includes(' ') || periodEnd.includes('T') ? periodEnd : `${periodEnd} 23:59:59`;
+
             const [userRows] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [generatedByEmail]);
             const adminId = userRows[0]?.employee_id;
             if (!adminId) throw new Error("Admin user not found.");
@@ -204,16 +223,12 @@ async function registerReportHandlers(socket, db, io) {
      */
     socket.on("deleteReport", async (reportId) => {
         try {
-            // To get the admin name for the notification, we might need the current socket's email
-            // In this Socket implementation, user identification is often handled via a custom property
-            // assigned during session registration (e.g., socket.userEmail)
+            if (!await requireAdmin(socket, db)) return;
             const adminEmail = socket.userEmail;
             let adminName = 'An administrator';
             
-            if (adminEmail) {
-                const [userRows] = await db.query("SELECT CONCAT_WS(' ', first_name, last_name) as name FROM Employees WHERE email = ?", [adminEmail]);
-                if (userRows.length > 0) adminName = userRows[0].name;
-            }
+            const [userRows] = await db.query("SELECT CONCAT_WS(' ', first_name, last_name) as name FROM Employees WHERE email = ?", [adminEmail]);
+            if (userRows.length > 0) adminName = userRows[0].name;
 
             await db.query("DELETE FROM Report WHERE report_id = ?", [reportId]);
             
