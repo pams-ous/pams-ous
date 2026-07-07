@@ -20,7 +20,7 @@ function dashboardAPI(app, io, db) {
                     COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
                     COALESCE(SUM(CASE WHEN status = 'in progress' THEN 1 ELSE 0 END), 0) as inProgress,
                     COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
-                    COALESCE(SUM(CASE WHEN status NOT IN ('completed', 'cancelled') AND due_date < CURDATE() THEN 1 ELSE 0 END), 0) as overdue
+                    0 as overdue
                 FROM Tasks
             `);
             const counts = countsRows[0];

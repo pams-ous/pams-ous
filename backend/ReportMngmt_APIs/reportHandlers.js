@@ -42,7 +42,7 @@ async function registerReportHandlers(socket, db, io) {
     socket.on("getReportDetails", async (reportId) => {
         try {
             const taskQuery = `
-                SELECT t.task_id, t.title, t.priority, t.description,
+                SELECT t.task_id, t.title, t.description,
                        COALESCE(re.historical_status, t.status) AS historical_status,
                        COALESCE(tu.updated_text, 'No update logged during this period.') AS historical_notes,
                        COALESCE(CONCAT_WS(' ', e.first_name, e.last_name), g.group_name, 'Unassigned') AS assignee_name
@@ -128,17 +128,15 @@ async function registerReportHandlers(socket, db, io) {
             );
             const reportId = reportResult.insertId;
 
-            // Identify tasks that were active, due, or created during this period
+            // Identify tasks that were created or had updates during this period
             let taskSql = `
                 SELECT DISTINCT t.task_id 
                 FROM Tasks t
                 LEFT JOIN Task_Updates tu ON t.task_id = tu.task_id
-                WHERE ((t.due_date BETWEEN ? AND ?)
-                   OR (t.created_at BETWEEN ? AND ?)
-                   OR (tu.logged_at BETWEEN ? AND ?))
+                WHERE (t.created_at BETWEEN ? AND ?)
+                   OR (tu.logged_at BETWEEN ? AND ?)
             `;
             let taskParams = [
-                startDateTime, endDateTime,
                 startDateTime, endDateTime,
                 startDateTime, endDateTime
             ];

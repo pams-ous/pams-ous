@@ -287,12 +287,10 @@
             'PENDING': 'badge-pending', 
             'CANCELLED': 'badge-cancelled' 
         };
-        const prioMap = { 'URGENT': 'badge-urgent', 'HIGH': 'badge-urgent', 'MEDIUM': 'badge-in_progress', 'LOW': 'badge-pending' };
-
         const tbody = document.getElementById('taskBody');
         if (tbody) {
             if (tasks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="log-empty">No tasks in this report.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" class="log-empty">No tasks in this report.</td></tr>';
             } else {
                 tbody.innerHTML = tasks.map((t, idx) => {
                     const taskId = t.task_id || `temp-${idx}`;
@@ -307,10 +305,9 @@
                             </td>
                             <td>${t.assignee_name || '—'}</td>
                             <td><span class="badge ${statusMap[t.historical_status.toUpperCase()] || ''}">${displayStatus}</span></td>
-                            <td><span class="badge ${prioMap[t.priority.toUpperCase()] || ''}">${t.priority}</span></td>
                         </tr>
                         <tr class="task-details-row collapsed" id="details-${taskId}">
-                            <td colspan="4">
+                            <td colspan="3">
                                 <div class="task-details-wrapper">
                                     ${renderTimeline(t)}
                                 </div>
@@ -338,8 +335,7 @@
 
         const taskBlocks = tasks.map((t, idx) => {
             const displayStatus = statusMap[(t.historical_status || '').toUpperCase()] || t.historical_status || 'Pending';
-            const displayPriority = t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase() : 'Low';
-            
+
             // Build updates logs
             let updatesHTML = '';
             if (!t.updates || t.updates.length === 0) {
@@ -377,7 +373,6 @@
                     <h3 class="print-task-title">${idx + 1}. ${t.title}</h3>
                     <div class="print-task-meta">
                         <strong>Assignee:</strong> ${t.assignee_name || '—'} &nbsp;|&nbsp; 
-                        <strong>Priority:</strong> ${displayPriority} &nbsp;|&nbsp; 
                         <strong>Current Status:</strong> <span class="print-badge-inline print-status-${(t.historical_status || '').toLowerCase()}">${displayStatus}</span>
                     </div>
                     <div class="print-task-desc">

@@ -174,33 +174,7 @@ function notificationsRouter(db) {
 }
 
 async function loadCurrent(db, employeeId) {
-    const [rows] = await db.query(`
-        SELECT t.task_id, t.title, t.priority, t.status, t.due_date
-        FROM Tasks t
-        WHERE (t.assigned_to_user = ?
-               OR t.assigned_to_group IN (
-                   SELECT group_id FROM Employees_Groups WHERE employee_id = ?
-               ))
-          AND t.status NOT IN ('completed', 'cancelled')
-          AND t.due_date <= CURDATE()
-        ORDER BY t.due_date ASC
-        LIMIT 20
-    `, [employeeId, employeeId]);
-
-    const today = new Date(new Date().toDateString());
-    return rows.map(t => {
-        const due = new Date(t.due_date);
-        const overdue = due < today;
-        return {
-            kind:       overdue ? "overdue" : "due_today",
-            taskId:     t.task_id,
-            title:      t.title,
-            priority:   t.priority,
-            status:     t.status,
-            dueDate:    t.due_date,
-            message:    overdue ? `"${t.title}" is overdue` : `"${t.title}" is due today`
-        };
-    });
+    return [];
 }
 
 async function recordNotification(db, { kind, title, body, relatedUrl, targetUserId = null, targetDesignationId = null, targetGroupId = null }, io = null) {

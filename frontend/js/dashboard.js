@@ -29,7 +29,7 @@
 
             if (CONFIG.USE_MOCK_API) {
                 renderStats({
-                    counts: { total: 24, completed: 15, inProgress: 6, overdue: 3 },
+                    counts: { total: 24, completed: 15, inProgress: 6 },
                     byGroup: [
                         { group: 'Student Records', pending: 2, inProgress: 3, completed: 8, cancelled: 1 },
                         { group: 'Admission', pending: 1, inProgress: 2, completed: 5, cancelled: 0 },
@@ -53,19 +53,8 @@
         document.getElementById('cnt-total').textContent = s.counts.total;
         document.getElementById('cnt-completed').textContent = s.counts.completed;
         document.getElementById('cnt-inprogress').textContent = s.counts.inProgress;
-        document.getElementById('cnt-overdue').textContent = s.counts.overdue;
 
-        // 2. Overdue alert
-        if (s.counts.overdue > 0) {
-            const banner = document.getElementById('alertBanner');
-            const alertText = document.getElementById('alertText');
-            if (banner && alertText) {
-                alertText.textContent = `${s.counts.overdue} task${s.counts.overdue > 1 ? 's are' : ' is'} overdue.`;
-                banner.classList.remove('hidden');
-            }
-        }
-
-        // 3. Bar Chart
+        // 2. Bar Chart
         const barCtxEl = document.getElementById('barChart');
         if (barCtxEl) {
             const barCtx = barCtxEl.getContext('2d');
