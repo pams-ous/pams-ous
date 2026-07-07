@@ -38,18 +38,7 @@ function dashboardAPI(app, io, db) {
                 GROUP BY g.group_id
             `);
 
-            // 3. Priority Split (Donut Chart)
-            const [priorityRows] = await db.query(`
-                SELECT 
-                    COALESCE(SUM(CASE WHEN priority = 'low' THEN 1 ELSE 0 END), 0) as LOW,
-                    COALESCE(SUM(CASE WHEN priority = 'medium' THEN 1 ELSE 0 END), 0) as MEDIUM,
-                    COALESCE(SUM(CASE WHEN priority = 'high' THEN 1 ELSE 0 END), 0) as HIGH,
-                    COALESCE(SUM(CASE WHEN priority = 'urgent' THEN 1 ELSE 0 END), 0) as URGENT
-                FROM Tasks
-            `);
-            const priority = priorityRows[0];
-
-            // 4. Recent Accomplishments (Activity Log)
+            // 3. Recent Accomplishments (Activity Log)
             const [recentUpdates] = await db.query(`
                 SELECT 
                     CONCAT(e.first_name, ' ', e.last_name) as name, 
@@ -61,7 +50,7 @@ function dashboardAPI(app, io, db) {
                 LIMIT 8
             `);
 
-            // 5. Group Progress (Horizontal bars)
+            // 4. Group Progress (Horizontal bars)
             const [groupProgress] = await db.query(`
                 SELECT 
                     g.group_name as name,
@@ -77,7 +66,6 @@ function dashboardAPI(app, io, db) {
                 success: true,
                 counts,
                 byGroup,
-                priority,
                 recentUpdates,
                 groupProgress
             });
