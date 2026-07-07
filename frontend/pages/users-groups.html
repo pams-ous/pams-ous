@@ -130,7 +130,7 @@
                 <div class="panel-header">
                     <div class="search-wrap">
                     <i class="fa-solid fa-search search-icon"></i>
-                    <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by name, email, or employee code..." autocomplete="off">
+                    <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by name, email, or employee code..." autocomplete="no-autofill" readonly onfocus="this.removeAttribute('readonly')">
                 </div>
                     <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')" aria-label="Add new user">
                         <i class="fa-solid fa-user-plus"></i> Add User
@@ -166,7 +166,7 @@
                 <div class="panel-header">
                     <div class="search-wrap">
                     <i class="fa-solid fa-search search-icon"></i>
-                    <input type="text" id="groupSearch" class="form-control search-input" placeholder="Search for groups..." autocomplete="off">
+                    <input type="text" id="groupSearch" class="form-control search-input" placeholder="Search for groups..." autocomplete="no-autofill" readonly onfocus="this.removeAttribute('readonly')">
                 </div>
                     <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')" aria-label="Add new group">
                         <i class="fa-solid fa-plus"></i> Add Group
@@ -401,7 +401,7 @@
                     </p>
                     <div style="margin-bottom: 12px; position: relative;">
                         <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
-                        <input type="text" id="newLeaderSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterNewLeaders()" style="padding-left: 30px; width: 100%;" autocomplete="off">
+                        <input type="text" id="newLeaderSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterNewLeaders()" style="padding-left: 30px; width: 100%;" autocomplete="no-autofill">
                     </div>
                     <div id="newLeaderCheckboxList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;"></div>
                 </div>
@@ -415,7 +415,7 @@
                     </p>
                     <div style="margin-bottom: 12px; position: relative;">
                         <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
-                        <input type="text" id="newMemberSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterNewMembers()" style="padding-left: 30px; width: 100%;" autocomplete="off">
+                        <input type="text" id="newMemberSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterNewMembers()" style="padding-left: 30px; width: 100%;" autocomplete="no-autofill">
                     </div>
                     <div id="newMemberCheckboxList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;"></div>
                 </div>
@@ -452,7 +452,7 @@
                     </p>
                     <div style="margin-bottom: 12px; position: relative;">
                         <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
-                        <input type="text" id="editLeaderSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterEditLeaders()" style="padding-left: 30px; width: 100%;" autocomplete="off">
+                        <input type="text" id="editLeaderSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterEditLeaders()" style="padding-left: 30px; width: 100%;" autocomplete="no-autofill">
                     </div>
                     <div id="editLeaderCheckboxList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;"></div>
                 </div>
@@ -466,7 +466,7 @@
                     </p>
                     <div style="margin-bottom: 12px; position: relative;">
                         <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 10px; color: #aaa;"></i>
-                        <input type="text" id="memberSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterMembers()" style="padding-left: 30px; width: 100%;" autocomplete="off">
+                        <input type="text" id="memberSearch" placeholder="Search by name or email..." class="form-control" oninput="window.Admin.filterMembers()" style="padding-left: 30px; width: 100%;" autocomplete="no-autofill">
                     </div>
                     <div id="memberCheckboxList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;"></div>
                 </div>
