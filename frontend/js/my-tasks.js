@@ -4,7 +4,7 @@
  */
 
 (function () {
-    const { apiFetch, requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
+    const { apiFetch, requireAuth, fmtDate, fmtHeaderDate, getUser, escapeHtml } = PAMS;
 
     let tasks = [];
     let deleteTarget = null;
@@ -117,7 +117,7 @@
             return `
             <tr>
                 <td>${i + 1}</td>
-                <td class="task-name" title="${t.title.replace(/"/g, '&quot;')}">${t.title}</td>
+                <td class="task-name" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</td>
                 <td><span class="badge ${sCls}">${t.status}</span></td>
                 <td class="td-nowrap">${fmtDate(t.updatedAt)}</td>
                 <td class="td-nowrap">
@@ -171,7 +171,7 @@
                     return `
                     <div class="log-entry">
                         <span class="log-date">${fmtDate(l.logged_at)}</span>
-                        <span class="log-note">${l.updated_text || ''}${l.status_change ? ` <em>(${l.status_change})</em>` : ''}</span>
+                        <span class="log-note">${escapeHtml(l.updated_text || '')}${l.status_change ? ` <em>(${escapeHtml(l.status_change)})</em>` : ''}</span>
                         ${attachHtml}
                     </div>`;
                 }).join('')
@@ -200,11 +200,11 @@
             if (bodyEl) {
                 bodyEl.innerHTML = `
                     <div class="detail-grid">
-                        <div class="detail-item"><label>Task Name</label><div class="val">${t.title}</div></div>
-                        <div class="detail-item"><label>Status</label><div class="val">${t.status}</div></div>
-                        <div class="detail-item"><label>Assigned To</label><div class="val">${t.assignedToName || '—'}</div></div>
-                        <div class="detail-item"><label>Assigned By</label><div class="val">${t.assignedByName || '—'}</div></div>
-                        ${t.description ? `<div class="detail-item full"><label>Description</label><div class="val" style="font-weight:400; color:var(--gray-700);">${t.description}</div></div>` : ''}
+                        <div class="detail-item"><label>Task Name</label><div class="val">${escapeHtml(t.title)}</div></div>
+                        <div class="detail-item"><label>Status</label><div class="val">${escapeHtml(t.status)}</div></div>
+                        <div class="detail-item"><label>Assigned To</label><div class="val">${escapeHtml(t.assignedToName || '—')}</div></div>
+                        <div class="detail-item"><label>Assigned By</label><div class="val">${escapeHtml(t.assignedByName || '—')}</div></div>
+                        ${t.description ? `<div class="detail-item full"><label>Description</label><div class="val" style="font-weight:400; color:var(--gray-700);">${escapeHtml(t.description)}</div></div>` : ''}
                     </div>
                     ${attachmentsHtml}
                     <div class="update-log">
@@ -219,7 +219,7 @@
                 const sel = document.getElementById('log-task-select');
                 if (sel) {
                     sel.innerHTML = '<option value="">— Choose a task —</option>' +
-                        tasks.filter(t => t.status !== 'COMPLETED').map(t => `<option value="${t.id}">${t.title.length > 60 ? t.title.slice(0, 60) + '...' : t.title}</option>`).join('');
+                        tasks.filter(t => t.status !== 'COMPLETED').map(t => `<option value="${t.id}">${escapeHtml(t.title.length > 60 ? t.title.slice(0, 60) + '...' : t.title)}</option>`).join('');
                 }
                 const notes = document.getElementById('log-notes');
                 const status = document.getElementById('log-new-status');

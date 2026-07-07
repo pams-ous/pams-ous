@@ -123,3 +123,36 @@
     opacity: 1;
   }
 }
+
+/* ─── PRINT ──────────────────────────────────────────── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #printReportContainer,
+  #printReportContainer * {
+    visibility: visible;
+  }
+
+  #printReportContainer {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .sidebar,
+  .notif-wrap,
+  .alert-banner,
+  .page-header .header-right,
+  .action-row,
+  .history-panel {
+    display: none !important;
+  }
+
+  @page {
+    margin: 0.75in;
+  }
+}

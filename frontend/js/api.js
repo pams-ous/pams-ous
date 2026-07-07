@@ -179,6 +179,11 @@ window.PAMS = (function () {
     /**
      * Formatting Utilities
      */
+    const escapeHtml = (s) => {
+        return String(s).replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    };
+
     const fmtDate = (iso) => {
         if (!iso) return '—';
         return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -242,7 +247,7 @@ window.PAMS = (function () {
     return {
         apiFetch, getToken, setToken, getUser, setUser,
         requireAuth, logout, verifySessionIntegrity,
-        authUrl, pageUrl, fmtDate, fmtHeaderDate,
+        authUrl, pageUrl, escapeHtml, fmtDate, fmtHeaderDate,
         getUsers, getGroups, getDesignations,
         validatePassword, PASSWORD_POLICY,
         socket: null,

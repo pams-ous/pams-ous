@@ -106,13 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 newPassword,
                 confirmPassword
             });
-            if (resendCooldownId) clearInterval(resendCooldownId);
             hide(confirmForm);
             show(doneStep);
             setHint('Password reset complete.');
         } catch (err) {
             PAMS.toast(`Error: ${err.message || err}`, 'error');
         } finally {
+            if (resendCooldownId) clearInterval(resendCooldownId);
             unlockButton(submitBtn);
         }
     });

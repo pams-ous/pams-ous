@@ -311,6 +311,7 @@ window.PAMS_UI = (function () {
                 await PAMS.apiFetch(`/notifications/${notifId}/${action}`, 'POST');
                 loadNotifications();
                 PAMS.toast(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully.`, 'success');
+                updateBadgeCount();
             } catch (err) {
                 PAMS.toast('Action failed: ' + err.message, 'error');
             }
@@ -501,6 +502,13 @@ window.PAMS_UI = (function () {
                 if (notifOffset < notifTotalCount) {
                     html += `<div style="padding: 10px; text-align: center; border-top: 1px solid #eee;">
                                 <button class="notif-show-more-btn" style="background:none; border:none; color:#3b82f6; cursor:pointer; font-size:11px; font-weight:bold; padding: 5px 10px;">Show More</button>
+                            </div>`;
+                }
+
+                // If there are history items but no "Clear All" was rendered yet, add one
+                if (notifHistory.length > 0 && !html.includes('notif-clear-btn')) {
+                    html += `<div style="padding: 10px; text-align: center; border-top: 1px solid #eee;">
+                                <button class="notif-clear-btn" style="background:none; border:none; color:#888; cursor:pointer; font-size:10px; font-weight:normal;">Clear All</button>
                             </div>`;
                 }
             }

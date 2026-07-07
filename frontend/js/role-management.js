@@ -15,9 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Safeguard: confirm before changing an Admin to a lower role
             if (previousRole === 'ADMIN' && newRole !== 'ADMIN') {
-                const confirmed = confirm("Are you sure you want to demote this administrator?");
+                if (window.Admin && typeof window.Admin.openConfirmDemote === 'function') {
+                    dropdown.value = previousRole;
+                    window.Admin.openConfirmDemote(userEmail, '');
+                    return;
+                }
+                const confirmed = window.confirm("Are you sure you want to demote this administrator?");
                 if (!confirmed) {
-                    dropdown.value = previousRole; // Revert UI
+                    dropdown.value = previousRole;
                     return;
                 }
             }

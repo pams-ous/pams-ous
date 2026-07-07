@@ -363,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setSession(otpResult.token, user);
                     PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
                     setTimeout(() => {
+                        PAMS.hideLoader();
                         redirectAfterLogin(user);
                     }, 1200);
                     return;
@@ -374,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setSession(result.token, result.user);
                     PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
                     setTimeout(() => {
+                        PAMS.hideLoader();
                         redirectAfterLogin(result.user);
                     }, 1200);
                 } else if (result.success) {

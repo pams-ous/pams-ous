@@ -1,5 +1,5 @@
 (function () {
-    const { apiFetch, requireAuth, fmtHeaderDate } = PAMS;
+    const { apiFetch, requireAuth, fmtHeaderDate, escapeHtml } = PAMS;
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -43,8 +43,8 @@
             <div class="acc-item">
                 <div class="acc-dot ${/complet/i.test(u.text) ? 'green' : 'blue'}"></div>
                 <div class="acc-body">
-                    <div class="acc-text"><strong>${u.name}</strong>: ${u.text}</div>
-                    <div class="acc-task">on "${u.task_title}"</div>
+                    <div class="acc-text"><strong>${escapeHtml(u.name)}</strong>: ${escapeHtml(u.text)}</div>
+                    <div class="acc-task">on "${escapeHtml(u.task_title)}"</div>
                     <div class="acc-time"><i class="fa-regular fa-clock"></i> ${new Date(u.time).toLocaleTimeString()}</div>
                 </div>
             </div>

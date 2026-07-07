@@ -149,6 +149,10 @@
         activeReportId = id;
         renderHistory();
 
+        document.getElementById('previewTitle').textContent = 'Loading...';
+        document.getElementById('previewPeriod').textContent = 'Fetching report details...';
+        document.getElementById('taskBody').innerHTML = '<tr><td colspan="3" class="log-empty">Loading tasks...</td></tr>';
+
         if (CONFIG.USE_MOCK_API) {
             renderReportPreview([
                 {
@@ -892,8 +896,8 @@
             activeReportId = null;
             loadReports();
         },
-        onSearch: (q) => { searchQuery = q || ''; renderHistory(); },
-        onSort: (mode) => { sortMode = mode || 'date-desc'; renderHistory(); },
+        onSearch: (q) => { searchQuery = q || ''; currentPage = 1; renderHistory(); },
+        onSort: (mode) => { sortMode = mode || 'date-desc'; currentPage = 1; renderHistory(); },
         toggleTaskDetails: (taskId) => {
             const detailsRow = document.getElementById(`details-${taskId}`);
             const icon = document.getElementById(`icon-${taskId}`);

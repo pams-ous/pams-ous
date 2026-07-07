@@ -4,7 +4,7 @@
  */
 
 (function () {
-    const { apiFetch, requireAuth, fmtHeaderDate } = PAMS;
+    const { apiFetch, requireAuth, fmtHeaderDate, escapeHtml } = PAMS;
 
     let users = [];
     let groups = [];
@@ -29,7 +29,7 @@
     let pendingDemote = null;
     let pendingPromote = null;
     let _loadGen = 0;
-    const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('pams.user') || '{}').id || null; } catch { return null; } })();
+    const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').id || null; } catch { return null; } })();
 
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -583,17 +583,21 @@
             const badgeClass = isOnline ? 'status-online' : 'status-offline';
 
             const groupTags = (u.groups && Array.isArray(u.groups) && u.groups.length > 0) 
-                ? u.groups.map(gName => `<span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; display: inline-block; margin: 2px;">${gName}</span>`).join('') 
+                ? u.groups.map(gName => `<span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; display: inline-block; margin: 2px;">${escapeHtml(gName)}</span>`).join('') 
                 : '<span style="color:#9ca3af; font-style:italic; font-size: 0.8rem;">Unassigned</span>';
 
             // Prevent job‑title / role changes for the designated Super‑Admin (employee code SUPER-001)
             const isSuperAdmin = u.employeeCode === 'SUPER-001';
 
+            const safeName = escapeHtml(u.name || '—');
+            const safeEmail = escapeHtml(u.email);
+            const safeCode = escapeHtml(u.employeeCode || '—');
+
             return `
             <tr>
-              <td class="td-code">${u.employeeCode || '—'}</td>
-              <td class="td-name">${u.name || '—'}</td>
-              <td class="td-email">${u.email}</td>
+              <td class="td-code">${safeCode}</td>
+              <td class="td-name">${safeName}</td>
+              <td class="td-email">${safeEmail}</td>
               <td>${createCustomDropdownHtml('role', u.email, u.role, isSuperAdmin || u.id === currentUserId)}</td>
                <td>${createCustomDropdownHtml('jobtitle', u.email, u.jobTitleId, isSuperAdmin || u.id === currentUserId)}</td>
               
@@ -601,7 +605,7 @@
                   ${groupTags}
               </td>
 
-              <td data-user-email="${u.email}" style="color: ${isOnline ? '#28a745' : '#6c757d'}; font-weight: 600;">
+              <td data-user-email="${safeEmail}" style="color: ${isOnline ? '#28a745' : '#6c757d'}; font-weight: 600;">
                 <span class="status-badge ${badgeClass}">
                     <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${isOnline ? '#28a745' : '#6c757d'};"></i> ${u.activeStatus || 'Offline'}
                 </span>
@@ -612,11 +616,11 @@
                 <button class="action-btn approve" onclick="window.Admin.approveUser('${u.id}')" title="Approve User" style="color: #16a34a;">
                   <i class="fas fa-check"></i>
                 </button>` : ''}
-                <button class="action-btn edit" onclick="window.Admin.openEditUser('${u.email}')" title="Edit user">
+                <button class="action-btn edit" onclick="window.Admin.openEditUser('${safeEmail}')" title="Edit user">
                   <i class="fas fa-pen"></i>
                 </button>
                 ${u.id === currentUserId ? '' : `
-                <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${u.email}', '${(u.name || '').replace(/'/g, "\\'")}')" title="Delete user">
+                <button class="action-btn deactivate" onclick="window.Admin.deleteUser('${safeEmail}', '${escapeHtml(u.name || '').replace(/'/g, "\\'")}')" title="Delete user">
                   <i class="fas fa-trash"></i>
                 </button>
                 `}
@@ -636,18 +640,22 @@
         }
 
         // Columns rendered in order: name | desc | leader | members | actions
-        tbody.innerHTML = applyGroupSort(groups).map(g => `
+        tbody.innerHTML = applyGroupSort(groups).map(g => {
+            const safeName = escapeHtml(g.name || '—');
+            const safeDesc = escapeHtml(g.desc || '—');
+            const safeLeader = escapeHtml(g.leader || '');
+            return `
             <tr>
-                <td class="td-name">${g.name || '—'}</td>
-                <td class="td-email" style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${g.desc || ''}">${g.desc || '—'}</td>
-                <td>${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${g.leader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}</td>
+                <td class="td-name">${safeName}</td>
+                <td class="td-email" style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeDesc}">${safeDesc}</td>
+                <td>${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${safeLeader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}</td>
                 <td style="text-align: center;"><span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;"><i class="fas fa-users" style="margin-right: 4px; color: #6b7280;"></i> ${g.members || 0}</span></td>
                 <td class="td-actions">
-                    <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group" aria-label="Edit group ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${(g.name || '').replace(/'/g, "\\'")}')" title="Delete group" aria-label="Delete group ${(g.name || '').replace(/'/g, "\\'")}"><i class="fas fa-trash"></i></button>
+                    <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group" aria-label="Edit group ${safeName.replace(/'/g, '&#39;')}"><i class="fas fa-pen"></i></button>
+                    <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${safeName.replace(/'/g, '&#39;')}')" title="Delete group" aria-label="Delete group ${safeName.replace(/'/g, '&#39;')}"><i class="fas fa-trash"></i></button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
     function labelForDesignation(name) {

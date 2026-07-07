@@ -4,7 +4,7 @@
  */
 
 (function () {
-    const { apiFetch, requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
+    const { apiFetch, requireAuth, fmtDate, fmtHeaderDate, getUser, escapeHtml } = PAMS;
 
     let tasks = [];
     let users = [];
@@ -248,19 +248,19 @@
         <div class="tb-row">
             <div class="tb-row-main" onclick="window.TaskBoard.openView(${t.id})">
                 <div class="tb-row-top">
-                    <span class="tb-title">${t.title}</span>
+                    <span class="tb-title">${escapeHtml(t.title)}</span>
                     <span class="badge ${sCls}">${t.status}</span>
                 </div>
-                <div class="tb-desc">${t.description || ''}</div>
+                <div class="tb-desc">${escapeHtml(t.description || '')}</div>
                 <div class="tb-meta">
-                    <span class="tb-meta-item"><span class="avatar-sm">${t.assignee?.initials || '?'}</span> ${t.assignee?.name || 'Unassigned'}</span>
-                    <span class="tb-meta-item"><i class="fa-regular fa-user"></i> By ${t.assignedByName || '—'}</span>
+                    <span class="tb-meta-item"><span class="avatar-sm">${t.assignee?.initials || '?'}</span> ${escapeHtml(t.assignee?.name || 'Unassigned')}</span>
+                    <span class="tb-meta-item"><i class="fa-regular fa-user"></i> By ${escapeHtml(t.assignedByName || '—')}</span>
                 </div>
             </div>
             <div class="tb-row-actions">
-                <button class="ribbon-btn complete" title="${t.canComplete === false ? 'You can only complete tasks assigned to you' : 'Mark as Completed'}" aria-label="Mark '${t.title.replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED' || t.canComplete === false) ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
+                <button class="ribbon-btn complete" title="${t.canComplete === false ? 'You can only complete tasks assigned to you' : 'Mark as Completed'}" aria-label="Mark '${escapeHtml(t.title).replace(/'/g, '&#39;')}' as completed" onclick="window.TaskBoard.completeTask(${t.id})"${(t.status === 'COMPLETED' || t.status === 'CANCELLED' || t.canComplete === false) ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-circle-check" aria-hidden="true"></i></button>
                 <button class="ribbon-btn ghost" title="Edit Details" onclick="window.TaskBoard.openEdit(${t.id})"><i class="fa-solid fa-pen"></i></button>
-                <button class="ribbon-btn ghost act-delete" title="${t.canComplete === false ? 'You can only delete tasks assigned to you' : 'Remove'}" aria-label="Delete '${t.title.replace(/'/g, '&#39;')}'" onclick="window.TaskBoard.openDeleteTask(${t.id})"${t.canComplete === false ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-trash-can"></i></button>
+                <button class="ribbon-btn ghost act-delete" title="${t.canComplete === false ? 'You can only delete tasks assigned to you' : 'Remove'}" aria-label="Delete '${escapeHtml(t.title).replace(/'/g, '&#39;')}'" onclick="window.TaskBoard.openDeleteTask(${t.id})"${t.canComplete === false ? ' disabled aria-disabled="true"' : ''}><i class="fa-solid fa-trash-can"></i></button>
             </div>
         </div>`;
     }
@@ -453,17 +453,37 @@
 
             document.getElementById('edit-status').value = t.status;
             document.getElementById('edit-status').dispatchEvent(new Event('change', { bubbles: true }));
+
+            // Set the current assignee in the edit-assignee select
+            if (t.assignee) {
+                const edAss = document.getElementById('edit-assignee');
+                if (edAss) {
+                    if (t.assignee.type === 'user') {
+                        const u = users.find(u => u.name === t.assignee.name);
+                        if (u) edAss.value = `user:${u.email}`;
+                    } else if (t.assignee.type === 'group') {
+                        const g = groups.find(g => g.name === t.assignee.name);
+                        if (g) edAss.value = `group:${g.id}`;
+                    }
+                }
+            }
+
             openModal('editModal');
         },
         saveEdit: async () => {
             const id = document.getElementById('edit-id').value;
             
             // Grab ALL fields from the edit modal
+            const assigneeVal = document.getElementById('edit-assignee')?.value || '';
             const body = { 
                 title: document.getElementById('edit-title').value, 
                 description: document.getElementById('edit-desc').value,
                 status: document.getElementById('edit-status').value
             };
+            if (assigneeVal) {
+                const [type, key] = assigneeVal.split(':');
+                if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
+            }
             
             if (CONFIG.USE_MOCK_API) {
                 const t = tasks.find(x => x.id == id); 
