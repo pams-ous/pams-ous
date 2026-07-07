@@ -146,6 +146,13 @@ app.post('/api/admin/sync/users/:id/approve', authenticateToken, async (req, res
     try {
         const userId = req.params.id;
         await db.query("UPDATE Employees SET approval_status = 'APPROVED' WHERE employee_id = ?", [userId]);
+        await recordNotification(db, {
+            kind: "user_approval",
+            title: "Account Approved",
+            body: "Your account has been approved. You can now log in.",
+            relatedUrl: null,
+            targetUserId: parseInt(userId, 10)
+        }, req.app.get('io'));
         req.app.get('io').emit('usersChanged');
         res.json({ success: true, message: "User approved successfully" });
     } catch (e) { res.status(500).json({ error: e.message }); }

@@ -7,6 +7,7 @@ const superadmin = require("../config/superadmin");
 const { getEmployeeDetails } = require("./dbChecks");
 const { generateToken, verifyToken } = require("./authUtil");
 const { authenticateToken, authorizeRole } = require("./authMiddleware");
+const { recordNotification } = require("./notifications");
 
 async function handle_login(socket, data, db, io) {
     const email = data.email;
@@ -246,6 +247,13 @@ async function initLoginRoutes(app, db, io) {
                  console.log(`[WARNING] Tried to update role, but could not find Employee ID: "${userId}" in the database.`);
             } else {
                 console.log(`[SUCCESS] Updated Employee ID: "${userId}" (${userEmail}) to ${designation}.`);
+                await recordNotification(db, {
+                    kind: "role_changed",
+                    title: "Role Updated",
+                    body: `Your role has been changed to ${role === 'ADMIN' ? 'Admin' : 'Member'}.`,
+                    relatedUrl: null,
+                    targetUserId: userId
+                }, io);
             }
             io.emit('usersChanged');
             res.json({ success: true, message: "Role update processed." });
@@ -293,49 +301,6 @@ async function initLoginRoutes(app, db, io) {
             console.error("Error fetching groups:", err);
             res.status(500).json({ error: err.message });
         }
-    });
-
-    // Create Group 
-    app.post('/api/groups', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const { name, desc, leaderEmail } = req.body;
-        try {
-            const [result] = await db.query('INSERT INTO Job_Groups (group_name, `desc`) VALUES (?, ?)', [name, desc]);
-            const newGroupId = result.insertId;
-
-            if (leaderEmail) {
-                const [emp] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [leaderEmail]);
-                if (emp.length > 0) {
-                    await db.query('INSERT INTO Employees_Groups (employee_id, group_id, role) VALUES (?, ?, ?)', [emp[0].employee_id, newGroupId, 'Leader']);
-                }
-            }
-            res.json({ success: true, message: "Group added!" });
-        } catch (err) { res.status(500).json({ error: err.message }); }
-    });
-
-    // Update Group Configurations
-    app.put('/api/groups/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        const { name, desc, leaderEmail } = req.body;
-        const groupId = req.params.id;
-        try {
-            await db.query('UPDATE Job_Groups SET group_name = ?, `desc` = ? WHERE group_id = ?', [name, desc, groupId]);
-            await db.query("DELETE FROM Employees_Groups WHERE group_id = ? AND role = 'Leader'", [groupId]);
-            
-            if (leaderEmail) {
-                const [emp] = await db.query('SELECT employee_id FROM Employees WHERE email = ?', [leaderEmail]);
-                if (emp.length > 0) {
-                    await db.query('INSERT INTO Employees_Groups (employee_id, group_id, role) VALUES (?, ?, ?)', [emp[0].employee_id, groupId, 'Leader']);
-                }
-            }
-            res.json({ success: true, message: "Group updated!" });
-        } catch (err) { res.status(500).json({ error: err.message }); }
-    });
-
-    // Drop Group Entities
-    app.delete('/api/groups/:id', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
-        try {
-            await db.query('DELETE FROM Job_Groups WHERE group_id = ?', [req.params.id]);
-            res.json({ success: true, message: "Group deleted!" });
-        } catch (err) { res.status(500).json({ error: err.message }); }
     });
 
     // Public endpoint for signup form (no auth required)
