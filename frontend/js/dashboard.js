@@ -62,12 +62,15 @@
         document.getElementById('cnt-completed').textContent = Math.round(s.counts.completed);
         document.getElementById('cnt-inprogress').textContent = Math.round(s.counts.inProgress);
 
-        // 2. Bar Chart
+        // 2. Bar Chart — destroy previous instance before recreating
+        if (barChart) {
+            barChart.destroy();
+            barChart = null;
+        }
         const barCtxEl = document.getElementById('barChart');
         if (barCtxEl) {
             const barCtx = barCtxEl.getContext('2d');
             const groupCount = s.byGroup.length;
-            // Adjust bar thickness dynamically based on number of groups, ensuring they are decently thick but capped
             const computedMaxBarThickness = groupCount <= 1 ? 60 : (groupCount === 2 ? 70 : 80);
 
             barChart = new Chart(barCtx, {
