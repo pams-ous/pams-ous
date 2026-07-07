@@ -315,7 +315,7 @@ module.exports = {
                 }
             }
 
-            const currentStatus = existingTask.status.toLowerCase();
+            const currentStatus = existingTask.status.toLowerCase().replace(/\s+/g, '_');
 
             // Determine ownership: the individual assignee, OR a member of the
             // group the task is assigned to. Admins/chiefs bypass this entirely.
@@ -346,13 +346,16 @@ module.exports = {
                 if (description !== undefined) updatePayload.description = description ? description.trim() : null;
             }
             
-            if (status) updatePayload.status = status.toLowerCase(); 
+            // Normalize status to DB format (lowercase, spaces → underscores)
+            const normalizeStatus = (s) => s.toLowerCase().replace(/\s+/g, '_');
+
+            if (status) updatePayload.status = normalizeStatus(status); 
 
             const affectedRows = await Task.update(id, updatePayload);
             
             // Log every status change so report snapshots track it accurately
-            if (status && status.toLowerCase() !== currentStatus) {
-                const newStatus = status.toLowerCase();
+            const newStatus = status ? normalizeStatus(status) : null;
+            if (newStatus && newStatus !== currentStatus) {
 
                 // Build a contextual log message based on the actor and transition
                 let logMessage;
@@ -360,7 +363,7 @@ module.exports = {
                     logMessage = `Status updated via Admin panel`;
                 } else if (newStatus === 'completed') {
                     logMessage = 'Task marked as completed';
-                } else if (newStatus === 'in progress') {
+                } else if (newStatus === 'in_progress') {
                     logMessage = 'Task reopened';
                 } else {
                     logMessage = `Status changed to ${newStatus}`;
