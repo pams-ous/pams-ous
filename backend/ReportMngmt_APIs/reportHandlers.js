@@ -11,13 +11,13 @@ const superadmin = require("../config/superadmin");
 async function requireAdmin(socket, db) {
     const email = socket.userEmail;
     if (!email) {
-        socket.emit("reportLog", { success: false, rawData: "Authentication required. Please log in." });
+        socket.emit("reportLog", { success: false, stage: "error", rawData: "Authentication required. Please log in." });
         return false;
     }
     if (email === superadmin.EMAIL) return true;
     const [rows] = await db.query("SELECT designation FROM Employees WHERE email = ?", [email]);
     if (!rows.length || rows[0].designation !== 'Admin') {
-        socket.emit("reportLog", { success: false, rawData: "Access denied. Admin privileges required." });
+        socket.emit("reportLog", { success: false, stage: "error", rawData: "Access denied. Admin privileges required." });
         return false;
     }
     return true;
@@ -30,7 +30,7 @@ function checkRateLimit(socket, event, maxCalls = 1, windowMs = 10000) {
     const now = Date.now();
     const entry = rateLimitMap.get(key);
     if (entry && (now - entry) < windowMs) {
-        socket.emit("reportLog", { success: false, rawData: `Rate limit exceeded. Please wait ${Math.ceil((windowMs - (now - entry)) / 1000)}s.` });
+        socket.emit("reportLog", { success: false, stage: "error", rawData: `Rate limit exceeded. Please wait ${Math.ceil((windowMs - (now - entry)) / 1000)}s.` });
         return false;
     }
     rateLimitMap.set(key, now);
@@ -63,7 +63,7 @@ async function registerReportHandlers(socket, db, io) {
                 data: rows 
             });
         } catch (err) {
-            socket.emit("reportLog", { success: false, rawData: `List failed: ${err.message}` });
+            socket.emit("reportLog", { success: false, stage: "error", rawData: `List failed: ${err.message}` });
         }
     });
 
@@ -74,7 +74,7 @@ async function registerReportHandlers(socket, db, io) {
         try {
             if (!await requireAdmin(socket, db)) return;
             if (!reportId || isNaN(Number(reportId))) {
-                return socket.emit("reportLog", { success: false, rawData: "Invalid reportId: must be a numeric value." });
+                return socket.emit("reportLog", { success: false, stage: "error", rawData: "Invalid reportId: must be a numeric value." });
             }
             const taskQuery = `
                 SELECT t.task_id, t.title, t.description,
@@ -127,7 +127,7 @@ async function registerReportHandlers(socket, db, io) {
             });
         } catch (err) {
             console.error("Fetch report details failed:", err);
-            socket.emit("reportLog", { success: false, rawData: `Fetch details failed: ${err.message}` });
+            socket.emit("reportLog", { success: false, stage: "error", rawData: `Fetch details failed: ${err.message}` });
         }
     });
 
@@ -270,7 +270,7 @@ async function registerReportHandlers(socket, db, io) {
                 try { conn.release(); } catch (_) {}
             }
             console.error("Generation failed:", err);
-            socket.emit("reportLog", { success: false, rawData: `Generation failed: ${err.message}` });
+            socket.emit("reportLog", { success: false, stage: "error", rawData: `Generation failed: ${err.message}` });
         }
     });
 
@@ -307,7 +307,7 @@ async function registerReportHandlers(socket, db, io) {
             });
         } catch (err) {
             console.error("Deletion failed:", err);
-            socket.emit("reportLog", { success: false, rawData: `Deletion failed: ${err.message}` });
+            socket.emit("reportLog", { success: false, stage: "error", rawData: `Deletion failed: ${err.message}` });
         }
     });
 }
