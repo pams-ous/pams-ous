@@ -247,6 +247,7 @@ async function initLoginRoutes(app, db, io) {
             } else {
                 console.log(`[SUCCESS] Updated Employee ID: "${userId}" (${userEmail}) to ${designation}.`);
             }
+            io.emit('usersChanged');
             res.json({ success: true, message: "Role update processed." });
         } catch (err) {
             console.error("SQL Error:", err);

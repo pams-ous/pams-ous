@@ -205,6 +205,7 @@ async function initManageRoutes(app, db) {
                 relatedUrl: null
             }, req.app.get('io'));
 
+            req.app.get('io').emit('usersChanged');
             res.json({ success: true, message: "Profile updated successfully" });
         } catch (err) {
             console.error("Update Profile Error:", err);
@@ -236,6 +237,7 @@ async function initManageRoutes(app, db) {
                 relatedUrl: null
             }, req.app.get('io'));
 
+            req.app.get('io').emit('usersChanged');
             res.json({ success: true, message: "Job title updated successfully" });
         } catch (err) {
             console.error("Update Job Title Error:", err);
@@ -270,6 +272,7 @@ async function initManageRoutes(app, db) {
                 relatedUrl: null
             }, req.app.get('io'));
 
+            req.app.get('io').emit('usersChanged');
             res.json({ success: true, message: "User deleted successfully" });
         } catch (err) {
             console.error("Delete Error:", err);

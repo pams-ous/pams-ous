@@ -85,7 +85,7 @@
                     console.error("Group search failed:", data.rawData);
                     return;
                 }
-                
+
                 groups = data.rawData.map(g => ({
                     id: g.group_id,
                     name: g.group_name,
@@ -93,9 +93,12 @@
                     leader: g.leader,
                     members: g.members || 0
                 }));
-                
+
                 renderGroups();
             });
+
+            socket.on('usersChanged', () => loadAll());
+            socket.on('groupsChanged', () => loadAll());
         }
 
         await loadAll();
@@ -153,6 +156,8 @@
 
     async function loadAll() {
         const gen = ++_loadGen;
+        const scroller = document.querySelector('.panel:not([hidden]) .table-wrap');
+        const savedScrollTop = scroller ? scroller.scrollTop : 0;
         try {
             try {
                 const uData = await apiFetch('/admin/sync/users');
@@ -170,6 +175,7 @@
                 reapplyActiveFilters();
                 renderUsers(); 
                 renderGroups();
+                if (scroller) scroller.scrollTop = savedScrollTop;
             }
         } catch (error) {
             if (gen === _loadGen) console.error("Fatal loadAll error:", error);

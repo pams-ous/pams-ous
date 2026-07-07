@@ -146,6 +146,7 @@ app.post('/api/admin/sync/users/:id/approve', authenticateToken, async (req, res
     try {
         const userId = req.params.id;
         await db.query("UPDATE Employees SET approval_status = 'APPROVED' WHERE employee_id = ?", [userId]);
+        req.app.get('io').emit('usersChanged');
         res.json({ success: true, message: "User approved successfully" });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -190,6 +191,7 @@ app.post('/api/admin/sync/groups', authenticateToken, async (req, res) => {
         }, ioInstance);
         console.log(`[GROUP CREATE] recordNotification completed for "${name}"`);
 
+        ioInstance.emit('groupsChanged');
         res.json({ success: true, group_id: newGroupId });
     } catch (e) { await connection.rollback(); res.status(500).json({ error: e.message }); } finally { connection.release(); }
 });
@@ -254,6 +256,7 @@ app.put('/api/admin/sync/groups/:id', authenticateToken, async (req, res) => {
 
         }
 
+        req.app.get('io').emit('groupsChanged');
         res.json({ success: true });
     } catch (e) { await connection.rollback(); res.status(500).json({ error: e.message }); } finally { connection.release(); }
 });
@@ -278,7 +281,7 @@ app.delete('/api/admin/sync/groups/:id', authenticateToken, async (req, res) => 
                 relatedUrl: null
             }, req.app.get('io'));
 
-
+        req.app.get('io').emit('groupsChanged');
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -333,6 +336,8 @@ app.put('/api/admin/sync/groups/:id/members', authenticateToken, async (req, res
             if (insertData.length > 0) await connection.query(`INSERT INTO Employees_Groups (employee_id, group_id, role) VALUES ?`, [insertData]);
         }
         await connection.commit();
+        req.app.get('io').emit('usersChanged');
+        req.app.get('io').emit('groupsChanged');
         res.json({ success: true });
     } catch (e) { await connection.rollback(); res.status(500).json({ error: e.message }); } finally { connection.release(); }
 });

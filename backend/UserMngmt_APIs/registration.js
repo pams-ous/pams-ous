@@ -273,6 +273,7 @@ async function initRegistrationRoutes(app, db) {
                     relatedUrl: employee_id
                 }, req.app.get('io'));
             }
+            req.app.get('io').emit('usersChanged');
             res.json({ success: true, id: employee_id, message: approvalStatus === 'PENDING' ? "User created and pending approval!" : "User added to SQL!" });
         } catch (err) {
             console.error("Admin Add User Error:", err);
