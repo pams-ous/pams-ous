@@ -334,17 +334,16 @@
 }
 
 .charts-row {
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr;
 }
 
 .bottom-row {
   grid-template-columns: 1fr 380px;
 }
 
-.bar-box,
-.donut-box {
+.bar-box {
   position: relative;
-  height: 260px;
+  height: 380px;
 }
 
 /* Accomplishments & Group Progress */
