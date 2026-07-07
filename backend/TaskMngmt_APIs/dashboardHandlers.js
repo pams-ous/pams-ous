@@ -38,19 +38,7 @@ function dashboardAPI(app, io, db) {
                 GROUP BY g.group_id
             `);
 
-            // 3. Recent Accomplishments (Activity Log)
-            const [recentUpdates] = await db.query(`
-                SELECT 
-                    CONCAT(e.first_name, ' ', e.last_name) as name, 
-                    tu.updated_text as text, 
-                    tu.logged_at as time
-                FROM Task_Updates tu
-                JOIN Employees e ON tu.updated_by = e.employee_id
-                ORDER BY tu.logged_at DESC
-                LIMIT 8
-            `);
-
-            // 4. Group Progress (Horizontal bars)
+            // 3. Group Progress (Horizontal bars)
             const [groupProgress] = await db.query(`
                 SELECT 
                     g.group_name as name,
@@ -66,7 +54,6 @@ function dashboardAPI(app, io, db) {
                 success: true,
                 counts,
                 byGroup,
-                recentUpdates,
                 groupProgress
             });
 
