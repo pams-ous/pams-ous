@@ -244,7 +244,7 @@ module.exports = {
             const newTaskId = await Task.create({
                 title: title.trim(),
                 description: description ? description.trim() : null,
-                status: 'in progress',    
+                status: 'in_progress',    
                 assignedBy: creatorId,
                 assignedToUser: assignedToUser,
                 assignedToGroup: assignedToGroup
