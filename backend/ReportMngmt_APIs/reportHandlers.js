@@ -120,13 +120,13 @@ async function registerReportHandlers(socket, db, io) {
     socket.on("generateReport", async (data) => {
         try {
             if (!await requireAdmin(socket, db)) return;
-            const { reportType, scopeType, scopeValue, periodStart, periodEnd, generatedByEmail } = data;
+            const { reportType, scopeType, scopeValue, periodStart, periodEnd } = data;
             
             // Normalize start and end date boundaries to include full days
             const startDateTime = periodStart.includes(' ') || periodStart.includes('T') ? periodStart : `${periodStart} 00:00:00`;
             const endDateTime = periodEnd.includes(' ') || periodEnd.includes('T') ? periodEnd : `${periodEnd} 23:59:59`;
 
-            const [userRows] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [generatedByEmail]);
+            const [userRows] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [socket.userEmail]);
             const adminId = userRows[0]?.employee_id;
             if (!adminId) throw new Error("Admin user not found.");
 
@@ -193,10 +193,10 @@ async function registerReportHandlers(socket, db, io) {
                 );
             }
 
-            io.emit("reportGenerated", { reportId, title: `${reportType} Report Created`, by: generatedByEmail });
+            io.emit("reportGenerated", { reportId, title: `${reportType} Report Created`, by: socket.userEmail });
 
             // GLOBAL NOTIFICATION: Notify everyone that a report was generated
-            const [adminRows] = await db.query("SELECT first_name, last_name, suffix FROM Employees WHERE email = ?", [generatedByEmail]);
+            const [adminRows] = await db.query("SELECT first_name, last_name, suffix FROM Employees WHERE email = ?", [socket.userEmail]);
             const adminName = formatFullName(adminRows[0]);
 
             await recordNotification(db, {
