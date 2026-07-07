@@ -462,108 +462,96 @@
 
     // ── Custom dropdown helper ─────────────────────────────────────────────
     function createCustomDropdownHtml(type, email, currentValue, isDisabled) {
-      const disabledClass = isDisabled ? ' is-disabled' : '';
-      let optionsHtml, displayText;
+      let optionsHtml;
 
       if (type === 'role') {
         const items = [
           { value: 'MEMBER', label: 'Admin. Staff' },
           { value: 'ADMIN', label: 'Administrator' }
         ];
-        const sel = items.find(o => o.value === currentValue);
-        displayText = sel ? sel.label : 'Select Role';
         optionsHtml = items.map(o =>
-          `<div class="custom-dropdown-option${o.value === currentValue ? ' is-selected' : ''}" data-cd-opt-value="${o.value}">${o.label}</div>`
+          `<option value="${o.value}" ${o.value === currentValue ? 'selected' : ''}>${o.label}</option>`
         ).join('');
       } else {
-        const placeholder = { value: '', label: '— Select Title —' };
-        const sel = designations.find(d => String(d.id) === String(currentValue));
-        displayText = sel ? labelForDesignation(sel.name) : placeholder.label;
-        optionsHtml = `<div class="custom-dropdown-option${!currentValue ? ' is-selected' : ''}" data-cd-opt-value="">${placeholder.label}</div>` +
+        const placeholder = '— Select Title —';
+        optionsHtml = `<option value="" ${!currentValue ? 'selected' : ''}>${placeholder}</option>` +
           designations.map(d =>
-            `<div class="custom-dropdown-option${String(d.id) === String(currentValue) ? ' is-selected' : ''}" data-cd-opt-value="${d.id}">${labelForDesignation(d.name)}</div>`
+            `<option value="${d.id}" ${String(d.id) === String(currentValue) ? 'selected' : ''}>${labelForDesignation(d.name)}</option>`
           ).join('');
       }
 
-      return `<div class="custom-dropdown${disabledClass}" data-cd-type="${type}" data-cd-email="${email}" data-cd-value="${currentValue || ''}">
-        <div class="custom-dropdown-trigger" tabindex="0">
-          <span class="custom-dropdown-selected">${displayText}</span>
-          <i class="fa-solid fa-chevron-down arrow"></i>
-        </div>
-        <div class="custom-dropdown-menu">${optionsHtml}</div>
-      </div>`;
+      return `<select class="custom-table-select" data-cd-type="${type}" data-cd-email="${escapeHtml(email)}" data-cd-value="${currentValue || ''}" ${isDisabled ? 'disabled' : ''}>${optionsHtml}</select>`;
     }
 
     function initCustomDropdowns() {
       const body = document.getElementById('usersBody');
       if (!body) return;
 
-      body.addEventListener('click', (e) => {
-        const trigger = e.target.closest('.custom-dropdown-trigger');
-        if (trigger) {
-          const dd = trigger.closest('.custom-dropdown');
-          if (!dd || dd.classList.contains('is-disabled')) return;
-          body.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
-            if (d !== dd) d.classList.remove('is-open');
-          });
-          dd.classList.toggle('is-open');
-          return;
+      body.addEventListener('change', (e) => {
+        const sel = e.target.closest('select[data-cd-type]');
+        if (!sel) return;
+        if (sel._handlingChange) return;
+
+        const type = sel.dataset.cdType;
+        const email = sel.dataset.cdEmail;
+        const oldValue = sel.dataset.cdValue;
+        const newValue = sel.value;
+
+        if (oldValue === newValue) return;
+
+        function revertAndProceed(callback) {
+          sel._handlingChange = true;
+          sel.value = oldValue;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          sel._handlingChange = false;
+          callback();
         }
 
-        const opt = e.target.closest('.custom-dropdown-option');
-        if (!opt) return;
-        const dd = opt.closest('.custom-dropdown');
-        if (!dd || dd.classList.contains('is-disabled')) return;
-        e.stopPropagation();
-        dd.classList.remove('is-open');
-
-        const email = dd.dataset.cdEmail;
-        const type = dd.dataset.cdType;
-        const value = opt.dataset.cdOptValue;
-        const currentValue = dd.dataset.cdValue;
-
         if (type === 'role') {
-          if (currentValue === 'ADMIN' && value === 'MEMBER') {
-            const selectedSpan = dd.querySelector('.custom-dropdown-selected');
-            if (selectedSpan) selectedSpan.textContent = 'Administrator';
+          if (oldValue === 'ADMIN' && newValue === 'MEMBER') {
             const user = users.find(u => u.email === email);
-            window.Admin.openConfirmDemote(email, user?.name);
+            revertAndProceed(function () { window.Admin.openConfirmDemote(email, user?.name); });
             return;
           }
-          if (currentValue === 'MEMBER' && value === 'ADMIN') {
-            const selectedSpan = dd.querySelector('.custom-dropdown-selected');
-            if (selectedSpan) selectedSpan.textContent = 'Admin. Staff';
+          if (oldValue === 'MEMBER' && newValue === 'ADMIN') {
             const user = users.find(u => u.email === email);
-            window.Admin.openConfirmPromote(email, user?.name, 'ADMIN');
+            revertAndProceed(function () { window.Admin.openConfirmPromote(email, user?.name, 'ADMIN'); });
             return;
           }
-          window.Admin.changeRole(email, value);
+          sel.dataset.cdValue = newValue;
+          window.Admin.changeRole(email, newValue);
         } else if (type === 'jobtitle') {
-          if (value) {
-            const designation = designations.find(d => String(d.id) === String(value));
+          let mappedRole = null;
+          if (newValue) {
+            const designation = designations.find(d => String(d.id) === String(newValue));
             if (designation) {
               const name = designation.name.toLowerCase();
-              let mappedRole = null;
               if (name.includes('admin. staff') || name.includes('staff') || name.includes('assistant')) {
                 mappedRole = 'MEMBER';
               } else if (name.includes('head') || name.includes('chief')) {
                 mappedRole = 'ADMIN';
               }
-              if (mappedRole) {
-                const user = users.find(u => u.email === email);
-                if (user && user.role !== mappedRole) {
-                  if (mappedRole === 'ADMIN' && user.role === 'MEMBER') {
-                    window.Admin.openConfirmPromote(email, user?.name, 'ADMIN');
-                  } else if (mappedRole === 'MEMBER' && user.role === 'ADMIN') {
-                    window.Admin.openConfirmDemote(email, user?.name);
-                  } else {
-                    window.Admin.changeRole(email, mappedRole);
-                  }
-                }
-              }
             }
           }
-          window.Admin.changeJobTitle(email, value);
+
+          const user = users.find(u => u.email === email);
+          if (mappedRole && user && user.role !== mappedRole) {
+            const roleTarget = mappedRole;
+            revertAndProceed(function () {
+              if (roleTarget === 'ADMIN' && user.role === 'MEMBER') {
+                window.Admin.openConfirmPromote(email, user?.name, 'ADMIN');
+              } else if (roleTarget === 'MEMBER' && user.role === 'ADMIN') {
+                window.Admin.openConfirmDemote(email, user?.name);
+              }
+            });
+            return;
+          }
+
+          sel.dataset.cdValue = newValue;
+          if (mappedRole) {
+            window.Admin.changeRole(email, mappedRole);
+          }
+          window.Admin.changeJobTitle(email, newValue);
         }
       });
 
@@ -627,6 +615,9 @@
               </td>
             </tr>`;
         }).join('');
+        document.querySelectorAll('#usersBody select.custom-table-select').forEach(function (s) {
+            if (typeof window.initCustomSelect === 'function') window.initCustomSelect(s);
+        });
     }
 
     function renderGroups() {
