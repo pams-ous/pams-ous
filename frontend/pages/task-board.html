@@ -127,16 +127,6 @@
             <!-- FILTERS Panel -->
             <div class="ribbon-panel" data-panel="filters">
                 <div class="ribbon-group">
-                    <div class="ribbon-group-label">Priority</div>
-                    <select class="ribbon-input" id="filterPriority">
-                        <option value="">All Priorities</option>
-                        <option value="URGENT">Urgent</option>
-                        <option value="HIGH">High</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="LOW">Low</option>
-                    </select>
-                </div>
-                <div class="ribbon-group">
                     <div class="ribbon-group-label">Group</div>
                     <select class="ribbon-input" id="filterGroup">
                         <option value="">All Groups</option>
@@ -159,8 +149,6 @@
                 <div class="ribbon-group">
                     <div class="ribbon-group-label">Sort by</div>
                     <select class="ribbon-input" id="sortField">
-                        <option value="due">Due date</option>
-                        <option value="priority">Priority</option>
                         <option value="created">Created date</option>
                         <option value="title">Title (A–Z)</option>
                     </select>
@@ -188,7 +176,6 @@
                     <select class="ribbon-input" id="viewGroupBy">
                         <option value="">None</option>
                         <option value="status">Status</option>
-                        <option value="priority">Priority</option>
                         <option value="group">Group</option>
                     </select>
                 </div>
@@ -240,22 +227,6 @@
                         <span class="char-count"><span id="nt-desc-count">0</span>/200</span>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Priority <span style="color: var(--red-text);">*</span></label>
-                        <select class="form-control" id="nt-priority">
-                            <option value="">Select priority</option>
-                            <option value="LOW">Low</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HIGH">High</option>
-                            <option value="URGENT">Urgent</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Due Date <span style="color: var(--red-text);">*</span></label>
-                        <input type="date" class="form-control" id="nt-due">
-                    </div>
-                </div>
                 <div class="form-group">
                     <label class="form-label" for="nt-assignee-search">Assign To <span style="color: var(--red-text);">*</span></label>
                     <div class="user-search">
@@ -303,18 +274,8 @@
                         <div class="view-val" id="view-status"></div>
                     </div>
                     <div class="view-field">
-                        <div class="view-label">Priority</div>
-                        <div class="view-val" id="view-priority"></div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="view-field">
                         <div class="view-label">Assigned To</div>
                         <div class="view-val" id="view-assignee"></div>
-                    </div>
-                    <div class="view-field">
-                        <div class="view-label">Due Date</div>
-                        <div class="view-val" id="view-due"></div>
                     </div>
                 </div>
                 <div class="view-actions">
@@ -359,23 +320,8 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Priority</label>
-                        <select class="form-control" id="edit-priority">
-                            <option value="LOW">Low</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HIGH">High</option>
-                            <option value="URGENT">Urgent</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
                         <label class="form-label">Assign To</label>
                         <select class="form-control" id="edit-assignee"></select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Due Date</label>
-                        <input type="date" class="form-control" id="edit-due">
                     </div>
                 </div>
             </div>
