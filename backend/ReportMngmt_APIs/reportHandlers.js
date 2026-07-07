@@ -135,10 +135,24 @@ async function registerReportHandlers(socket, db, io) {
             let scopeGroupId = null;
 
             if (scopeType === 'Individual') {
+                if (!scopeValue || typeof scopeValue !== 'string' || !scopeValue.includes('@')) {
+                    throw new Error("Invalid scope value: a valid email address is required for Individual scope.");
+                }
                 const [su] = await db.query("SELECT employee_id FROM Employees WHERE email = ?", [scopeValue]);
-                scopeUserId = su[0]?.employee_id;
+                if (!su.length) {
+                    throw new Error(`No user found with email "${scopeValue}".`);
+                }
+                scopeUserId = su[0].employee_id;
             } else if (scopeType === 'Group') {
-                scopeGroupId = parseInt(scopeValue);
+                const groupId = parseInt(scopeValue);
+                if (isNaN(groupId) || groupId <= 0) {
+                    throw new Error("Invalid scope value: a numeric group ID is required for Group scope.");
+                }
+                const [gr] = await db.query("SELECT group_id FROM Job_Groups WHERE group_id = ?", [groupId]);
+                if (!gr.length) {
+                    throw new Error(`No group found with ID "${scopeValue}".`);
+                }
+                scopeGroupId = groupId;
             }
 
             conn = await db.getConnection();
