@@ -296,8 +296,12 @@ async function registerReportHandlers(socket, db, io) {
             const [userRows] = await db.query("SELECT CONCAT_WS(' ', first_name, last_name) as name FROM Employees WHERE email = ?", [adminEmail]);
             if (userRows.length > 0) adminName = userRows[0].name;
 
-            await db.query("DELETE FROM Report WHERE report_id = ?", [reportId]);
+            const [deleteResult] = await db.query("DELETE FROM Report WHERE report_id = ?", [reportId]);
             
+            if (deleteResult.affectedRows === 0) {
+                return socket.emit("reportLog", { success: false, stage: "error", rawData: "Report not found. Nothing was deleted." });
+            }
+
             // Broadcast to all admins to sync their history list
             io.emit("reportDeleted", reportId);
 

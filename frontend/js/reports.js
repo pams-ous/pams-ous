@@ -847,7 +847,6 @@
                 scopeType: scope, 
                 periodStart: start, 
                 periodEnd: end, 
-                generatedByEmail: me.email,
                 scopeValue
             };
 
