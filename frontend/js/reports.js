@@ -5,7 +5,7 @@
  */
 
 (function () {
-    const { requireAuth, fmtDate, fmtHeaderDate, getUser } = PAMS;
+    const { requireAuth, fmtDate, fmtHeaderDate, getUser, apiFetch } = PAMS;
 
     // Timezone-safe local date utilities
     function parseLocalDate(dateStr) {
@@ -46,79 +46,25 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
-        // 1. Initialize Socket Listeners for Reports
-        setupSocketListeners();
+        // 1. Attach socket broadcast listeners (real-time cross-tab sync)
+        setupBroadcastListeners();
 
-        // 2. Initial Data Load (Wait for socket to be ready)
-        const checkSocket = setInterval(() => {
-            if (PAMS.socket && PAMS.socket.connected) {
-                loadReports();
-                clearInterval(checkSocket);
-            }
-        }, 500);
-        
-        // Timeout after 5 seconds
-        setTimeout(() => clearInterval(checkSocket), 5000);
+        // 2. Initial Data Load via HTTP
+        loadReports();
     });
 
     /**
-     * Socket Logic
+     * Socket Broadcast Listeners (real-time sync only — CRUD is via HTTP)
      */
-    function setupSocketListeners() {
-        if (!PAMS.socket) {
-            // Silently wait for the global socket in api.js to initialize
-            setTimeout(setupSocketListeners, 100);
-            return;
-        }
+    function setupBroadcastListeners() {
+        if (!PAMS.socket) return;
 
-        // Clean up previous listeners if any (important for hot-reloads)
-        PAMS.socket.off('reportLog');
         PAMS.socket.off('reportGenerated');
+        PAMS.socket.off('reportDeleted');
 
-        // Listen for the unified report log event
-        PAMS.socket.on('reportLog', (result) => {
-            if (!result.success) {
-                console.error("Report API Error:", result.rawData);
-                PAMS.toast(`Report Error: ${result.rawData || 'Unknown error'}`, 'error');
-                return;
-            }
-
-            switch (result.stage) {
-                case 'list':
-                    reports = result.data || [];
-                    if (result.pagination) {
-                        currentPage = result.pagination.page;
-                        pageSize = result.pagination.pageSize;
-                        totalReports = result.pagination.total;
-                    }
-                    renderHistory();
-                    if (reports.length > 0 && !activeReportId) {
-                        selectReport(reports[0].report_id);
-                    }
-                    break;
-                
-                case 'details':
-                    renderReportPreview(result.data);
-                    break;
-
-                case 'generate':
-                    PAMS.toast(result.rawData || "Report generated successfully!", 'success');
-                    currentPage = 1;
-                    loadReports(); // Refresh the list
-                    break;
-
-                case 'delete':
-                    closeModal('deleteReportModal');
-                    loadReports();
-                    PAMS.toast("Report deleted successfully!", "success");
-                    break;
-            }
-        });
-
-        // Listen for real-time broadcasts
-        PAMS.socket.on('reportGenerated', (data) => {
+        PAMS.socket.on('reportGenerated', () => {
             currentPage = 1;
-            loadReports(); 
+            loadReports();
         });
 
         PAMS.socket.on('reportDeleted', (id) => {
@@ -127,7 +73,7 @@
         });
     }
 
-    function loadReports() {
+    async function loadReports() {
         if (CONFIG.USE_MOCK_API) {
             reports = [
                 { report_id: 1, report_type: 'Weekly', scope_type: 'All', generated_at: '2026-05-27T08:00:00Z', generated_by_name: 'Admin', period_start: '2026-05-18', period_end: '2026-05-24' },
@@ -138,10 +84,21 @@
             return;
         }
 
-        if (PAMS.socket && PAMS.socket.connected) {
-            PAMS.socket.emit('getReports', { page: currentPage, pageSize });
-        } else {
-            console.warn("Cannot load reports: Socket disconnected.");
+        try {
+            const res = await apiFetch(`/reports?page=${currentPage}&pageSize=${pageSize}`);
+            reports = res.data || [];
+            if (res.pagination) {
+                currentPage = res.pagination.page;
+                pageSize = res.pagination.pageSize;
+                totalReports = res.pagination.total;
+            }
+            renderHistory();
+            if (reports.length > 0 && !activeReportId) {
+                selectReport(reports[0].report_id);
+            }
+        } catch (err) {
+            console.error("Failed to load reports:", err);
+            PAMS.toast(`Failed to load reports: ${err.message}`, 'error');
         }
     }
 
@@ -183,8 +140,14 @@
             return;
         }
 
-        if (PAMS.socket && PAMS.socket.connected) {
-            PAMS.socket.emit('getReportDetails', id);
+        try {
+            const res = await apiFetch(`/reports/${id}`);
+            if (res.success && res.data) {
+                renderReportPreview(res.data);
+            }
+        } catch (err) {
+            console.error("Failed to load report details:", err);
+            PAMS.toast(`Failed to load report details: ${err.message}`, 'error');
         }
     }
 
@@ -863,9 +826,14 @@
                 return;
             }
 
-            if (PAMS.socket) {
-                PAMS.socket.emit('generateReport', body);
+            try {
+                await apiFetch('/reports', 'POST', body);
                 closeModal('genModal');
+                PAMS.toast("Report generated successfully!", 'success');
+                currentPage = 1;
+                loadReports();
+            } catch (err) {
+                PAMS.toast(`Failed to generate report: ${err.message}`, 'error');
             }
         },
         selectReport: (id) => selectReport(id),
@@ -874,7 +842,7 @@
             reportToDelete = id;
             openModal('deleteReportModal');
         },
-        confirmDelete: () => {
+        confirmDelete: async () => {
             if (!reportToDelete) return;
             if (CONFIG.USE_MOCK_API) {
                 reports = reports.filter(r => r.report_id !== reportToDelete);
@@ -884,8 +852,13 @@
                 PAMS.toast("Report deleted successfully!", "success");
                 return;
             }
-            if (PAMS.socket) {
-                PAMS.socket.emit('deleteReport', reportToDelete);
+            try {
+                await apiFetch(`/reports/${reportToDelete}`, 'DELETE');
+                closeModal('deleteReportModal');
+                loadReports();
+                PAMS.toast("Report deleted successfully!", "success");
+            } catch (err) {
+                PAMS.toast(`Failed to delete report: ${err.message}`, 'error');
             }
         },
         goToPage: (page) => {
