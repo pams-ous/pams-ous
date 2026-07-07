@@ -6,7 +6,7 @@
 (function () {
     const { apiFetch, requireAuth, fmtHeaderDate, getUser } = PAMS;
 
-    let barChart, donutChart;
+    let barChart;
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -35,7 +35,6 @@
                         { group: 'Admission', pending: 1, inProgress: 2, completed: 5, cancelled: 0 },
                         { group: 'Head Office', pending: 0, inProgress: 1, completed: 2, cancelled: 0 }
                     ],
-                    priority: { LOW: 10, MEDIUM: 8, HIGH: 4, URGENT: 2 },
                     recentUpdates: [
                         { name: 'Juan Dela Cruz', text: 'Completed student record filing', time: new Date() },
                         { name: 'Maria Santos', text: 'Started admission review', time: new Date(Date.now() - 3600000) }
@@ -102,31 +101,7 @@
             });
         }
 
-        // 4. Donut Chart
-        const donutCtxEl = document.getElementById('donutChart');
-        if (donutCtxEl) {
-            const donutCtx = donutCtxEl.getContext('2d');
-            donutChart = new Chart(donutCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Low', 'Medium', 'High', 'Urgent'],
-                    datasets: [{
-                        data: [s.priority.LOW, s.priority.MEDIUM, s.priority.HIGH, s.priority.URGENT],
-                        backgroundColor: ['#9ca3af', '#3b82f6', '#f97316', '#dc2626'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '65%',
-                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Poppins', size: 11 } } } }
-                }
-            });
-        }
-
-        // 5. Recent accomplishments
+        // 4. Recent accomplishments
         const accList = document.getElementById('accList');
         if (accList) {
             if (s.recentUpdates.length === 0) {
