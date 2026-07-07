@@ -8,6 +8,16 @@
         const dateEl = document.getElementById('headerDate');
         if (dateEl) dateEl.textContent = fmtHeaderDate();
 
+        await loadAccomplishments();
+
+        if (PAMS && PAMS.socket) {
+            PAMS.socket.on('tasksChanged', () => {
+                loadAccomplishments();
+            });
+        }
+    });
+
+    async function loadAccomplishments() {
         try {
             const data = await apiFetch('/accomplishments');
             renderAccomplishments(data.accomplishments);
@@ -18,7 +28,7 @@
                 accList.innerHTML = '<div class="text-xs color-gray text-center py-4">Failed to load accomplishments.</div>';
             }
         }
-    });
+    }
 
     function renderAccomplishments(items) {
         const accList = document.getElementById('accList');
