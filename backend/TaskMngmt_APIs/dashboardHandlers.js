@@ -4,6 +4,8 @@
  * Standards: Express REST API for initial load + Socket.io broadcast support.
  */
 
+const { authenticateToken } = require('../UserMngmt_APIs/authMiddleware');
+
 function dashboardAPI(app, io, db) {
     
     /**
@@ -67,7 +69,7 @@ function dashboardAPI(app, io, db) {
      * GET /api/accomplishments
      * Returns all task updates (accomplishments) with user name and task title, newest first.
      */
-    app.get('/api/accomplishments', async (req, res) => {
+    app.get('/api/accomplishments', authenticateToken, async (req, res) => {
         try {
             const [accomplishments] = await db.query(`
                 SELECT 
