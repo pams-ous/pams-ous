@@ -135,8 +135,8 @@ window.PAMS = (function () {
             const data = await response.json().catch(() => ({}));
 
             if (response.status === 401 || (response.status === 403 && data.message === 'Invalid or expired token')) {
-                // Avoid recursion if we are already in the process of logging out
-                if (!endpoint.includes('/auth/logout')) {
+                // Avoid redirect on auth API calls — let the caller handle it
+                if (!endpoint.startsWith('/auth/')) {
                     setToken(null);
                     setUser(null);
                     localStorage.removeItem('PAMS_userEmail');
@@ -268,9 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // Synchronize authentication logouts/changes across multiple open tabs
 window.addEventListener('storage', (event) => {
     if (event.key === 'authToken') {
+        const isAuthPage = /\/auth\//.test(location.pathname) || location.pathname.endsWith('index.html');
         if (!event.newValue) {
             // Token was cleared (user logged out in another tab)
-            window.location.replace(PAMS.authUrl('index.html'));
+            if (!isAuthPage) {
+                window.location.replace(PAMS.authUrl('index.html'));
+            }
         } else {
             // Token was updated or refreshed
             window.location.reload();

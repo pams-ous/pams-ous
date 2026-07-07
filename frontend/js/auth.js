@@ -86,6 +86,18 @@ window.initCustomSelect = function (selectEl) {
 document.addEventListener('DOMContentLoaded', () => {
     const isAuthPage = /\/auth\//.test(location.pathname) || location.pathname.endsWith('index.html');
     if (isAuthPage && typeof PAMS !== 'undefined' && PAMS.getToken()) {
+        const token = PAMS.getToken();
+        let expired = true;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            expired = payload.exp * 1000 < Date.now();
+        } catch {}
+        if (expired) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            localStorage.removeItem('PAMS_userEmail');
+            return;
+        }
         const depth = location.pathname.split('/').length - 2;
         const prefix = depth > 0 ? '../'.repeat(depth) : '';
         const user = PAMS.getUser();
