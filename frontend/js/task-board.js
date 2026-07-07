@@ -39,6 +39,13 @@
         }
 
         await loadAll();
+
+        // Listen for task changes from other users and refresh the board in real-time
+        if (PAMS && PAMS.socket) {
+            PAMS.socket.on('tasksChanged', () => {
+                loadAll();
+            });
+        }
     });
 
     function wireRibbon() {
@@ -567,10 +574,4 @@
         }
     };
 
-    // Listen for task changes from other users and refresh the board
-    if (PAMS && PAMS.socket) {
-        PAMS.socket.on('tasksChanged', () => {
-            loadAll();
-        });
-    }
 })();
