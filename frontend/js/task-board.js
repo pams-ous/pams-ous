@@ -11,6 +11,7 @@
     let groups = [];
     let viewingId = null;
     let activeStatus = 'IN PROGRESS';
+    let closeTimer = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -265,6 +266,7 @@
 
     // Export public methods for inline handlers
     window.TaskBoard = {
+        assigneeFilter: 'all',
         openNewTask: () => {
             ['nt-title', 'nt-desc', 'nt-assignee'].forEach(id => {
                 const el = document.getElementById(id);
@@ -286,6 +288,8 @@
 
             const setExpanded = (open) => input.setAttribute('aria-expanded', String(open));
 
+            if (closeTimer) clearTimeout(closeTimer);
+
             if (!all.length) {
                 box.innerHTML = '<div class="text-xs color-gray text-center py-3">No assignees loaded.</div>';
                 box.classList.add('open');
@@ -293,18 +297,31 @@
                 return;
             }
 
-            const matches = (q ? all.filter(o => o.search.includes(q)) : all).slice(0, 8);
+            let matches = q ? all.filter(o => o.search.includes(q)).slice(0, 8) : all;
+
+            // Apply chip filter
+            const f = TaskBoard.assigneeFilter;
+            if (f === 'users') matches = matches.filter(o => o.type === 'user');
+            else if (f === 'groups') matches = matches.filter(o => o.type === 'group');
 
             if (matches.length === 0) {
-                box.innerHTML = '<div class="text-xs color-gray text-center py-3">No matches found.</div>';
+                const chip = (label, key) =>
+                    `<button type="button" class="user-search-chip${f === key ? ' active' : ''}" onclick="TaskBoard.setAssigneeFilter('${key}')">${label}</button>`;
+                box.innerHTML = '<div class="user-search-chips">' +
+                    chip('All', 'all') + chip('Users', 'users') + chip('Groups', 'groups') +
+                    '</div><div class="text-xs color-gray text-center py-3">No matches found.</div>';
                 box.classList.add('open');
                 setExpanded(true);
                 return;
             }
 
-            box.classList.add('open');
-            setExpanded(true);
-            box.innerHTML = matches.map(o => `
+            const userItems = matches.filter(o => o.type === 'user');
+            const groupItems = matches.filter(o => o.type === 'group');
+            const byName = (a, b) => a.name.localeCompare(b.name);
+            userItems.sort(byName);
+            groupItems.sort(byName);
+
+            const itemHtml = (o) => `
                 <button type="button" class="user-search-item" role="option"
                     onclick="window.TaskBoard.pickAssignee('${encodeURIComponent(o.value)}','${encodeURIComponent(o.name)}')">
                     <div class="avatar-sm">${o.type === 'group'
@@ -314,7 +331,26 @@
                         <strong>${o.name}</strong>
                         <span class="muted">${o.meta}</span>
                     </div>
-                </button>`).join('');
+                </button>`;
+
+            const chip = (label, key) =>
+                `<button type="button" class="user-search-chip${f === key ? ' active' : ''}" onclick="TaskBoard.setAssigneeFilter('${key}')">${label}</button>`;
+
+            let html = '<div class="user-search-chips">' +
+                chip('All', 'all') + chip('Users', 'users') + chip('Groups', 'groups') +
+                '</div>';
+            if (userItems.length) {
+                html += '<div class="user-search-header">Users</div>';
+                html += userItems.map(itemHtml).join('');
+            }
+            if (groupItems.length) {
+                html += '<div class="user-search-header">Groups</div>';
+                html += groupItems.map(itemHtml).join('');
+            }
+
+            box.classList.add('open');
+            setExpanded(true);
+            box.innerHTML = html;
         },
         pickAssignee: (valueEnc, nameEnc) => {
             const value = decodeURIComponent(valueEnc);
@@ -327,8 +363,9 @@
             document.getElementById('nt-assignee-results').classList.remove('open');
         },
         closeAssignees: () => {
-            // Delay so a click on a suggestion registers before the list hides.
-            setTimeout(() => {
+            if (closeTimer) clearTimeout(closeTimer);
+            closeTimer = setTimeout(() => {
+                closeTimer = null;
                 const box = document.getElementById('nt-assignee-results');
                 if (box) box.classList.remove('open');
                 document.getElementById('nt-assignee-search')?.setAttribute('aria-expanded', 'false');
@@ -343,6 +380,10 @@
             if (input) { input.style.display = ''; input.value = ''; input.setAttribute('aria-expanded', 'false'); }
             const box = document.getElementById('nt-assignee-results');
             if (box) box.classList.remove('open');
+        },
+        setAssigneeFilter: (filter) => {
+            TaskBoard.assigneeFilter = filter;
+            TaskBoard.filterAssignees();
         },
         createTask: async () => {
             const titleVal = document.getElementById('nt-title').value.trim();

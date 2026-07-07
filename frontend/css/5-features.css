@@ -734,6 +734,51 @@
   font-size: 11.5px;
 }
 
+.user-search-chips {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid var(--gray-100);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--white);
+}
+
+.user-search-chip {
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.user-search-chip:hover {
+  border-color: var(--maroon);
+  color: var(--maroon);
+}
+
+.user-search-chip.active {
+  background: var(--maroon);
+  color: var(--white);
+  border-color: var(--maroon);
+}
+
+.user-search-header {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-500);
+  border-bottom: 1px solid var(--gray-100);
+}
+
 .user-search-picked {
   display: flex;
   align-items: center;
