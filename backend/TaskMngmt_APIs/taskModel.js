@@ -96,6 +96,7 @@ module.exports = {
         
         if (fields.length === 0) return 0;
 
+        fields.push('updated_at = CURRENT_TIMESTAMP');
         values.push(id);
         const query = `UPDATE Tasks SET ${fields.join(', ')} WHERE task_id = ?`;
         
