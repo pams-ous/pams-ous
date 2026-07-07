@@ -59,6 +59,9 @@ async function registerReportHandlers(socket, db, io) {
     socket.on("getReportDetails", async (reportId) => {
         try {
             if (!await requireAdmin(socket, db)) return;
+            if (!reportId || isNaN(Number(reportId))) {
+                return socket.emit("reportLog", { success: false, rawData: "Invalid reportId: must be a numeric value." });
+            }
             const taskQuery = `
                 SELECT t.task_id, t.title, t.description,
                        COALESCE(re.historical_status, t.status) AS historical_status,
