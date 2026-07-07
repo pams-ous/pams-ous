@@ -46,9 +46,9 @@
 
     function renderStats(s) {
         // 1. Stat cards
-        document.getElementById('cnt-total').textContent = s.counts.total;
-        document.getElementById('cnt-completed').textContent = s.counts.completed;
-        document.getElementById('cnt-inprogress').textContent = s.counts.inProgress;
+        document.getElementById('cnt-total').textContent = Math.round(s.counts.total);
+        document.getElementById('cnt-completed').textContent = Math.round(s.counts.completed);
+        document.getElementById('cnt-inprogress').textContent = Math.round(s.counts.inProgress);
 
         // 2. Bar Chart
         const barCtxEl = document.getElementById('barChart');
@@ -72,10 +72,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    indexAxis: 'y',
                     plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Poppins', size: 11 } } } },
                     scales: {
-                        x: { stacked: true, grid: { display: false } },
-                        y: { stacked: true, beginAtZero: true, grid: { color: '#f3f4f6' } }
+                        x: { stacked: true, beginAtZero: true, suggestedMax: 10, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, precision: 0 } },
+                        y: { stacked: true, grid: { display: false } }
                     },
                     datasets: {
                         bar: {

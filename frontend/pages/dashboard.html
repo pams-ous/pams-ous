@@ -102,34 +102,32 @@
                 </div>
             </div>
 
-            <!-- Stat Cards -->
-            <div class="stat-grid">
-                <div class="stat-card s-total">
-                    <div class="stat-icon-wrap"><i class="fa-solid fa-list-check"></i></div>
-                    <div class="stat-body">
-                        <div class="stat-num" id="cnt-total">0</div>
-                        <div class="stat-lbl">Total Tasks</div>
+            <!-- Dashboard Grid: stat cards, bar chart, group progress -->
+            <div class="dashboard-grid">
+                <div class="stat-grid">
+                    <div class="stat-card s-total">
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-num" id="cnt-total">0</div>
+                            <div class="stat-lbl">Total Tasks</div>
+                        </div>
+                    </div>
+                    <div class="stat-card s-done">
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-num" id="cnt-completed">0</div>
+                            <div class="stat-lbl">Completed</div>
+                        </div>
+                    </div>
+                    <div class="stat-card s-progress">
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-circle-notch"></i></div>
+                        <div class="stat-body">
+                            <div class="stat-num" id="cnt-inprogress">0</div>
+                            <div class="stat-lbl">In Progress</div>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card s-done">
-                    <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
-                    <div class="stat-body">
-                        <div class="stat-num" id="cnt-completed">0</div>
-                        <div class="stat-lbl">Completed</div>
-                    </div>
-                </div>
-                <div class="stat-card s-progress">
-                    <div class="stat-icon-wrap"><i class="fa-solid fa-circle-notch"></i></div>
-                    <div class="stat-body">
-                        <div class="stat-num" id="cnt-inprogress">0</div>
-                        <div class="stat-lbl">In Progress</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts Row -->
-            <div class="charts-row">
-                <div class="panel">
+                <div class="panel chart-panel">
                     <div class="panel-head">
                         <div class="panel-title"><i class="fa-solid fa-chart-bar"></i> Tasks by Status per Group</div>
                     </div>
@@ -137,11 +135,7 @@
                         <canvas id="barChart"></canvas>
                     </div>
                 </div>
-            </div>
-
-            <!-- Bottom Row -->
-            <div class="bottom-row">
-                <div class="panel">
+                <div class="panel gp-panel">
                     <div class="panel-head">
                         <div class="panel-title"><i class="fa-solid fa-users"></i> Group Progress</div>
                     </div>

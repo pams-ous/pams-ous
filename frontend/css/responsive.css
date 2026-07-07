@@ -1,21 +1,22 @@
 /* ─── RESPONSIVE ──────────────────────────────────── */
 
 @media (max-width: 1024px) {
-  .stat-grid {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid > .stat-grid {
+    grid-column: auto;
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .charts-row,
-  .bottom-row {
-    grid-template-columns: 1fr;
+  .dashboard-grid > .chart-panel {
+    grid-column: auto;
   }
 
-  .charts-row {
-    grid-template-columns: 1fr;
-  }
-
-  .bottom-row {
-    grid-template-columns: 1fr;
+  .dashboard-grid > .gp-panel {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
 
