@@ -29,7 +29,7 @@ const io = new Server(server, {
             if (!origin || 
                 origin.includes('localhost') || 
                 origin.includes('127.0.0.1') || 
-                origin.includes('.ngrok-free.app') || origin.includes('.ngrok.app') || 
+                origin.includes('.ngrok-free.app') || origin.includes('.ngrok.app') || origin.includes('.ngrok-free.dev') || 
                 origin === process.env.FRONTEND_ORIGIN || 
                 origin === process.env.BACKEND_ORIGIN) {
                 callback(null, true);
@@ -84,7 +84,7 @@ app.use(express.json());
 // server and login.js.
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('.ngrok-free.app') || origin.includes('.ngrok.app') || origin === process.env.FRONTEND_ORIGIN)) {
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('.ngrok-free.app') || origin.includes('.ngrok.app') || origin.includes('.ngrok-free.dev') || origin === process.env.FRONTEND_ORIGIN)) {
         res.header("Access-Control-Allow-Origin", origin);
     } else {
         res.header("Access-Control-Allow-Origin", process.env.BACKEND_ORIGIN || "http://127.0.0.1:5500");

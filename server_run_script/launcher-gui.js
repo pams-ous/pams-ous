@@ -5,6 +5,23 @@ const path = require('path');
 const fs = require('fs');
 
 const BACKEND_DIR = path.join(__dirname, '..', 'backend');
+
+// Load backend .env so NGROK_DOMAIN is available
+const envPath = path.join(BACKEND_DIR, '.env');
+if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+            const eqIdx = trimmed.indexOf('=');
+            if (eqIdx > 0) {
+                const key = trimmed.slice(0, eqIdx).trim();
+                const val = trimmed.slice(eqIdx + 1).trim();
+                if (!process.env[key]) process.env[key] = val;
+            }
+        }
+    });
+}
 const serverPath = path.join(BACKEND_DIR, 'server.js');
 const SEAL_PATH = path.join(__dirname, '..', 'frontend', 'assets', 'pup_ous_seal.webp');
 
@@ -76,8 +93,10 @@ function stopServer() {
 
 function startNgrok() {
   if (ngrokProc) return;
-  broadcast({ type: 'log', text: 'Starting ngrok tunnel...', source: 'ngrok' });
-  ngrokProc = spawn('ngrok', ['http', '3000']);
+  const ngrokDomain = process.env.NGROK_DOMAIN;
+  const ngrokArgs = ngrokDomain ? ['http', '3000', '--domain', ngrokDomain] : ['http', '3000'];
+  broadcast({ type: 'log', text: ngrokDomain ? `Starting ngrok tunnel with domain ${ngrokDomain}...` : 'Starting ngrok tunnel...', source: 'ngrok' });
+  ngrokProc = spawn('ngrok', ngrokArgs);
   ngrokRunning = true;
   ngrokUrl = '';
   broadcast({ type: 'status', server: serverRunning, ngrok: true, ngrokUrl: '' });
