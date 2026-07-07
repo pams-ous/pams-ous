@@ -349,13 +349,11 @@ module.exports = {
 
             const affectedRows = await Task.update(id, updatePayload);
             
-            // failsafe. If an Admin directly forces a status change, log it so the daily wipe logic catches it
+            // Log every admin-forced status change so report snapshots track it accurately
             if (status && status.toLowerCase() !== currentStatus) {
                 const newStatus = status.toLowerCase();
-                if (newStatus === 'completed' || newStatus === 'cancelled') {
-                    await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
-                }
-                
+                await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
+
                 if (newStatus === 'completed') {
                     const task = await Task.findById(id);
                     await recordNotification(db, {
