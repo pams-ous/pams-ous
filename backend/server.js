@@ -75,6 +75,7 @@ const {formatFullName} = require("./UserMngmt_APIs/userUtils");
 const { authenticateToken } = require("./UserMngmt_APIs/authMiddleware");
 
 const taskRoutes = require('./TaskMngmt_APIs/taskRoutes');
+const reportRoutes = require('./ReportMngmt_APIs/reportRoutes');
 app.use(express.json());
 
 // --- GLOBAL CORS ---
@@ -379,6 +380,7 @@ io.on('connection', async (socket) => {
 });
 
 app.use('/api/tasks', taskRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Catch-all route: Send non-API requests to your frontend index.html
 app.get(/.*/, (req, res) => {
