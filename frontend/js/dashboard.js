@@ -109,4 +109,15 @@
             }
         }
     }
+    // Listen for task changes and refresh dashboard stats in real-time
+    if (PAMS && PAMS.socket) {
+        PAMS.socket.on('tasksChanged', async () => {
+            try {
+                const stats = await apiFetch('/dashboard/stats');
+                renderStats(stats);
+            } catch (err) {
+                console.error('Failed to refresh dashboard:', err);
+            }
+        });
+    }
 })();

@@ -351,4 +351,11 @@
             renderTasks(filtered);
         });
     }
+
+    // Listen for task changes from other users and refresh
+    if (PAMS && PAMS.socket) {
+        PAMS.socket.on('tasksChanged', () => {
+            loadTasks();
+        });
+    }
 })();

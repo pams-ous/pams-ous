@@ -91,11 +91,4 @@ function dashboardAPI(app, io, db) {
     });
 }
 
-async function registerDashboardHandlers(socket, db, io) {
-    // When a task is created/updated in other modules, we can notify the dashboard
-    socket.on("taskActivity", () => {
-        io.emit("refreshDashboard");
-    });
-}
-
-module.exports = { dashboardAPI, registerDashboardHandlers };
+module.exports = { dashboardAPI };

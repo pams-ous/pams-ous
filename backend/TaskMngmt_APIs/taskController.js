@@ -285,6 +285,7 @@ module.exports = {
 
             }
 
+            req.app.get('io').emit('tasksChanged', { action: 'create', taskId: newTaskId });
             res.status(201).json({ message: 'Task created successfully', taskId: newTaskId });
         } catch (error) {
             console.error('FULL ERROR DETAILS:', error); 
@@ -365,6 +366,7 @@ module.exports = {
                 }
             }
 
+            req.app.get('io').emit('tasksChanged', { action: 'update', taskId: parseInt(id) });
             res.status(200).json({ message: 'Task updated successfully' });
         } catch (error) {
             console.error('Error updating task:', error);
@@ -407,6 +409,7 @@ module.exports = {
                 relatedUrl: null
             }, req.app.get('io'));
 
+            req.app.get('io').emit('tasksChanged', { action: 'delete', taskId: parseInt(id) });
             res.status(200).json({ message: 'Task deleted successfully' });
         } catch (error) {
             console.error('Error deleting task:', error);
@@ -487,6 +490,7 @@ module.exports = {
 
             }
 
+            req.app.get('io').emit('tasksChanged', { action: 'logUpdate', taskId: parseInt(taskId) });
             res.status(200).json({ message: 'Update logged successfully' });
         } catch (error) {
             console.error('Error logging task update:', error);

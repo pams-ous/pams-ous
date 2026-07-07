@@ -566,4 +566,11 @@
             PAMS.toast(`Exported ${list.length} task${list.length === 1 ? '' : 's'} to CSV.`, 'success');
         }
     };
+
+    // Listen for task changes from other users and refresh the board
+    if (PAMS && PAMS.socket) {
+        PAMS.socket.on('tasksChanged', () => {
+            loadAll();
+        });
+    }
 })();

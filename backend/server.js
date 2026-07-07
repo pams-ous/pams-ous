@@ -69,7 +69,7 @@ const {registerOtpHandlers} = require("./UserMngmt_APIs/otp");
 const {registerPasswordResetHandlers} = require("./UserMngmt_APIs/passwordReset");
 const {registerLoginHandlers, initLoginRoutes} = require("./UserMngmt_APIs/login");
 const {registerReportHandlers, initReportModule} = require("./ReportMngmt_APIs/reportHandlers");
-const {dashboardAPI, registerDashboardHandlers} = require("./TaskMngmt_APIs/dashboardHandlers");
+const {dashboardAPI} = require("./TaskMngmt_APIs/dashboardHandlers");
 const {notificationsRouter, recordNotification} = require("./UserMngmt_APIs/notifications");
 const {formatFullName} = require("./UserMngmt_APIs/userUtils");
 const { authenticateToken } = require("./UserMngmt_APIs/authMiddleware");
@@ -362,7 +362,6 @@ io.on('connection', async (socket) => {
     await registerPasswordResetHandlers(socket, db);
     await registerLoginHandlers(socket, db, io);
     await registerReportHandlers(socket, db, io);
-    await registerDashboardHandlers(socket, db, io);
     
     console.log(`[SOCKET] All handlers registered for client ${socket.id}\n`);
 });
