@@ -123,6 +123,18 @@ async function registerReportHandlers(socket, db, io) {
             if (!await requireAdmin(socket, db)) return;
             const { reportType, scopeType, scopeValue, periodStart, periodEnd } = data;
             
+            if (!periodStart || typeof periodStart !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(periodStart)) {
+                throw new Error("Invalid periodStart: must be a valid ISO date (YYYY-MM-DD).");
+            }
+            if (!periodEnd || typeof periodEnd !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(periodEnd)) {
+                throw new Error("Invalid periodEnd: must be a valid ISO date (YYYY-MM-DD).");
+            }
+            const startDate = periodStart.slice(0, 10);
+            const endDate = periodEnd.slice(0, 10);
+            if (new Date(endDate) < new Date(startDate)) {
+                throw new Error("periodEnd must not be before periodStart.");
+            }
+
             // Normalize start and end date boundaries to include full days
             const startDateTime = periodStart.includes(' ') || periodStart.includes('T') ? periodStart : `${periodStart} 00:00:00`;
             const endDateTime = periodEnd.includes(' ') || periodEnd.includes('T') ? periodEnd : `${periodEnd} 23:59:59`;
