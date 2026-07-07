@@ -350,10 +350,23 @@ module.exports = {
 
             const affectedRows = await Task.update(id, updatePayload);
             
-            // Log every admin-forced status change so report snapshots track it accurately
+            // Log every status change so report snapshots track it accurately
             if (status && status.toLowerCase() !== currentStatus) {
                 const newStatus = status.toLowerCase();
-                await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
+
+                // Build a contextual log message based on the actor and transition
+                let logMessage;
+                if (isAuthorizedModifier && !isAssignee) {
+                    logMessage = `Status updated via Admin panel`;
+                } else if (newStatus === 'completed') {
+                    logMessage = 'Task marked as completed';
+                } else if (newStatus === 'in progress') {
+                    logMessage = 'Task reopened';
+                } else {
+                    logMessage = `Status changed to ${newStatus}`;
+                }
+
+                await Task.logUpdate(id, req.user.id, logMessage, newStatus);
 
                 if (newStatus === 'completed') {
                     const task = await Task.findById(id);
