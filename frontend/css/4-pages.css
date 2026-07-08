@@ -349,9 +349,9 @@
 
 .dashboard-grid > .gp-panel {
   grid-column: 4;
-  grid-row: 1 / span 2;
+  grid-row: 2;
   overflow-y: auto;
-  min-height: 0;
+  height: calc(100vh - 296px);
 }
 
 .dashboard-grid > .gp-panel > .panel-head {
