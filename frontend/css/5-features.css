@@ -320,8 +320,9 @@
   border: 1px solid var(--gray-200);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 200px);
+  height: calc(100vh - 280px);
   max-height: 850px;
+  overflow: hidden;
 }
 
 #historyList {
@@ -541,7 +542,7 @@
   border: 1px solid var(--gray-200);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 200px);
+  height: calc(100vh - 280px);
   max-height: 850px;
 }
 
