@@ -1381,7 +1381,13 @@ body.sidebar-open .main {
   grid-template-columns: 1fr 380px;
 }
 
-.bar-box,
+.bar-box {
+  position: relative;
+  height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .donut-box {
   position: relative;
   height: 260px;

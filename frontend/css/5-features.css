@@ -1024,6 +1024,131 @@
   color: var(--red-text);
 }
 
+/* â”€â”€â”€ INLINE-STYLE REPLACEMENTS (Users & Groups tables) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+/* Group tag badges inside td-groups */
+.group-tag {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  display: inline-block;
+  margin: 2px;
+}
+
+/* Muted italic placeholder text (Unassigned, empty states) */
+.text-muted-italic {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+/* Table cell with text truncation */
+.td-truncate {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Groups cell wrapping */
+.td-groups {
+  max-width: 250px;
+  white-space: normal;
+  text-align: center;
+}
+
+/* Status cell colors */
+.td-status {
+  font-weight: 600;
+}
+.td-status-online {
+  color: #28a745;
+}
+.td-status-offline {
+  color: #6c757d;
+}
+.status-dot-online {
+  font-size: 0.6rem;
+  margin-right: 5px;
+  color: #28a745;
+}
+.status-dot-offline {
+  font-size: 0.6rem;
+  margin-right: 5px;
+  color: #6c757d;
+}
+
+/* Approve action button */
+.action-btn.approve {
+  color: #16a34a;
+}
+.action-btn.approve:hover {
+  color: #15803d;
+}
+
+/* Members count badge */
+.badge-members {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+.badge-members i {
+  margin-right: 4px;
+  color: #6b7280;
+}
+
+/* Leader icon in groups table */
+.leader-icon {
+  color: #888;
+  margin-right: 4px;
+}
+
+/* Center-aligned table cell utility */
+.td-center {
+  text-align: center;
+}
+
+/* Empty state row */
+.empty-state td {
+  text-align: center;
+  color: #6c757d;
+  padding: 20px;
+}
+
+/* Member checkbox list items */
+.member-checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.member-checkbox-item input[type="checkbox"],
+.member-checkbox-item input[type="radio"] {
+  margin-right: 10px;
+}
+.member-checkbox-item .member-info {
+  flex-grow: 1;
+}
+.member-checkbox-item .member-name {
+  font-weight: 500;
+  color: #333;
+}
+.member-checkbox-item .member-name.is-leader {
+  color: #ffd700;
+}
+.member-checkbox-item .member-email {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Leader radio accent */
+input[type="radio"].leader-radio {
+  accent-color: var(--maroon, #800000);
+}
+
 /* â”€â”€â”€ COLLAPSIBLE TASK TIMELINE STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .task-main-row {
   cursor: pointer;

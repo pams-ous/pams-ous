@@ -132,7 +132,15 @@
                         <div class="panel-title"><i class="fa-solid fa-chart-bar"></i> Tasks by Status per Group</div>
                     </div>
                     <div class="bar-box">
-                        <canvas id="barChart"></canvas>
+                        <div id="barChartContainer" style="position: relative; min-height: 350px;">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                        <div class="chart-legend-sticky">
+                            <span class="legend-item"><span class="legend-color" style="background-color: #f59e0b;"></span>Pending</span>
+                            <span class="legend-item"><span class="legend-color" style="background-color: #3b82f6;"></span>In Progress</span>
+                            <span class="legend-item"><span class="legend-color" style="background-color: #16a34a;"></span>Completed</span>
+                            <span class="legend-item"><span class="legend-color" style="background-color: #9ca3af;"></span>Cancelled</span>
+                        </div>
                     </div>
                 </div>
                 <div class="panel gp-panel">

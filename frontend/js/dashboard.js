@@ -67,10 +67,17 @@
             barChart.destroy();
             barChart = null;
         }
+        const barChartContainer = document.getElementById('barChartContainer');
         const barCtxEl = document.getElementById('barChart');
-        if (barCtxEl) {
+        if (barCtxEl && barChartContainer) {
             const barCtx = barCtxEl.getContext('2d');
             const groupCount = s.byGroup.length;
+
+            // Dynamically adjust container height based on group count to avoid compressing bars/labels
+            // 55px per group + 80px padding for axis, legend, etc. (minimum 350px)
+            const dynamicHeight = Math.max(350, groupCount * 55 + 80);
+            barChartContainer.style.height = `${dynamicHeight}px`;
+
             const computedMaxBarThickness = groupCount <= 1 ? 60 : (groupCount === 2 ? 70 : 80);
 
             barChart = new Chart(barCtx, {
@@ -88,7 +95,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     indexAxis: 'y',
-                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'Poppins', size: 11 } } } },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: { stacked: true, beginAtZero: true, suggestedMax: 10, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, precision: 0 } },
                         y: { stacked: true, grid: { display: false } }

@@ -571,8 +571,8 @@
             const badgeClass = isOnline ? 'status-online' : 'status-offline';
 
             const groupTags = (u.groups && Array.isArray(u.groups) && u.groups.length > 0) 
-                ? u.groups.map(gName => `<span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; display: inline-block; margin: 2px;">${escapeHtml(gName)}</span>`).join('') 
-                : '<span style="color:#9ca3af; font-style:italic; font-size: 0.8rem;">Unassigned</span>';
+                ? u.groups.map(gName => `<span class="group-tag">${escapeHtml(gName)}</span>`).join('') 
+                : '<span class="text-muted-italic">Unassigned</span>';
 
             // Prevent job‑title / role changes for the designated Super‑Admin (employee code SUPER-001)
             const isSuperAdmin = u.employeeCode === 'SUPER-001';
@@ -588,20 +588,20 @@
               <td class="td-email">${safeEmail}</td>
               <td>${createCustomDropdownHtml('role', u.email, u.role, isSuperAdmin || u.id === currentUserId)}</td>
                <td>${createCustomDropdownHtml('jobtitle', u.email, u.jobTitleId, isSuperAdmin || u.id === currentUserId)}</td>
-              
-              <td class="td-groups" style="max-width: 250px; white-space: normal; text-align: center;">
+               
+              <td class="td-groups">
                   ${groupTags}
               </td>
 
-              <td data-user-email="${safeEmail}" style="color: ${isOnline ? '#28a745' : '#6c757d'}; font-weight: 600;">
+              <td data-user-email="${safeEmail}" class="td-status ${isOnline ? 'td-status-online' : 'td-status-offline'}">
                 <span class="status-badge ${badgeClass}">
-                    <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px; color: ${isOnline ? '#28a745' : '#6c757d'};"></i> ${u.activeStatus || 'Offline'}
+                    <i class="fas fa-circle ${isOnline ? 'status-dot-online' : 'status-dot-offline'}"></i> ${u.activeStatus || 'Offline'}
                 </span>
               </td>
               
               <td class="td-actions">
                 ${u.approvalStatus === 'PENDING' ? `
-                <button class="action-btn approve" onclick="window.Admin.approveUser('${u.id}')" title="Approve User" style="color: #16a34a;">
+                <button class="action-btn approve" onclick="window.Admin.approveUser('${u.id}')" title="Approve User">
                   <i class="fas fa-check"></i>
                 </button>` : ''}
                 <button class="action-btn edit" onclick="window.Admin.openEditUser('${safeEmail}')" title="Edit user">
@@ -626,7 +626,7 @@
 
         if (groups.length === 0) {
             // colspan=5: Group Name | Description | Leader | Members | Actions
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #6c757d; padding: 20px;">No groups have been created yet.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-state"><td colspan="5">No groups have been created yet.</td></tr>';
             return;
         }
 
@@ -638,9 +638,9 @@
             return `
             <tr>
                 <td class="td-name">${safeName}</td>
-                <td class="td-email" style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeDesc}">${safeDesc}</td>
-                <td>${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${safeLeader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}</td>
-                <td style="text-align: center;"><span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;"><i class="fas fa-users" style="margin-right: 4px; color: #6b7280;"></i> ${g.members || 0}</span></td>
+                <td class="td-email td-truncate" title="${safeDesc}">${safeDesc}</td>
+                <td>${g.leader ? `<i class="fa-regular fa-user leader-icon"></i> ${safeLeader}` : '<span class="text-muted-italic">Unassigned</span>'}</td>
+                <td class="td-center"><span class="status-badge badge-members"><i class="fas fa-users"></i> ${g.members || 0}</span></td>
                 <td class="td-actions">
                     <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group" aria-label="Edit group ${safeName.replace(/'/g, '&#39;')}"><i class="fas fa-pen"></i></button>
                     <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${safeName.replace(/'/g, '&#39;')}')" title="Delete group" aria-label="Delete group ${safeName.replace(/'/g, '&#39;')}"><i class="fas fa-trash"></i></button>
@@ -962,11 +962,11 @@
                 const isLeader = u.email === currentGroupLeaderEmail;
                 const isChecked = isLeader || currentMemberEmails.includes(u.email);
                 return `
-                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
-                    <input type="checkbox" class="member-checkbox" value="${u.email}" ${isChecked ? 'checked' : ''} ${isLeader ? 'disabled title="Leader is automatically a member"' : ''} style="margin-right: 10px;">
-                    <div style="flex-grow: 1;">
-                        <div style="font-weight: 500; color: ${isLeader ? '#ffd700' : '#333'}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
-                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}">
+                    <input type="checkbox" class="member-checkbox" value="${u.email}" ${isChecked ? 'checked' : ''} ${isLeader ? 'disabled title="Leader is automatically a member"' : ''}>
+                    <div class="member-info">
+                        <div class="member-name ${isLeader ? 'is-leader' : ''}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
+                        <div class="member-email">${u.email}</div>
                     </div>
                 </label>`;
             }).join('');
@@ -988,11 +988,11 @@
             container.innerHTML = sortedUsers.map(u => {
                 const isLeader = u.email === leaderEmail;
                 return `
-                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
-                    <input type="checkbox" class="member-checkbox" value="${u.email}" ${isLeader ? 'checked disabled title="Leader is automatically a member"' : ''} style="margin-right: 10px;">
-                    <div style="flex-grow: 1;">
-                        <div style="font-weight: 500; color: ${isLeader ? '#ffd700' : '#333'}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
-                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}">
+                    <input type="checkbox" class="member-checkbox" value="${u.email}" ${isLeader ? 'checked disabled title="Leader is automatically a member"' : ''}>
+                    <div class="member-info">
+                        <div class="member-name ${isLeader ? 'is-leader' : ''}">${u.name || u.email} ${isLeader ? '(Leader)' : ''}</div>
+                        <div class="member-email">${u.email}</div>
                     </div>
                 </label>`;
             }).join('');
@@ -1011,11 +1011,11 @@
             if (!container) return;
             const sortedUsers = [...users].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             container.innerHTML = sortedUsers.map(u => `
-                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
-                    <input type="radio" name="newLeader" value="${u.email}" style="margin-right: 10px; accent-color: var(--maroon, #800000);" onchange="window.Admin.renderNewMemberCheckboxes()">
-                    <div style="flex-grow: 1;">
-                        <div style="font-weight: 500; color: #333;">${u.name || u.email}</div>
-                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}">
+                    <input type="radio" class="leader-radio" name="newLeader" value="${u.email}" onchange="window.Admin.renderNewMemberCheckboxes()">
+                    <div class="member-info">
+                        <div class="member-name">${u.name || u.email}</div>
+                        <div class="member-email">${u.email}</div>
                     </div>
                 </label>`).join('');
         },
@@ -1033,11 +1033,11 @@
             if (!container) return;
             const sortedUsers = [...users].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             container.innerHTML = sortedUsers.map(u => `
-                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;">
-                    <input type="radio" name="editLeader" value="${u.email}" ${u.email === selectedEmail ? 'checked' : ''} style="margin-right: 10px; accent-color: var(--maroon, #800000);" onchange="window.Admin.onEditLeaderChange('${u.email}')">
-                    <div style="flex-grow: 1;">
-                        <div style="font-weight: 500; color: #333;">${u.name || u.email}</div>
-                        <div style="font-size: 0.75rem; color: #888;">${u.email}</div>
+                <label class="member-checkbox-item" data-name="${u.name || ''}" data-email="${u.email}">
+                    <input type="radio" class="leader-radio" name="editLeader" value="${u.email}" ${u.email === selectedEmail ? 'checked' : ''} onchange="window.Admin.onEditLeaderChange('${u.email}')">
+                    <div class="member-info">
+                        <div class="member-name">${u.name || u.email}</div>
+                        <div class="member-email">${u.email}</div>
                     </div>
                 </label>`).join('');
         },

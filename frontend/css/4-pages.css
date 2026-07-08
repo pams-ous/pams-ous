@@ -1,4 +1,4 @@
-﻿/*  PAGE: AUTH & LOGIN  */
+/*  PAGE: AUTH & LOGIN  */
 
 .login-container {
   min-height: 100vh;
@@ -351,7 +351,41 @@
 .bar-box {
   position: relative;
   height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
+/* Sticky Chart Legend */
+.chart-legend-sticky {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gray-100);
+  font-family: 'Poppins', sans-serif;
+  font-size: 11px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+
+.legend-color {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
 
 /* Accomplishments & Group Progress */
 .acc-list,
