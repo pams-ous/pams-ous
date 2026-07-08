@@ -243,6 +243,11 @@ body {
   text-decoration: none;
 }
 
+a.no-underline:hover,
+a.no-underline:focus {
+  text-decoration: underline;
+}
+
 .uppercase {
   text-transform: uppercase;
 }
