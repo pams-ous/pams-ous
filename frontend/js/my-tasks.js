@@ -9,6 +9,7 @@
     let tasks = [];
     let deleteTarget = null;
     let currentView = 'active'; // 'active' | 'completed'
+    let searchQuery = '';
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -334,6 +335,7 @@
             }
 
             await loadTasks();
+            applySearch();
         },
         scrollToTable: () => {
             const panel = document.querySelector('.panel');
@@ -341,21 +343,26 @@
         }
     };
 
+    function applySearch() {
+        const query = searchQuery;
+        if (!query) {
+            renderTasks(tasks);
+            return;
+        }
+
+        const filtered = tasks.filter(t =>
+            (t.title || '').toLowerCase().includes(query) ||
+            (t.description || '').toLowerCase().includes(query)
+        );
+        renderTasks(filtered);
+    }
+
     // SEARCH FUNCTIONALITY
     const searchInput = document.getElementById('taskSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (!query) {
-                renderTasks(tasks);
-                return;
-            }
-
-            const filtered = tasks.filter(t => 
-                (t.title || '').toLowerCase().includes(query) || 
-                (t.description || '').toLowerCase().includes(query)
-            );
-            renderTasks(filtered);
+            searchQuery = e.target.value.toLowerCase().trim();
+            applySearch();
         });
     }
 
