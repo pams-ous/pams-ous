@@ -182,7 +182,13 @@ mysql -u root -p people < database/sql/schema.sql
 Run the migration files in order. All migrations are idempotent (`IF NOT EXISTS`):
 
 ```bash
-mysql -u root -p people < database/sql/migration_add_job_title.sql && mysql -u root -p people < database/sql/migration_notifications.sql && mysql -u root -p people < database/sql/migration_tasks_preserve_on_user_delete.sql && mysql -u root -p people < database/sql/migration_rename_encoder_to_admin_staff.sql && mysql -u root -p people < database/sql/otp_codes.sql && mysql -u root -p people < database/sql/migration_remove_priority_duedate.sql && node backend/UserMngmt_APIs/migrate_approval.js
+mysql -u root -p people < database/sql/migration_add_job_title.sql
+mysql -u root -p people < database/sql/migration_notifications.sql
+mysql -u root -p people < database/sql/migration_tasks_preserve_on_user_delete.sql
+mysql -u root -p people < database/sql/migration_rename_encoder_to_admin_staff.sql
+mysql -u root -p people < database/sql/otp_codes.sql
+mysql -u root -p people < database/sql/migration_remove_priority_duedate.sql
+node backend/UserMngmt_APIs/migrate_approval.js
 ```
 
 ### 5. Seed the Database
