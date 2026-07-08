@@ -178,16 +178,17 @@ function fetchNgrokUrl() {
 setInterval(() => { if (ngrokRunning) fetchNgrokUrl(); }, 3000);
 
 const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8f4f4;color:#2d2d2d;min-height:100vh}
-.header{background:linear-gradient(#3d0510 0%,#6b0a1a 35%,#a8000d 100%);padding:14px 24px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.header h1{color:#FFD700;font-size:18px;font-weight:700;letter-spacing:0.3px;margin-right:auto}
+.header{background:linear-gradient(135deg,#3d0000 0%,#800000 50%,#a00000 100%);padding:14px 24px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.header h1{color:#DAA520;font-size:18px;font-weight:700;letter-spacing:0.3px;margin-right:auto}
 .header span{color:rgba(255,255,255,.7);font-size:13px}
-.seal-circle{width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.seal-circle{width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .container{max-width:960px;margin:0 auto;padding:24px}
 .all-btns{display:flex;gap:10px;margin-bottom:20px}
 .cards{display:flex;gap:20px;margin-bottom:20px}
-.card{flex:1;background:#fff;border:1px solid #e9ecef;border-left:4px solid #6b0a1a;border-radius:12px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.card{flex:1;background:#fff;border:1px solid #e9ecef;border-left:4px solid #800000;border-radius:10px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
 .card:last-child{border-left-color:#DAA520}
 .card h2{font-size:11px;text-transform:uppercase;color:#6c757d;letter-spacing:0.8px;margin-bottom:12px;font-weight:600}
 .status-row{display:flex;align-items:center;gap:10px}
@@ -197,19 +198,19 @@ body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .status-label{font-size:13px;color:#6c757d}
 .status-label strong{color:#2d2d2d;font-weight:600}
 .btn{font-family:inherit;font-size:.875rem;font-weight:500;padding:.5rem 1.1rem;border:none;border-radius:10px;cursor:pointer;transition:all .2s ease-in-out;display:inline-flex;align-items:center;gap:.4rem}
-.btn:hover{transform:scale(1.02);opacity:.9}
-.btn-start{background:#6b0a1a;color:#fff}
-.btn-start:hover{background:#3d0510}
+.btn:hover{transform:scale(1.02)}
+.btn-start{background:#800000;color:#fff}
+.btn-start:hover{background:#5a0000}
 .btn-stop{background:#b91c1c;color:#fff}
 .btn-stop:hover{background:#991b1b}
-.ngrok-box{background:#fff;border:1px solid #e9ecef;border-left:4px solid #DAA520;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.ngrok-box{background:#fff;border:1px solid #e9ecef;border-left:4px solid #DAA520;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
 .ngrok-box label{font-size:11px;text-transform:uppercase;color:#6c757d;letter-spacing:.6px;font-weight:600;flex-shrink:0}
 .ngrok-box a{color:#1d4ed8;font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:14px;text-decoration:none}
 .ngrok-box a:hover{text-decoration:underline}
 .ngrok-box .copy-btn{font-size:11px;padding:4px 12px;border:1px solid #e9ecef;border-radius:8px;cursor:pointer;background:#f8f4f4;color:#6c757d;font-family:inherit;transition:all .15s}
 .ngrok-box .copy-btn:hover{background:#e9ecef;color:#2d2d2d}
 .ngrok-msg{color:#6c757d;font-size:13px;font-style:italic;flex:1}
-.log-section{background:#fff;border:1px solid #e9ecef;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.log-section{background:#fff;border:1px solid #e9ecef;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)}
 .log-header{background:#f8f4f4;padding:10px 20px;font-size:11px;text-transform:uppercase;color:#6c757d;letter-spacing:.6px;display:flex;justify-content:space-between;border-bottom:1px solid #e9ecef;font-weight:600}
 .log-header .clear-btn{background:none;border:none;color:#6c757d;cursor:pointer;font-size:12px;text-transform:none;letter-spacing:0;font-family:inherit}
 .log-header .clear-btn:hover{color:#2d2d2d}
