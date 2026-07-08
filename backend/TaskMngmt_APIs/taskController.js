@@ -315,7 +315,7 @@ module.exports = {
                 }
             }
 
-            const currentStatus = existingTask.status.toLowerCase();
+            const currentStatus = existingTask.status.toLowerCase().replace(/\s+/g, '_');
 
             // Determine ownership: the individual assignee, OR a member of the
             // group the task is assigned to. Admins/chiefs bypass this entirely.
@@ -346,14 +346,32 @@ module.exports = {
                 if (description !== undefined) updatePayload.description = description ? description.trim() : null;
             }
             
-            if (status) updatePayload.status = status.toLowerCase(); 
+            // Normalize status for Tasks.status (lowercase, with spaces)
+            const normalizeTaskStatus = (s) => s.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            // Normalize status for Task_Updates.status_change (lowercase, underscores)
+            const normalizeUpdateStatus = (s) => normalizeTaskStatus(s).replace(/\s+/g, '_');
+
+            if (status) updatePayload.status = normalizeTaskStatus(status); 
 
             const affectedRows = await Task.update(id, updatePayload);
             
-            // Log every admin-forced status change so report snapshots track it accurately
-            if (status && status.toLowerCase() !== currentStatus) {
-                const newStatus = status.toLowerCase();
-                await Task.logUpdate(id, req.user.id, 'Status forcefully updated via Admin panel', newStatus);
+            // Log every status change so report snapshots track it accurately
+            const newStatus = status ? normalizeUpdateStatus(status) : null;
+            if (newStatus && newStatus !== currentStatus) {
+
+                // Build a contextual log message based on the actor and transition
+                let logMessage;
+                if (isAuthorizedModifier && !isAssignee) {
+                    logMessage = `Status updated via Admin panel`;
+                } else if (newStatus === 'completed') {
+                    logMessage = 'Task marked as completed';
+                } else if (newStatus === 'in_progress') {
+                    logMessage = 'Task reopened';
+                } else {
+                    logMessage = `Status changed to ${newStatus}`;
+                }
+
+                await Task.logUpdate(id, req.user.id, logMessage, newStatus);
 
                 if (newStatus === 'completed') {
                     const task = await Task.findById(id);
