@@ -167,6 +167,42 @@ JWT_SECRET=your_jwt_secret_here
 
 > **Note:** Set `OTP_DELIVERY=console` for local development. This prints OTP codes to the server console instead of sending emails. Never use this in production.
 
+#### 2a. Google App Password (Required for Email OTP)
+
+The system uses Gmail SMTP to deliver one-time passwords. **You must generate a Google App Password** if `OTP_DELIVERY` is set to `email` or `both`.
+
+> A regular Gmail password will **not** work — Google requires an App Password when 2-Step Verification is enabled.
+
+**Steps:**
+
+1. Ensure 2-Step Verification is enabled on the Google account you plan to use.  
+   → https://myaccount.google.com/security
+
+2. Go to [Google App Passwords](https://myaccount.google.com/apppasswords).  
+   (If the link doesn't work, search *"Google App Passwords"* in your account settings.)
+
+3. Sign in if prompted, then:
+   - **Select app:** *Other (Custom name)* → enter `PAMS OUS Backend`
+   - **Generate** → a 16-character password (groups of 4) will appear.
+
+4. Copy the **16-character string** (including spaces if shown — remove spaces when pasting).
+
+5. Paste it into `backend/.env` as the `SMTP_PASSWORD` value:
+
+   ```env
+   SMTP_PASSWORD=abcd efgh ijkl mnop
+   ```
+
+   Remove any spaces so it becomes a continuous string:
+
+   ```env
+   SMTP_PASSWORD=abcdefghijklmnop
+   ```
+
+6. Set `OTP_DELIVERY=email` (default) in `.env`.
+
+> **Security:** Never commit the `.env` file. If an App Password is compromised, revoke it immediately at the [App Passwords page](https://myaccount.google.com/apppasswords) and generate a fresh one.
+
 ### 3. Database Setup
 
 ```bash
