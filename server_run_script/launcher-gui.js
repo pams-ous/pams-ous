@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const http = require('http');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -38,6 +38,7 @@ let ngrokRunning = false;
 const logClients = [];
 let shutdownTimer = null;
 let keepaliveInterval = null;
+let browserProc = null;
 
 function broadcast(data) {
   const msg = `data: ${JSON.stringify(data)}\n\n`;
@@ -392,8 +393,17 @@ function cleanup() {
   if (shutdownTimer) { clearTimeout(shutdownTimer); shutdownTimer = null; }
   if (serverProc) { try { serverProc.kill('SIGKILL'); } catch (e) {} serverProc = null; }
   if (ngrokProc) { try { ngrokProc.kill('SIGKILL'); } catch (e) {} ngrokProc = null; }
+  if (browserProc) { try { browserProc.kill('SIGKILL'); } catch (e) {} browserProc = null; }
   logClients.forEach(r => { try { r.end(); } catch (e) {} });
   logClients.length = 0;
+  if (process.platform === 'darwin') {
+    // Kill lingering osascript processes spawned by open or .command script
+    try { execSync('pkill -f "osascript" 2>/dev/null'); } catch (e) {}
+    // Kill parent bash (the .command script's shell) so it doesn't linger
+    if (process.ppid > 1) {
+      try { process.kill(process.ppid, 'SIGKILL'); } catch (e) {}
+    }
+  }
 }
 
 function openBrowser(port) {
@@ -401,9 +411,9 @@ function openBrowser(port) {
   console.log(`Launcher GUI: ${url}`);
   const platform = process.platform;
   try {
-    if (platform === 'darwin') exec(`open "${url}"`);
-    else if (platform === 'win32') exec(`cmd /c start "" "${url}"`);
-    else exec(`xdg-open "${url}"`);
+    if (platform === 'darwin') browserProc = exec(`open "${url}"`);
+    else if (platform === 'win32') browserProc = exec(`cmd /c start "" "${url}"`);
+    else browserProc = exec(`xdg-open "${url}"`);
   } catch (e) { /* browser open failed, user can navigate manually */ }
 }
 
