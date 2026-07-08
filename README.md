@@ -233,7 +233,6 @@ All commands run inside `backend/`:
 | `npm run db:seed` | — | Seed super admin, designations, and sample group |
 | `npm run db:seed:clear` | — | Reset database then seed |
 | `npm run db:seed:dummy` | — | Seed dummy task data for testing |
-| `npm run db:seed:alice` | — | Seed Alice's demo tasks |
 
 **Additional commands:**
 
@@ -244,7 +243,7 @@ node scripts/dev/seed-admin.js --file scripts/dev/admins.example.json
 # Generate a JWT secret
 openssl rand -base64 32
 
-# Launch with ngrok tunnel (opens browser GUI)
+# Launch with ngrok tunnel (opens browser GUI — run from repo root)
 node server_run_script/launcher-gui.js
 ```
 
@@ -312,14 +311,22 @@ pams-ous/
 │   ├── config/
 │   │   └── superadmin.js          # Super admin env loader (gitignored)
 │   ├── UserMngmt_APIs/            # Auth, registration, OTP, notifications, mailer
-│   │   ├── login.js
-│   │   ├── registerUsers.js
-│   │   ├── userUtils.js
-│   │   ├── passwordUtil.js
-│   │   ├── otpService.js
-│   │   ├── mailer.js
-│   │   ├── migrate_approval.js
-│   │   └── ...
+│   │   ├── authMiddleware.js      # JWT authentication middleware
+│   │   ├── authUtil.js            # Auth utility helpers
+│   │   ├── dbChecks.js            # Database health checks
+│   │   ├── login.js               # Login endpoint
+│   │   ├── mailer.js              # Nodemailer email sending
+│   │   ├── manage.js              # User management CRUD
+│   │   ├── migrate_approval.js    # Standalone approval migration
+│   │   ├── notifications.js       # Notification handling
+│   │   ├── otp.js                 # OTP endpoint routes
+│   │   ├── otpService.js          # OTP generation/validation logic
+│   │   ├── passwordReset.js       # Password reset flow
+│   │   ├── passwordUtil.js        # Argon2 password hashing
+│   │   ├── registration.js        # User registration
+│   │   ├── smsAdapter.js          # SMS provider stub
+│   │   ├── userSearch.js          # User search functionality
+│   │   └── userUtils.js           # Shared user utilities
 │   ├── TaskMngmt_APIs/            # Task CRUD, dashboard, task model
 │   │   ├── taskRoutes.js
 │   │   ├── taskController.js
@@ -327,49 +334,83 @@ pams-ous/
 │   │   ├── dashboardHandlers.js
 │   │   └── db.js
 │   ├── ReportMngmt_APIs/
-│   │   └── reportHandlers.js
-│   ├── scripts/dev/               # Dev tooling (gitignored)
+│   │   ├── reportHandlers.js
+│   │   ├── reportController.js
+│   │   └── reportRoutes.js
+│   ├── scripts/dev/               # Dev tooling
+│   │   ├── admins.example.json
 │   │   ├── seed-admin.js
 │   │   ├── reset-db.js
-│   │   ├── seed-dummy.js
-│   │   └── seed-alice-tasks.js
-│   ├── server_run_script/         # ngrok launcher
-│   │   └── launcher-gui.js
+│   │   └── seed-dummy.js
+│   ├── .env.example
+│   ├── OTP_SETUP.md
 │   └── package.json
+│
+├── server_run_script/             # ngrok launcher (at root level)
+│   ├── launcher-gui.js
+│   ├── RUN_INSTRUCTIONS.md
+│   ├── run_macos_gui.command
+│   └── run_windows_gui.bat
 │
 ├── frontend/
 │   ├── index.html                 # SPA entry point
 │   ├── auth/                      # Login, forgot-password pages
-│   ├── pages/                     # Dashboard, my-tasks, task-board, reports, etc.
+│   │   ├── login.html
+│   │   └── forgot-password.html
+│   ├── pages/                     # Page HTML files
+│   │   ├── dashboard.html
+│   │   ├── my-tasks.html
+│   │   ├── task-board.html
+│   │   ├── reports.html
+│   │   ├── users-groups.html
+│   │   ├── accomplishments.html
+│   │   └── terms-and-conditions.html
 │   ├── js/                        # Modular frontend application
 │   │   ├── api.js                 # window.PAMS — session, navigation, socket, API
 │   │   ├── layout.js              # window.PAMS_UI — sidebar, notifications, RBAC
 │   │   ├── otpClient.js           # window.PAMSOtp — OTP modal flows
 │   │   ├── config.js              # window.CONFIG — frozen configuration
 │   │   ├── boot.js                # Auth guard + sidebar restore (runs in <head>)
+│   │   ├── accomplishments.js
 │   │   ├── auth.js
 │   │   ├── dashboard.js
+│   │   ├── forgotPassword.js
+│   │   ├── landing.js
+│   │   ├── loader.js
 │   │   ├── my-tasks.js
-│   │   ├── task-board.js
 │   │   ├── reports.js
-│   │   └── ...
+│   │   ├── role-management.js
+│   │   ├── shared-utils.js
+│   │   ├── task-board.js
+│   │   ├── toast.js
+│   │   └── users-groups.js
 │   ├── css/
+│   │   ├── 1-variables.css
+│   │   ├── 2-base.css
+│   │   ├── 3-layout.css
+│   │   ├── 4-pages.css
+│   │   ├── 5-features.css
+│   │   └── responsive.css
 │   └── assets/
+│       ├── ous_building.webp
+│       └── pup_ous_seal.webp
 │
 ├── database/
-│   └── sql/                       # Schema + migrations
-│       ├── schema.sql
-│       ├── migration_add_job_title.sql
-│       ├── migration_notifications.sql
-│       ├── migration_remove_priority_duedate.sql
-│       ├── migration_rename_encoder_to_admin_staff.sql
-│       ├── migration_tasks_preserve_on_user_delete.sql
-│       └── otp_codes.sql
+│   ├── sql/                       # Schema + migrations
+│   │   ├── schema.sql
+│   │   ├── migration_add_job_title.sql
+│   │   ├── migration_notifications.sql
+│   │   ├── migration_remove_priority_duedate.sql
+│   │   ├── migration_rename_encoder_to_admin_staff.sql
+│   │   ├── migration_tasks_preserve_on_user_delete.sql
+│   │   └── otp_codes.sql
+│   ├── FIX_no_users_showing.md
+│   └── migration_rename_admin_staff.md
 │
-├── security/                      # Audit reports (not served)
 ├── .github/workflows/
 │   └── deploy.yml                 # GitHub Pages deploy on push to main
 ├── AGENTS.md                      # LLM agent guidance
+├── USER_MANUAL.md                 # User manual
 └── LICENSE                        # Apache 2.0
 ```
 
