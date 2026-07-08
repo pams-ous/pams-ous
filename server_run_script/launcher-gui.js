@@ -6,27 +6,28 @@ const fs = require('fs');
 
 const BACKEND_DIR = path.join(__dirname, '..', 'backend');
 
-// Load backend .env so NGROK_DOMAIN is available
-const envPath = path.join(BACKEND_DIR, '.env');
-if (fs.existsSync(envPath)) {
+function loadEnv() {
+  const envPath = path.join(BACKEND_DIR, '.env');
+  if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     envContent.split('\n').forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#')) {
-            const eqIdx = trimmed.indexOf('=');
-            if (eqIdx > 0) {
-                const key = trimmed.slice(0, eqIdx).trim();
-                let val = trimmed.slice(eqIdx + 1).trim();
-                // Strip surrounding quotes (dotenv does this too)
-                if ((val.startsWith('"') && val.endsWith('"')) ||
-                    (val.startsWith("'") && val.endsWith("'"))) {
-                    val = val.slice(1, -1);
-                }
-                if (!process.env[key]) process.env[key] = val;
-            }
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) ||
+              (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          process.env[key] = val;
         }
+      }
     });
+  }
 }
+loadEnv();
 const serverPath = path.join(BACKEND_DIR, 'server.js');
 const SEAL_PATH = path.join(__dirname, '..', 'frontend', 'assets', 'pup_ous_seal.webp');
 
@@ -109,6 +110,7 @@ function startServer() {
   if (serverProc) return;
   clearLog();
   broadcast({ type: 'log', text: 'Starting server...', source: 'system' });
+  loadEnv();
   serverProc = spawn('node', [serverPath], { cwd: BACKEND_DIR });
   serverRunning = true;
   broadcast({ type: 'status', server: true, ngrok: ngrokRunning, ngrokUrl });
