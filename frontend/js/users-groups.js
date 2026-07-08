@@ -640,7 +640,7 @@
                 <td class="td-name">${safeName}</td>
                 <td class="td-email" style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeDesc}">${safeDesc}</td>
                 <td>${g.leader ? `<i class="fa-regular fa-user" style="color: #888; margin-right: 4px;"></i> ${safeLeader}` : '<span style="color:#9ca3af; font-style:italic;">Unassigned</span>'}</td>
-                <td style="text-align: center;"><span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;"><i class="fas fa-users" style="margin-right: 4px; color: #6b7280;"></i> ${g.members || 0}</span></td>
+                <td style="text-align: center;"><span class="status-badge" style="background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; justify-content: center; gap: 4px;"><i class="fas fa-users" style="color: #6b7280;"></i> ${g.members || 0}</span></td>
                 <td class="td-actions">
                     <button class="action-btn edit" onclick="window.Admin.openEditGroup(${g.id})" title="Edit group" aria-label="Edit group ${safeName.replace(/'/g, '&#39;')}"><i class="fas fa-pen"></i></button>
                     <button class="action-btn deactivate" onclick="window.Admin.deleteGroup(${g.id}, '${safeName.replace(/'/g, '&#39;')}')" title="Delete group" aria-label="Delete group ${safeName.replace(/'/g, '&#39;')}"><i class="fas fa-trash"></i></button>
