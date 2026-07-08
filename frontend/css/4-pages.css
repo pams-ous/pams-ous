@@ -341,16 +341,23 @@
 
 .dashboard-grid > .chart-panel {
   grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: calc(100vh - 296px);
 }
 
 .dashboard-grid > .gp-panel {
   grid-column: 4;
   grid-row: 1 / span 2;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .bar-box {
   position: relative;
-  height: 380px;
+  flex: 1;
+  height: auto;
   overflow-y: auto;
   overflow-x: hidden;
 }

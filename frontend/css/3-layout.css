@@ -403,6 +403,7 @@ tbody td {
   /* Prevents panel from growing past grid container */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-head {

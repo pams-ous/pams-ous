@@ -12,6 +12,7 @@
 
   .dashboard-grid > .chart-panel {
     grid-column: auto;
+    height: calc(100vh - 376px);
   }
 
   .dashboard-grid > .gp-panel {
@@ -73,6 +74,10 @@
     height: 100vh;
     border-radius: 0;
     max-width: 100%;
+  }
+
+  .dashboard-grid > .chart-panel {
+    height: calc(100vh - 456px);
   }
 
   .stat-grid {
