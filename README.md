@@ -118,6 +118,7 @@ PAMS is a professional task- and accomplishment-tracking system purpose-built fo
 - [MySQL Server](https://dev.mysql.com/downloads/mysql/) 8.0+ (or XAMPP/WAMP with MySQL)
 - [Git](https://git-scm.com/) (for cloning)
 - [OpenSSL](https://www.openssl.org/) (for JWT secret generation — pre-installed on macOS/WSL; Git Bash on Windows)
+- [ngrok](https://ngrok.com/) (required for external access — see [Ngrok Setup](#7-ngrok-setup-required) below)
 
 ---
 
@@ -207,6 +208,69 @@ npm run dev
 ```
 
 The application will be available at **http://localhost:3000**.
+
+### 7. Ngrok Setup (Required)
+
+PAMS uses ngrok to expose the local dev server externally for mobile testing, stakeholder demos, and CI validation. A **free ngrok account** is sufficient.
+
+#### 7a. Sign Up & Install
+
+1. Create a free account at [ngrok.com](https://ngrok.com/signup)
+2. Install ngrok:
+
+   **macOS (Homebrew):**
+   ```bash
+   brew install ngrok/ngrok/ngrok
+   ```
+
+   **macOS / Linux (manual):**
+   ```bash
+   # Download from https://ngrok.com/download or use cURL:
+   curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+     | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+     && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+     | sudo tee /etc/apt/sources.list.d/ngrok.list \
+     && sudo apt update && sudo apt install ngrok
+   ```
+
+   **Windows (winget):**
+   ```cmd
+   winget install ngrok
+   ```
+
+   **Verify installation:**
+   ```bash
+   ngrok version
+   ```
+
+3. Authenticate with your authtoken (found in the [ngrok dashboard](https://dashboard.ngrok.com/get-started/your-authtoken)):
+
+   ```bash
+   ngrok config add-authtoken YOUR_AUTHTOKEN
+   ```
+
+#### 7b. Launch the Tunnel
+
+Use the platform-specific run script (can be double-clicked from the file manager):
+
+**macOS:**
+```bash
+# First time only — make executable
+chmod +x server_run_script/run_macos_gui.command
+
+# Then double-click the file or run:
+./server_run_script/run_macos_gui.command
+```
+
+**Windows:**
+```cmd
+# Double-click:
+server_run_script\run_windows_gui.bat
+```
+
+This opens a browser GUI at `http://localhost:3456` with **Start All**, **Stop All**, live logs, and the public URL once the tunnel is ready. CORS is pre-configured for `*.ngrok-free.app`, `*.ngrok.app`, and `*.ngrok-free.dev` domains.
+
+> **Note:** The launcher reads the `ngrok` binary from `PATH`. If installed via Homebrew or the standard installer, this should work immediately. If you installed ngrok to a custom location, ensure it is on your `PATH`.
 
 ---
 
@@ -430,13 +494,15 @@ For a full production deployment:
    pm2 start server.js --name pams-ous
    ```
 
-### ngrok Development
+### ngrok — External Tunneling
+
+Follow the full setup guide in [7. Ngrok Setup](#7-ngrok-setup-required) above, then launch from the repo root:
 
 ```bash
 node server_run_script/launcher-gui.js
 ```
 
-This spawns the server + ngrok tunnel and opens a management GUI at `http://localhost:3456`. CORS is pre-configured for `*.ngrok-free.dev` domains.
+This spawns the server + ngrok tunnel and opens a management GUI at `http://localhost:3456`. CORS is pre-configured for `*.ngrok-free.app`, `*.ngrok.app`, and `*.ngrok-free.dev` domains.
 
 ---
 
