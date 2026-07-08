@@ -354,6 +354,13 @@
   min-height: 0;
 }
 
+.dashboard-grid > .gp-panel > .panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
+
 .bar-box {
   position: relative;
   flex: 1;
