@@ -555,24 +555,48 @@
                 return;
             }
 
+            // Helper to escape commas and quotes inside text fields (like titles)
+            const escape = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
+
             // 1. Create the CSV Header row
             let csvContent = "ID,Title,Status,Assignee,Assigned By\n";
 
-            // 2. Loop through the tasks and build the rows
-            list.forEach(t => {
-                // Helper to escape commas and quotes inside text fields (like titles)
-                const escape = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
-                
-                const row = [
-                    t.id,
-                    escape(t.title),
-                    t.status,
-                    escape(t.assignee?.name || 'Unassigned'),
-                    escape(t.assignedByName)
-                ];
-                
-                csvContent += row.join(",") + "\n";
-            });
+            // 2. Check if group-by is active and build grouped CSV rows
+            const groupBy = document.getElementById('viewGroupBy')?.value || '';
+
+            if (groupBy) {
+                const grouped = list.reduce((acc, t) => {
+                    const k = groupBy === 'status' ? t.status : groupBy === 'group' ? (t.assignee?.type === 'group' ? t.assignee.name : 'No Group') : t.status;
+                    (acc[k] = acc[k] || []).push(t);
+                    return acc;
+                }, {});
+                Object.entries(grouped).forEach(([k, items]) => {
+                    csvContent += `\n"── ${k} (${items.length}) ──",,,,\n`;
+                    items.forEach(t => {
+                        const row = [
+                            t.id,
+                            escape(t.title),
+                            t.status,
+                            escape(t.assignee?.name || 'Unassigned'),
+                            escape(t.assignedByName)
+                        ];
+                        csvContent += row.join(",") + "\n";
+                    });
+                });
+            } else {
+                // 3. Loop through the tasks and build the rows
+                list.forEach(t => {
+                    const row = [
+                        t.id,
+                        escape(t.title),
+                        t.status,
+                        escape(t.assignee?.name || 'Unassigned'),
+                        escape(t.assignedByName)
+                    ];
+                    
+                    csvContent += row.join(",") + "\n";
+                });
+            }
 
             // 3. Create a downloadable Blob (a raw data file in memory)
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
