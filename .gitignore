@@ -5,7 +5,6 @@
 ._*
 
 # Other agents/tools
-backend/config/superadmin.js
 .claude/
 .opencode/
 
