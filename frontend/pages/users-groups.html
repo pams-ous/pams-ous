@@ -131,6 +131,7 @@
                     <div class="search-wrap">
                     <i class="fa-solid fa-search search-icon"></i>
                     <input type="text" id="userEmailSearch" class="form-control search-input" placeholder="Search by name, email, or employee code..." autocomplete="no-autofill" readonly onfocus="this.removeAttribute('readonly')">
+                    <span class="search-searching" aria-live="polite">Searching...</span>
                 </div>
                     <button class="btn btn-outline" onclick="window.Admin.openModal('addUserModal')" aria-label="Add new user">
                         <i class="fa-solid fa-user-plus"></i> Add User
@@ -167,6 +168,7 @@
                     <div class="search-wrap">
                     <i class="fa-solid fa-search search-icon"></i>
                     <input type="text" id="groupSearch" class="form-control search-input" placeholder="Search for groups..." autocomplete="no-autofill" readonly onfocus="this.removeAttribute('readonly')">
+                    <span class="search-searching" aria-live="polite">Searching...</span>
                 </div>
                     <button class="btn btn-primary" onclick="window.Admin.openModal('addGroupModal')" aria-label="Add new group">
                         <i class="fa-solid fa-plus"></i> Add Group

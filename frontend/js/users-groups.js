@@ -59,6 +59,8 @@
             socket.on('userSearchEmailResult', (data) => {
                 if (!data.success) {
                     console.error("User email search failed:", data.rawData);
+                    const el = document.querySelector('#panel-users .search-searching');
+                    if (el) el.style.display = 'none';
                     return;
                 }
                 
@@ -78,11 +80,15 @@
                 }));
                 
                 renderUsers();
+                const el = document.querySelector('#panel-users .search-searching');
+                if (el) el.style.display = 'none';
             });
 
             socket.on('groupSearchResult', (data) => {
                 if (!data.success) {
                     console.error("Group search failed:", data.rawData);
+                    const el = document.querySelector('#panel-groups .search-searching');
+                    if (el) el.style.display = 'none';
                     return;
                 }
 
@@ -95,6 +101,8 @@
                 }));
 
                 renderGroups();
+                const el = document.querySelector('#panel-groups .search-searching');
+                if (el) el.style.display = 'none';
             });
 
             socket.on('usersChanged', () => loadAll());
@@ -110,18 +118,30 @@
         initCustomDropdowns();
     });
 
+    function showSearching(container) {
+        const el = container.querySelector('.search-searching');
+        if (el) el.style.display = 'block';
+    }
+    function hideSearching(container) {
+        const el = container.querySelector('.search-searching');
+        if (el) el.style.display = 'none';
+    }
+
     function initUserEmailSearch() {
         const searchInput = document.getElementById('userEmailSearch');
         if (!searchInput) return;
+        const wrap = searchInput.closest('.search-wrap');
 
         let debounceTimer;
         searchInput.addEventListener('input', () => {
             clearTimeout(debounceTimer);
+            showSearching(wrap);
             debounceTimer = setTimeout(async () => {
                 const query = searchInput.value.trim();
                 
                 if (!query) {
                     await loadAll();
+                    hideSearching(wrap);
                     return;
                 }
 
@@ -135,15 +155,18 @@
     function initGroupSearch() {
         const searchInput = document.getElementById('groupSearch');
         if (!searchInput) return;
+        const wrap = searchInput.closest('.search-wrap');
 
         let debounceTimer;
         searchInput.addEventListener('input', () => {
             clearTimeout(debounceTimer);
+            showSearching(wrap);
             debounceTimer = setTimeout(async () => {
                 const query = searchInput.value.trim();
                 
                 if (!query) {
                     await loadAll();
+                    hideSearching(wrap);
                     return;
                 }
 
@@ -155,6 +178,7 @@
     }
 
     async function loadAll() {
+        document.querySelectorAll('.search-searching').forEach(el => el.style.display = 'none');
         const gen = ++_loadGen;
         const scroller = document.querySelector('.panel:not([hidden]) .table-wrap');
         const savedScrollTop = scroller ? scroller.scrollTop : 0;
