@@ -1080,6 +1080,29 @@
   color: #6c757d;
 }
 
+/* Dashboard connection status indicator */
+.connection-status {
+  font-size: 0.7rem;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+.status-dot.polling {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
 /* Approve action button */
 .action-btn.approve {
   color: #16a34a;

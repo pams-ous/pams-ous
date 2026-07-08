@@ -7,6 +7,33 @@
     const { apiFetch, requireAuth, fmtHeaderDate, getUser } = PAMS;
 
     let barChart;
+    let pollInterval;
+    const POLL_INTERVAL_MS = 30000;
+
+    async function refreshStats() {
+        try {
+            const stats = await apiFetch('/dashboard/stats');
+            renderStats(stats);
+        } catch (err) {
+            console.error('Failed to refresh dashboard:', err);
+        }
+    }
+
+    function startPolling() {
+        if (pollInterval) return;
+        pollInterval = setInterval(refreshStats, POLL_INTERVAL_MS);
+        const indicator = document.getElementById('poll-status');
+        if (indicator) indicator.style.display = 'inline';
+    }
+
+    function stopPolling() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+        const indicator = document.getElementById('poll-status');
+        if (indicator) indicator.style.display = 'none';
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!requireAuth()) return;
@@ -45,15 +72,23 @@
 
         // Listen for task changes and refresh dashboard stats in real-time
         if (PAMS && PAMS.socket) {
-            PAMS.socket.on('tasksChanged', async () => {
-                try {
-                    const stats = await apiFetch('/dashboard/stats');
-                    renderStats(stats);
-                } catch (err) {
-                    console.error('Failed to refresh dashboard:', err);
-                }
+            PAMS.socket.on('tasksChanged', refreshStats);
+
+            PAMS.socket.on('disconnect', () => {
+                console.warn('[Dashboard] Socket disconnected — enabling polling fallback');
+                startPolling();
             });
+
+            PAMS.socket.on('connect', () => {
+                console.log('[Dashboard] Socket reconnected — disabling polling fallback');
+                stopPolling();
+            });
+        } else {
+            // No socket available at all — fall back to polling immediately
+            startPolling();
         }
+
+        window.addEventListener('beforeunload', stopPolling);
     });
 
     function renderStats(s) {
