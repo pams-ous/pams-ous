@@ -66,6 +66,7 @@
                 
                 users = data.rawData.map(u => ({
                     ...u,
+                    id: u.employee_id,
                     employeeCode: u.employee_code,
                     firstName: u.first_name,
                     lastName: u.last_name,
