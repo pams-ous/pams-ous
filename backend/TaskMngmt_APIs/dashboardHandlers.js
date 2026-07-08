@@ -20,7 +20,7 @@ function dashboardAPI(app, io, db) {
                 SELECT 
                     COUNT(*) as total,
                     COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
-                    COALESCE(SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END), 0) as inProgress,
+                    COALESCE(SUM(CASE WHEN status = 'in progress' THEN 1 ELSE 0 END), 0) as inProgress,
                     COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
                     0 as overdue
                 FROM Tasks

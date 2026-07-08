@@ -244,7 +244,7 @@ module.exports = {
             const newTaskId = await Task.create({
                 title: title.trim(),
                 description: description ? description.trim() : null,
-                status: 'in_progress',    
+                status: 'in progress',    
                 assignedBy: creatorId,
                 assignedToUser: assignedToUser,
                 assignedToGroup: assignedToGroup
@@ -346,15 +346,17 @@ module.exports = {
                 if (description !== undefined) updatePayload.description = description ? description.trim() : null;
             }
             
-            // Normalize status to DB format (lowercase, spaces → underscores)
-            const normalizeStatus = (s) => s.toLowerCase().replace(/\s+/g, '_');
+            // Normalize status for Tasks.status (lowercase, with spaces)
+            const normalizeTaskStatus = (s) => s.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            // Normalize status for Task_Updates.status_change (lowercase, underscores)
+            const normalizeUpdateStatus = (s) => normalizeTaskStatus(s).replace(/\s+/g, '_');
 
-            if (status) updatePayload.status = normalizeStatus(status); 
+            if (status) updatePayload.status = normalizeTaskStatus(status); 
 
             const affectedRows = await Task.update(id, updatePayload);
             
             // Log every status change so report snapshots track it accurately
-            const newStatus = status ? normalizeStatus(status) : null;
+            const newStatus = status ? normalizeUpdateStatus(status) : null;
             if (newStatus && newStatus !== currentStatus) {
 
                 // Build a contextual log message based on the actor and transition
