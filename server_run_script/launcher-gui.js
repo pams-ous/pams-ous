@@ -37,6 +37,7 @@ let serverRunning = false;
 let ngrokRunning = false;
 const logClients = [];
 let shutdownTimer = null;
+let keepaliveInterval = null;
 
 function broadcast(data) {
   const msg = `data: ${JSON.stringify(data)}\n\n`;
@@ -55,6 +56,36 @@ function refreshShutdownTimer() {
   } else {
     shutdownTimer = null;
   }
+}
+
+function forceShutdown() {
+  logClients.forEach(r => { try { r.end(); } catch (e) {} });
+  logClients.length = 0;
+  refreshShutdownTimer();
+}
+
+function startKeepalive() {
+  if (keepaliveInterval) return;
+  keepaliveInterval = setInterval(() => {
+    const before = logClients.length;
+    for (let i = logClients.length - 1; i >= 0; i--) {
+      const res = logClients[i];
+      const sock = res.socket;
+      if (res.destroyed || (sock && sock.destroyed)) {
+        logClients.splice(i, 1);
+      } else {
+        try {
+          res.write(':keepalive\n\n');
+        } catch (e) {
+          logClients.splice(i, 1);
+        }
+      }
+    }
+    if (logClients.length < before) {
+      broadcast({ type: 'log', text: `Client disconnected (${before - logClients.length} connection(s) removed)`, source: 'system' });
+      refreshShutdownTimer();
+    }
+  }, 5000);
 }
 
 function setupProcessLogging(proc, source) {
@@ -317,6 +348,8 @@ evtSource.onmessage = function(e) {
     }
   }
 };
+window.addEventListener('pagehide', function() { navigator.sendBeacon('/api/close'); });
+window.addEventListener('beforeunload', function() { navigator.sendBeacon('/api/close'); });
 function escapeHtml(t){const d=document.createElement('div');d.appendChild(document.createTextNode(t));return d.innerHTML}
 function copyNgrokUrl(){const l=document.getElementById('ngrokLink');navigator.clipboard.writeText(l.textContent)}
 </script>`);
@@ -331,6 +364,7 @@ function handleAPI(req, res, pathname) {
     if (pathname === '/api/start-all') { startAll(); ok = true; }
     else if (pathname === '/api/stop-all') { stopAll(); ok = true; }
     else if (pathname === '/api/restart-all') { restartAll(); ok = true; }
+    else if (pathname === '/api/close') { forceShutdown(); ok = true; }
     res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok }));
   });
@@ -346,11 +380,12 @@ function handleSSE(req, res) {
   res.write(`data: ${JSON.stringify({ type: 'status', server: serverRunning, ngrok: ngrokRunning, ngrokUrl })}\n\n`);
   logClients.push(res);
   refreshShutdownTimer();
-  req.on('close', () => {
+  const removeClient = () => {
     const i = logClients.indexOf(res);
-    if (i !== -1) logClients.splice(i, 1);
-    refreshShutdownTimer();
-  });
+    if (i !== -1) { logClients.splice(i, 1); refreshShutdownTimer(); }
+  };
+  req.on('close', removeClient);
+  res.on('close', removeClient);
 }
 
 function cleanup() {
@@ -395,7 +430,7 @@ function startGUIServer(port) {
     if (err.code === 'EADDRINUSE' && port < 3500) startGUIServer(port + 1);
     else { console.error(`Cannot start GUI on port ${port}:`, err.message); process.exit(1); }
   });
-  server.listen(port, () => openBrowser(port));
+  server.listen(port, () => { startKeepalive(); openBrowser(port); });
 }
 
 process.on('SIGINT', () => { cleanup(); process.exit(0); });
