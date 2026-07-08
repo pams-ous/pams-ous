@@ -275,8 +275,14 @@ window.addEventListener('storage', (event) => {
                 window.location.replace(PAMS.authUrl('index.html'));
             }
         } else {
-            // Token was updated or refreshed
-            window.location.reload();
+            // Token was updated or refreshed — gracefully reconnect instead of hard reload
+            if (PAMS.socket) {
+                PAMS.socket.disconnect();
+            }
+            PAMS.socket = PAMS.initSocket();
+            if (PAMS.verifySessionIntegrity && /\/pages\//.test(location.pathname)) {
+                PAMS.verifySessionIntegrity();
+            }
         }
     }
 });
