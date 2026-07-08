@@ -128,7 +128,7 @@ PAMS is a professional task- and accomplishment-tracking system purpose-built fo
 ```bash
 git clone https://github.com/pup-ous/pams-ous.git
 cd pams-ous/backend
-npm install
+npm install express socket.io mysql2 dotenv argon2 jsonwebtoken nodemailer cors
 ```
 
 ### 2. Environment Configuration
