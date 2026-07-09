@@ -116,7 +116,7 @@ PAMS is a professional task- and accomplishment-tracking system purpose-built fo
 
 - [Node.js](https://nodejs.org/) v16.x or higher (v18+ recommended)
 - [MySQL Server](https://dev.mysql.com/downloads/mysql/) 8.0+ (or XAMPP/WAMP with MySQL)
-- [Git](https://git-scm.com/) (for cloning)
+- [Git](https://git-scm.com/) (command line) or [GitHub Desktop](https://desktop.github.com/) (ease of use, for cloning)
 - [OpenSSL](https://www.openssl.org/) (for JWT secret generation — pre-installed on macOS/WSL; Git Bash on Windows)
 - [ngrok](https://ngrok.com/) (required for external access — see [Ngrok Setup](#7-ngrok-setup-required) below)
 
