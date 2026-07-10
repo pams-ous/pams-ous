@@ -38,6 +38,7 @@ let serverRunning = false;
 let ngrokRunning = false;
 const logClients = [];
 let shutdownTimer = null;
+let shutdownCountdown = null;
 let keepaliveInterval = null;
 let browserProc = null;
 
@@ -48,15 +49,48 @@ function broadcast(data) {
   });
 }
 
+function notifySound(type) {
+  try { process.stdout.write('\x07'); } catch (e) {}
+  try {
+    if (process.platform === 'darwin') {
+      const sound = type === 'connect' ? 'Ping.aiff' : 'Tink.aiff';
+      exec(`afplay /System/Library/Sounds/${sound} 2>/dev/null`, () => {});
+    } else if (process.platform === 'win32') {
+      const freq = type === 'connect' ? '1000,200' : '400,300';
+      exec(`powershell -c "[System.Console]::Beep(${freq})" 2>nul`, () => {});
+    } else {
+      const id = type === 'connect' ? 'complete' : 'dialog-warning';
+      exec(`paplay /usr/share/sounds/freedesktop/stereo/${id}.oga 2>/dev/null || canberra-gtk-play --id="${id}" 2>/dev/null || aplay /usr/share/sounds/alsa/Front_Center.wav 2>/dev/null`, () => {});
+    }
+  } catch (e) {}
+}
+
 function refreshShutdownTimer() {
-  if (shutdownTimer) clearTimeout(shutdownTimer);
+  if (shutdownTimer) clearInterval(shutdownTimer);
+  shutdownTimer = null;
   if (logClients.length === 0) {
-    shutdownTimer = setTimeout(() => {
-      cleanup();
-      process.exit(0);
+    if (shutdownCountdown === null) {
+      const url = `http://localhost:3456`;
+      const msg = `No GUI connections — shutting down in 5 seconds (reopen \x1b]8;;${url}\x1b\\${url}\x1b]8;;\x1b\\ to cancel)`;
+      console.log(`\n  ${'='.repeat(msg.length)}\n  ${msg}\n  ${'='.repeat(msg.length)}`);
+    }
+    shutdownCountdown = 5;
+    shutdownTimer = setInterval(() => {
+      shutdownCountdown--;
+      process.stdout.write(`\r  Shutting down in ${shutdownCountdown} second${shutdownCountdown === 1 ? '' : 's'}... `);
+      if (shutdownCountdown <= 0) {
+        console.log(`\r  Shutting down now.                               `);
+        clearInterval(shutdownTimer);
+        shutdownTimer = null;
+        cleanup();
+        process.exit(0);
+      }
     }, 1000);
   } else {
-    shutdownTimer = null;
+    if (shutdownCountdown !== null) {
+      console.log(`\r  Shutdown cancelled — client reconnected.           `);
+    }
+    shutdownCountdown = null;
   }
 }
 
@@ -86,6 +120,7 @@ function startKeepalive() {
     if (logClients.length < before) {
       broadcast({ type: 'log', text: `Client disconnected (${before - logClients.length} connection(s) removed)`, source: 'system' });
       refreshShutdownTimer();
+      if (logClients.length === 0) notifySound('disconnect');
     }
   }, 5000);
 }
@@ -259,6 +294,13 @@ body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .log-entry.ngrok .tag{color:#1d4ed8}
 .log-entry.system .tag{color:#8250df}
 .log-entry.system{color:#6c757d}
+.warning-banner{background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 100%);color:#fff;border-radius:10px;padding:14px 20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(153,27,27,.25);display:flex;align-items:flex-start;gap:12px}
+.warning-banner .warn-icon{font-size:22px;line-height:1;flex-shrink:0;margin-top:1px}
+.warning-banner .warn-body{flex:1}
+.warning-banner .warn-title{font-size:13px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:4px}
+.warning-banner .warn-text{font-size:12px;line-height:1.6;color:rgba(255,255,255,.9)}
+.warning-banner .warn-text strong{color:#fca5a5}
+.warning-banner .warn-text kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 6px;font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:11px;color:#fff}
 .footer{margin-top:20px;text-align:center;font-size:11px;color:#6c757d}
 `;
 
@@ -273,6 +315,17 @@ function serveHTML(res) {
     <button class="btn btn-start" onclick="fetch('/api/start-all',{method:'POST'})">Start All</button>
     <button class="btn btn-stop" onclick="fetch('/api/stop-all',{method:'POST'})">Stop All</button>
     <button class="btn btn-start" onclick="fetch('/api/restart-all',{method:'POST'})">Restart</button>
+  </div>
+  <div class="warning-banner">
+    <span class="warn-icon">⚠</span>
+    <div class="warn-body">
+      <div class="warn-title">Important</div>
+      <div class="warn-text">
+        Do <strong>NOT</strong> close this tab &mdash; closing it shuts down the PAMS server and ngrok tunnel.<br>
+        If the tab is closed, a <strong>5-second countdown</strong> will start in the terminal. To stop it, reopen this tab using
+        <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> (macOS) or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> (Windows/Linux).
+      </div>
+    </div>
   </div>
   <div class="cards">
     <div class="card">
@@ -303,7 +356,7 @@ function serveHTML(res) {
     </div>
     <div class="log-area" id="logArea"></div>
   </div>
-  <div class="footer">Close this window or press Ctrl+C in the terminal to stop everything.</div>
+  <div class="footer">Press Ctrl+C in the terminal to force-stop without waiting for the countdown.</div>
 </div>
 <script>
 const evtSource = new EventSource('/events');
@@ -383,9 +436,10 @@ function handleSSE(req, res) {
   res.write(`data: ${JSON.stringify({ type: 'status', server: serverRunning, ngrok: ngrokRunning, ngrokUrl })}\n\n`);
   logClients.push(res);
   refreshShutdownTimer();
+  if (logClients.length === 1) notifySound('connect');
   const removeClient = () => {
     const i = logClients.indexOf(res);
-    if (i !== -1) { logClients.splice(i, 1); refreshShutdownTimer(); }
+    if (i !== -1) { logClients.splice(i, 1); refreshShutdownTimer(); if (logClients.length === 0) notifySound('disconnect'); }
   };
   req.on('close', removeClient);
   res.on('close', removeClient);
