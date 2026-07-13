@@ -1,52 +1,54 @@
 # Server Launch Scripts
 
-This folder contains scripts to launch the backend server and ngrok tunnel simultaneously.
+This folder contains scripts to launch the backend server and ngrok tunnel simultaneously using a terminal user interface (TUI).
 
 ## Prerequisites
 
 - **Node.js** (v18+) — installed and on `PATH`
-- **ngrok** — installed and on `PATH` (or in a standard install location)
+- **ngrok** — installed and on `PATH`
 - **Backend dependencies** — run `npm install` in the `backend/` directory first
+- `.env` file — copy `backend/.env.example` to `backend/.env` (optional: set `NGROK_DOMAIN` for a custom domain)
 
 ## Launch Methods
 
-### Option 1: macOS
+### macOS
 
-Double-click `run_macos_gui.command`, or run:
-
-```bash
-./run_macos_gui.command
-```
-
-First-time setup (make executable):
+Double-click `run_macos_tui.command`, or run from Terminal:
 
 ```bash
-chmod +x run_macos_gui.command
+chmod +x run_macos_tui.command   # first time only
+./run_macos_tui.command
 ```
 
-### Option 2: Windows
+### Windows
 
-Double-click `run_windows_gui.bat`, or run from cmd:
+Double-click `run_windows_tui.bat`, or run from cmd:
 
 ```cmd
-run_windows_gui.bat
+run_windows_tui.bat
 ```
 
-Either option opens a browser-based control panel at `http://localhost:3456` with:
-- **Start All** button — launches server + ngrok
-- **Stop All** button — gracefully stops both processes
-- **Public URL** field — auto-populates with the ngrok URL once ready
-- **Copy** button — copies the URL to clipboard
-- **Output Log** pane — colored log output for server and ngrok
+## TUI Controls
+
+Once launched, a terminal dashboard appears with live status indicators. Use the keyboard:
+
+| Key | Action |
+|-----|--------|
+| `1` | Start All — launches server + ngrok |
+| `2` | Stop All — kills both processes (SIGKILL) |
+| `3` | Restart — clears log and restarts both |
+| `c` | Copy URL — copies ngrok public URL to clipboard |
+| `l` | Clear Logs — clears on-screen log and removes persisted log files |
+| `q` | Quit — confirmation prompt, then cleans up and closes terminal window |
 
 ## What Happens
 
-1. `launcher-gui.js` spawns the backend (`node backend/server.js`) and `ngrok http 3000`.
-2. It serves a web UI on port `3456` (auto-increments if busy) and opens your default browser.
-3. The **Public URL** auto-populates once ngrok is ready (polled every 3s via `localhost:4040`).
+1. `tui-launcher.js` spawns the backend (`node backend/server.js`) and `ngrok http 3000` (or `ngrok http 3000 --domain <NGROK_DOMAIN>` if set).
+2. A TUI dashboard renders status cards for both services and polls `localhost:4040` every 3s for the ngrok URL.
+3. Logs are written to `logs/pams-tui-<timestamp>.log` (auto-cleaned after 7 days).
 
 ## How to Stop
 
-- **GUI**: Click **Stop All**, close the browser tab, or press `Ctrl + C` in the terminal.
-- **Terminal**: Press `Ctrl + C` (SIGINT). Both child processes are killed automatically.
-- The launcher auto-exits 1 second after all browser tabs are closed.
+- Press `q`, then `y` to confirm. All child processes are killed and the terminal window closes.
+- Press `Ctrl + C` at any time for immediate force-stop.
+- Closing the terminal window also triggers cleanup via the `exit` handler.

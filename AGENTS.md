@@ -18,7 +18,7 @@
 - `superadmin.js` (loaded by seed scripts and at runtime) requires these 6 env vars or **exits**: `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD`, `SUPERADMIN_EMPLOYEE_CODE`, `SUPERADMIN_FIRST_NAME`, `SUPERADMIN_LAST_NAME`, `SUPERADMIN_JOB_TITLE`.
 - CORS allows `localhost`, `127.0.0.1`, `.ngrok-free.app`, `.ngrok.app`, `.ngrok-free.dev`, plus `FRONTEND_ORIGIN`/`BACKEND_ORIGIN` from env. Fallback origin: `BACKEND_ORIGIN || "http://127.0.0.1:5500"`.
 - Port: `process.env.PORT || process.env.port || 3000`.
-- ngrok dev (from repo root): `node server_run_script/launcher-gui.js` opens GUI at localhost:3456.
+- ngrok dev (from repo root): `node server_run_script/run_macos_tui.command` opens a TUI dashboard in the terminal.
 - Dotenv loaded via `server.js:10` with explicit path to `backend/.env`.
 
 ## Database

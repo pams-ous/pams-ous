@@ -14,3 +14,6 @@ SDLC_Refactoring_Plan.md
 
 # Realtime audit report
 .miere/
+
+# TUI launcher logs
+server_run_script/logs/*.log
