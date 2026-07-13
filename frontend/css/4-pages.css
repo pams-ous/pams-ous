@@ -334,6 +334,7 @@
 
 .dashboard-grid > .stat-grid {
   grid-column: span 3;
+  align-self: start;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
@@ -344,14 +345,13 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: calc(100vh - 296px);
 }
 
 .dashboard-grid > .gp-panel {
   grid-column: 4;
-  grid-row: 2;
+  grid-row: 1 / 4;
   overflow-y: auto;
-  height: calc(100vh - 296px);
+  align-self: stretch;
 }
 
 .dashboard-grid > .gp-panel > .panel-head {
@@ -369,7 +369,24 @@
   overflow-x: hidden;
 }
 
-#barChartContainer {
+.user-chart-panel .bar-box .scroll-fade {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, #ffffff);
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.25s ease;
+}
+
+.user-chart-panel .bar-box .scroll-fade.hidden {
+  opacity: 0;
+}
+
+#barChartContainer,
+#userBarChartContainer {
   padding: 16px 20px 4px;
 }
 
@@ -432,7 +449,7 @@
 
 .acc-task {
   font-size: 11.5px;
-  color: var(--gray-400);
+  color: var(--gray-500);
   margin-top: 2px;
 }
 

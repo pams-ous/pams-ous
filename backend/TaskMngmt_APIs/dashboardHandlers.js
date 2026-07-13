@@ -52,11 +52,23 @@ function dashboardAPI(app, io, db) {
                 HAVING total > 0
             `);
 
+            // 4. Completed Tasks per User (Bar Chart)
+            const [byUser] = await db.query(`
+                SELECT 
+                    COALESCE(CONCAT(e.first_name, ' ', e.last_name), 'Unassigned') as name,
+                    COUNT(t.task_id) as completed
+                FROM Employees e
+                LEFT JOIN Tasks t ON e.employee_id = t.assigned_to_user AND t.status = 'completed'
+                GROUP BY e.employee_id
+                ORDER BY completed DESC
+            `);
+
             res.json({
                 success: true,
                 counts,
                 byGroup,
-                groupProgress
+                groupProgress,
+                byUser
             });
 
         } catch (err) {

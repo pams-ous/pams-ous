@@ -7,6 +7,7 @@
     const { apiFetch, requireAuth, fmtHeaderDate, getUser } = PAMS;
 
     let barChart;
+    let userBarChart;
     let pollInterval;
     const POLL_INTERVAL_MS = 30000;
 
@@ -65,6 +66,11 @@
                     groupProgress: [
                         { name: 'Student Records', completed: 8, total: 14 },
                         { name: 'Admission', completed: 5, total: 8 }
+                    ],
+                    byUser: [
+                        { name: 'Juan Dela Cruz', completed: 7 },
+                        { name: 'Maria Santos', completed: 5 },
+                        { name: 'Pedro Reyes', completed: 3 }
                     ]
                 });
             }
@@ -88,6 +94,18 @@
             startPolling();
         }
 
+        // Scroll-fade: hide bottom gradient when user chart scrolled to bottom
+        const userBarBox = document.querySelector('.user-chart-panel .bar-box');
+        const scrollFade = userBarBox?.querySelector('.scroll-fade');
+        if (userBarBox && scrollFade) {
+            const toggleFade = () => {
+                const atBottom = userBarBox.scrollHeight - userBarBox.scrollTop - userBarBox.clientHeight < 16;
+                scrollFade.classList.toggle('hidden', atBottom);
+            };
+            userBarBox.addEventListener('scroll', toggleFade);
+            toggleFade();
+        }
+
         window.addEventListener('beforeunload', stopPolling);
     });
 
@@ -97,7 +115,48 @@
         document.getElementById('cnt-completed').textContent = Math.round(s.counts.completed);
         document.getElementById('cnt-inprogress').textContent = Math.round(s.counts.inProgress);
 
-        // 2. Bar Chart — destroy previous instance before recreating
+        // 2. User Bar Chart (Completed per User)
+        if (userBarChart) {
+            userBarChart.destroy();
+            userBarChart = null;
+        }
+        const userChartContainer = document.getElementById('userBarChartContainer');
+        const userCtxEl = document.getElementById('userBarChart');
+        if (userCtxEl && userChartContainer) {
+            const userCtx = userCtxEl.getContext('2d');
+            const userCount = (s.byUser || []).length;
+            const fullHeight = Math.max(200, userCount * 55 + 60);
+            const visibleHeight = Math.min(fullHeight, 5 * 55 + 60);
+            userChartContainer.style.height = `${fullHeight}px`;
+            const userPanel = userChartContainer.closest('.chart-panel');
+            if (userPanel) userPanel.style.height = `${visibleHeight + 56}px`;
+            const maxBarThickness = userCount <= 1 ? 60 : (userCount === 2 ? 70 : 80);
+
+            userBarChart = new Chart(userCtx, {
+                type: 'bar',
+                data: {
+                    labels: (s.byUser || []).map(u => u.name),
+                    datasets: [
+                        { label: 'Completed', data: (s.byUser || []).map(u => u.completed), backgroundColor: '#16a34a' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, suggestedMax: 10, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, precision: 0 } },
+                        y: { grid: { display: false } }
+                    },
+                    datasets: {
+                        bar: { maxBarThickness }
+                    }
+                }
+            });
+        }
+
+        // 3. Bar Chart — destroy previous instance before recreating
         if (barChart) {
             barChart.destroy();
             barChart = null;
@@ -112,6 +171,8 @@
             // 55px per group + 80px padding for axis, legend, etc. (minimum 350px)
             const dynamicHeight = Math.max(350, groupCount * 55 + 80);
             barChartContainer.style.height = `${dynamicHeight}px`;
+            const groupPanel = barChartContainer.closest('.chart-panel');
+            if (groupPanel) groupPanel.style.height = `${dynamicHeight + 56}px`;
 
             const computedMaxBarThickness = groupCount <= 1 ? 60 : (groupCount === 2 ? 70 : 80);
 
