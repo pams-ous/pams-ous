@@ -105,7 +105,7 @@ window.PAMS_UI = (function () {
      */
     const applyRBAC = () => {
         const u = PAMS.getUser();
-        const isAdmin = !!u && u.role === 'ADMIN';
+        const isAdmin = !!u && (u.role === 'ADMIN' || u.role === 'SUPERADMIN');
 
         document.body.classList.toggle('role-admin', isAdmin);
         document.body.classList.toggle('role-member', !isAdmin);

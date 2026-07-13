@@ -38,6 +38,7 @@ module.exports = {
         const query = `
             SELECT 
                 t.task_id as id, t.title, t.description, t.status,
+                t.is_repeating, t.repeat_counter, t.repeat_limit, t.template_id,
                 t.created_at as createdAt,
                 t.updated_at as updatedAt,
                 t.assigned_to_user,
@@ -68,11 +69,11 @@ module.exports = {
     },
 
     create: async (taskData) => {
-        const { title, description, status, assignedBy, assignedToUser, assignedToGroup } = taskData;
+        const { title, description, status, assignedBy, assignedToUser, assignedToGroup, isRepeating, repeatCounter, repeatLimit, templateId } = taskData;
         const query = `
             INSERT INTO Tasks 
-            (title, description, status, assigned_by, assigned_to_user, assigned_to_group)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (title, description, status, assigned_by, assigned_to_user, assigned_to_group, is_repeating, repeat_counter, repeat_limit, template_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const [result] = await db.query(query, [
             title, 
@@ -80,7 +81,11 @@ module.exports = {
             status, 
             assignedBy, 
             assignedToUser, 
-            assignedToGroup
+            assignedToGroup,
+            isRepeating ? 1 : 0,
+            repeatCounter || null,
+            repeatLimit || null,
+            templateId || null
         ]);
         return result.insertId;
     },
@@ -93,6 +98,8 @@ module.exports = {
         if (updateData.title !== undefined) { fields.push('title = ?'); values.push(updateData.title); }
         if (updateData.description !== undefined) { fields.push('description = ?'); values.push(updateData.description); }
         if (updateData.status !== undefined) { fields.push('status = ?'); values.push(updateData.status); }
+        if (updateData.is_repeating !== undefined) { fields.push('is_repeating = ?'); values.push(updateData.is_repeating ? 1 : 0); }
+        if (updateData.repeat_limit !== undefined) { fields.push('repeat_limit = ?'); values.push(updateData.repeat_limit); }
         
         if (fields.length === 0) return 0;
 
@@ -151,5 +158,57 @@ module.exports = {
         `;
         const [result] = await db.query(query);
         return result.affectedRows;
+    },
+
+    /**
+     * Increment template use_count when a task is created from it.
+     */
+    incrementTemplateUseCount: async (templateId) => {
+        await db.query('UPDATE Task_Templates SET use_count = use_count + 1 WHERE template_id = ?', [templateId]);
+    },
+
+    /**
+     * Creates the next instance of a repeating task after the current one is completed.
+     * Returns the new task ID, or null if the task is not repeating.
+     */
+    createNextRepeat: async (completedTask) => {
+        if (!completedTask.is_repeating) return null;
+
+        const currentCounter = completedTask.repeat_counter || 1;
+        const nextCounter = currentCounter + 1;
+
+        // If a repeat_limit is set, stop the chain when we've reached it
+        if (completedTask.repeat_limit && currentCounter >= completedTask.repeat_limit) {
+            return null;
+        }
+
+        // Build the next title by incrementing the number in the title.
+        let nextTitle;
+        const counterPattern = new RegExp(`#${currentCounter}\\b`);
+        const numPattern = new RegExp(`\\b${currentCounter}$`);
+
+        if (counterPattern.test(completedTask.title)) {
+            nextTitle = completedTask.title.replace(counterPattern, `#${nextCounter}`);
+        } else if (numPattern.test(completedTask.title)) {
+            nextTitle = completedTask.title.replace(numPattern, `${nextCounter}`);
+        } else {
+            // Fallback: append the next counter
+            nextTitle = `${completedTask.title} #${nextCounter}`;
+        }
+
+        const newTaskId = await module.exports.create({
+            title: nextTitle,
+            description: completedTask.description,
+            status: 'in progress',
+            assignedBy: completedTask.assigned_by,
+            assignedToUser: completedTask.assigned_to_user,
+            assignedToGroup: completedTask.assigned_to_group,
+            isRepeating: true,
+            repeatCounter: nextCounter,
+            repeatLimit: completedTask.repeat_limit,
+            templateId: completedTask.template_id
+        });
+
+        return { newTaskId, nextTitle, nextCounter };
     }
 };

@@ -97,6 +97,9 @@ module.exports = {
                     title: t.title,
                     description: t.description,
                     status: t.status ? t.status.toUpperCase() : 'PENDING',
+                    isRepeating: !!t.is_repeating,
+                    repeatCounter: t.repeat_counter,
+                    repeatLimit: t.repeat_limit,
                     createdAt: t.createdAt,
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
                     assignee: assigneeObj,
@@ -181,6 +184,9 @@ module.exports = {
                     title: t.title,
                     description: t.description,
                     status: t.status ? t.status.toUpperCase() : 'PENDING',
+                    isRepeating: !!t.is_repeating,
+                    repeatCounter: t.repeat_counter,
+                    repeatLimit: t.repeat_limit,
                     createdAt: t.createdAt,
                     updatedAt: t.updatedAt || t.createdAt, 
                     assignedByName: t.creator_fn ? `${t.creator_fn} ${t.creator_ln}` : 'System',
@@ -203,7 +209,7 @@ module.exports = {
                 return res.status(403).json({ message: 'Insufficient permissions to create tasks. Admin access required.' });
             }
 
-            const { title, description, assigneeEmail, groupId } = req.body;
+            const { title, description, assigneeEmail, groupId, isRepeating, repeatLimit, templateId } = req.body;
         
             // --- STRICT SERVER-SIDE VALIDATION ---
             if (!title || !title.trim()) {
@@ -247,8 +253,17 @@ module.exports = {
                 status: 'in progress',    
                 assignedBy: creatorId,
                 assignedToUser: assignedToUser,
-                assignedToGroup: assignedToGroup
+                assignedToGroup: assignedToGroup,
+                isRepeating: !!isRepeating,
+                repeatCounter: isRepeating ? 1 : null,
+                repeatLimit: isRepeating && repeatLimit ? parseInt(repeatLimit) : null,
+                templateId: templateId || null
             });
+
+            // If created from a template, bump the use count
+            if (templateId) {
+                await Task.incrementTemplateUseCount(templateId);
+            }
 
             // Get creator's full name
             const [creatorRow] = await db.query('SELECT first_name, last_name, suffix FROM Employees WHERE employee_id = ?', [creatorId]);
@@ -296,7 +311,7 @@ module.exports = {
     updateTask: async (req, res) => {
         try {
             const { id } = req.params;
-            const { title, description, status } = req.body; 
+            const { title, description, status, isRepeating, repeatLimit } = req.body; 
             const userRole = req.user.role ? req.user.role.toLowerCase() : 'staff';
 
             // Fetch the existing task to perform status/permission business rule checks
@@ -344,6 +359,8 @@ module.exports = {
             if (isAuthorizedModifier) {
                 if (title) updatePayload.title = title.trim();
                 if (description !== undefined) updatePayload.description = description ? description.trim() : null;
+                if (isRepeating !== undefined) updatePayload.is_repeating = isRepeating;
+                if (repeatLimit !== undefined) updatePayload.repeat_limit = repeatLimit === null || repeatLimit === '' ? null : parseInt(repeatLimit);
             }
             
             // Normalize status for Tasks.status (lowercase, with spaces)
@@ -381,6 +398,31 @@ module.exports = {
                         body: `Task "${task.title}" has been marked as completed.`,
                         relatedUrl: null
                     }, req.app.get('io'));
+
+                    // --- Repeat-on-completion: auto-create next instance ---
+                    if (task.is_repeating) {
+                        const repeatResult = await Task.createNextRepeat(task);
+                        if (repeatResult) {
+                            // Notify about the new repeating task
+                            let targetName = 'the same assignee';
+                            if (task.assigned_to_user) {
+                                const [emp] = await db.query('SELECT first_name, last_name FROM Employees WHERE employee_id = ?', [task.assigned_to_user]);
+                                if (emp.length > 0) targetName = `${emp[0].first_name} ${emp[0].last_name}`;
+                            } else if (task.assigned_to_group) {
+                                const [grp] = await db.query('SELECT group_name FROM Job_Groups WHERE group_id = ?', [task.assigned_to_group]);
+                                if (grp.length > 0) targetName = grp[0].group_name;
+                            }
+
+                            await recordNotification(db, {
+                                kind: "task_repeat_created",
+                                title: "Repeating Task Created",
+                                body: `Next instance "${repeatResult.nextTitle}" has been auto-created for ${targetName}.`,
+                                relatedUrl: null
+                            }, req.app.get('io'));
+
+                            req.app.get('io').emit('tasksChanged', { action: 'create', taskId: repeatResult.newTaskId });
+                        }
+                    }
                 }
             }
 
@@ -506,6 +548,34 @@ module.exports = {
                         relatedUrl: null
                     }, req.app.get('io'));
 
+            }
+
+            // --- Repeat-on-completion: if status changed to completed and task is repeating ---
+            if (statusChange && statusChange.toLowerCase().replace(/[_ ]/g, '') === 'completed') {
+                // Re-fetch the task to get the latest state (logUpdate already updated the status)
+                const completedTask = await Task.findById(taskId);
+                if (completedTask && completedTask.is_repeating) {
+                    const repeatResult = await Task.createNextRepeat(completedTask);
+                    if (repeatResult) {
+                        let targetName = 'the same assignee';
+                        if (completedTask.assigned_to_user) {
+                            const [emp] = await db.query('SELECT first_name, last_name FROM Employees WHERE employee_id = ?', [completedTask.assigned_to_user]);
+                            if (emp.length > 0) targetName = `${emp[0].first_name} ${emp[0].last_name}`;
+                        } else if (completedTask.assigned_to_group) {
+                            const [grp] = await db.query('SELECT group_name FROM Job_Groups WHERE group_id = ?', [completedTask.assigned_to_group]);
+                            if (grp.length > 0) targetName = grp[0].group_name;
+                        }
+
+                        await recordNotification(db, {
+                            kind: "task_repeat_created",
+                            title: "Repeating Task Created",
+                            body: `Next instance "${repeatResult.nextTitle}" has been auto-created for ${targetName}.`,
+                            relatedUrl: null
+                        }, req.app.get('io'));
+
+                        req.app.get('io').emit('tasksChanged', { action: 'create', taskId: repeatResult.newTaskId });
+                    }
+                }
             }
 
             req.app.get('io').emit('tasksChanged', { action: 'logUpdate', taskId: parseInt(taskId) });

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('./taskController');
+const templateController = require('./templateController');
 
 // Import authentication guards
 const { authenticateToken, authorizeRole } = require('../UserMngmt_APIs/authMiddleware');
@@ -8,7 +9,14 @@ const { authenticateToken, authorizeRole } = require('../UserMngmt_APIs/authMidd
 // All task routes require a valid logged-in user session token
 router.use(authenticateToken);
 
-// Operations Layout mapping roles
+// --- Template routes (must come BEFORE /:id to avoid matching "templates" as an id) ---
+router.get('/templates', templateController.getTemplates);
+router.post('/templates', authorizeRole(['Admin', 'Chief', 'SUPERADMIN']), templateController.createTemplate);
+router.put('/templates/:id', authorizeRole(['Admin', 'Chief', 'SUPERADMIN']), templateController.updateTemplate);
+router.delete('/templates/:id', authorizeRole(['Admin', 'Chief', 'SUPERADMIN']), templateController.deleteTemplate);
+router.get('/templates/:id/next-counter', templateController.getNextCounter);
+
+// --- Task routes ---
 router.get('/', taskController.getTasks); // Everyone authenticated can read tasks
 router.get('/me', taskController.getMyTasks);
 router.post('/', authorizeRole(['Admin', 'Chief']), taskController.createTask); // Only management can create tasks

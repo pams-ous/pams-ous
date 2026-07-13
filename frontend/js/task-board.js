@@ -9,7 +9,9 @@
     let tasks = [];
     let users = [];
     let groups = [];
+    let templates = [];
     let viewingId = null;
+    let deletingTplId = null;
     let activeStatus = 'IN PROGRESS';
     let closeTimer = null;
 
@@ -35,6 +37,29 @@
         if (editDesc && editDescCount) {
             editDesc.addEventListener('input', () => {
                 editDescCount.textContent = editDesc.value.length;
+            });
+        }
+
+        // Show/hide repeat limit field when toggle changes
+        const ntRepeat = document.getElementById('nt-repeating');
+        if (ntRepeat) {
+            ntRepeat.addEventListener('change', () => {
+                const wrap = document.getElementById('nt-repeat-limit-wrap');
+                if (wrap) wrap.style.display = ntRepeat.checked ? 'flex' : 'none';
+            });
+        }
+        const editRepeat = document.getElementById('edit-repeating');
+        if (editRepeat) {
+            editRepeat.addEventListener('change', () => {
+                const wrap = document.getElementById('edit-repeat-limit-wrap');
+                if (wrap) wrap.style.display = editRepeat.checked ? 'flex' : 'none';
+            });
+        }
+        const tplRepeat = document.getElementById('tpl-repeating');
+        if (tplRepeat) {
+            tplRepeat.addEventListener('change', () => {
+                const wrap = document.getElementById('tpl-repeat-limit-wrap');
+                if (wrap) wrap.style.display = tplRepeat.checked ? 'flex' : 'none';
             });
         }
 
@@ -109,8 +134,18 @@
                     console.warn("Group list hidden for this account designation.");
                     groups = [];
                 }
+
+                // 4. Safely try to fetch templates
+                try {
+                    const tpl = await apiFetch('/tasks/templates');
+                    templates = tpl.templates || tpl || [];
+                } catch (error) {
+                    console.warn("Templates not available.");
+                    templates = [];
+                }
             }
             populateAssigneeSelects();
+            populateTemplateSelect();
             buildFilterOptions();
             renderList();
             updateOverdueBanner();
@@ -130,6 +165,19 @@
 
         const edAss = document.getElementById('edit-assignee');
         if (edAss) edAss.innerHTML = innerHTML;
+
+        // Also populate template form assignee select
+        const tplAss = document.getElementById('tpl-assignee');
+        if (tplAss) tplAss.innerHTML = `<option value="">None (pick when creating)</option><optgroup label="Users">${userOpts}</optgroup><optgroup label="Groups">${groupOpts}</optgroup>`;
+    }
+
+    function populateTemplateSelect() {
+        const sel = document.getElementById('nt-template');
+        if (!sel) return;
+        const opts = templates.map(t => 
+            `<option value="${t.id}">${escapeHtml(t.titlePattern)}${t.isRepeating ? ' \u{1F501}' : ''}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">— No template —</option>` + opts;
     }
 
     // Combined assignee list (users + groups) for the New Task typeahead.
@@ -243,12 +291,14 @@
 
     function buildRow(t) {
         const sCls = 'badge-' + t.status.toLowerCase().replace(' ', '_');
+        const repeatBadge = t.isRepeating ? '<span class="repeat-badge" title="Repeating task"><i class="fa-solid fa-repeat"></i></span>' : '';
 
         return `
         <div class="tb-row">
             <div class="tb-row-main" onclick="window.TaskBoard.openView(${t.id})">
                 <div class="tb-row-top">
                     <span class="tb-title">${escapeHtml(t.title)}</span>
+                    ${repeatBadge}
                     <span class="badge ${sCls}">${t.status}</span>
                 </div>
                 <div class="tb-desc">${escapeHtml(t.description || '')}</div>
@@ -279,10 +329,16 @@
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+            const tplSel = document.getElementById('nt-template');
+            if (tplSel) tplSel.value = '';
+            const repeatChk = document.getElementById('nt-repeating');
+            if (repeatChk) repeatChk.checked = false;
+            const repeatLimitWrap = document.getElementById('nt-repeat-limit-wrap');
+            if (repeatLimitWrap) repeatLimitWrap.style.display = 'none';
+            const repeatLimitInput = document.getElementById('nt-repeat-limit');
+            if (repeatLimitInput) repeatLimitInput.value = '';
             window.TaskBoard.clearAssignee();
             openModal('newTaskModal');
-            // Make the assignee search the automatically selected control so the
-            // admin can start typing a name right away.
             setTimeout(() => document.getElementById('nt-assignee-search')?.focus(), 50);
         },
         filterAssignees: () => {
@@ -413,6 +469,16 @@
             const [type, key] = assigneeVal.split(':');
             if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
 
+            // Template and repeat fields
+            const tplSel = document.getElementById('nt-template');
+            if (tplSel && tplSel.value) body.templateId = parseInt(tplSel.value);
+            const repeatChk = document.getElementById('nt-repeating');
+            if (repeatChk && repeatChk.checked) {
+                body.isRepeating = true;
+                const limitVal = document.getElementById('nt-repeat-limit')?.value;
+                if (limitVal && parseInt(limitVal) >= 2) body.repeatLimit = parseInt(limitVal);
+            }
+
             // --- 3. Submit ---
             if (CONFIG.USE_MOCK_API) {
                 tasks.push({ ...body, id: tasks.length + 1, assignee: { name: 'New Assignee', initials: 'NA' }, assignedByName: 'You' });
@@ -454,6 +520,14 @@
             document.getElementById('edit-status').value = t.status;
             document.getElementById('edit-status').dispatchEvent(new Event('change', { bubbles: true }));
 
+            // Set repeat toggle
+            const editRepeat = document.getElementById('edit-repeating');
+            if (editRepeat) editRepeat.checked = !!t.isRepeating;
+            const editLimitWrap = document.getElementById('edit-repeat-limit-wrap');
+            if (editLimitWrap) editLimitWrap.style.display = t.isRepeating ? 'flex' : 'none';
+            const editLimitInput = document.getElementById('edit-repeat-limit');
+            if (editLimitInput) editLimitInput.value = t.repeatLimit || '';
+
             // Set the current assignee in the edit-assignee select
             if (t.assignee) {
                 const edAss = document.getElementById('edit-assignee');
@@ -480,6 +554,15 @@
                 description: document.getElementById('edit-desc').value,
                 status: document.getElementById('edit-status').value
             };
+
+            // Include repeat toggle state
+            const editRepeat = document.getElementById('edit-repeating');
+            if (editRepeat) {
+                body.isRepeating = editRepeat.checked;
+                const limitVal = document.getElementById('edit-repeat-limit')?.value;
+                body.repeatLimit = editRepeat.checked && limitVal && parseInt(limitVal) >= 2 ? parseInt(limitVal) : null;
+            }
+
             if (assigneeVal) {
                 const [type, key] = assigneeVal.split(':');
                 if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
@@ -615,6 +698,215 @@
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             PAMS.toast(`Exported ${list.length} task${list.length === 1 ? '' : 's'} to CSV.`, 'success');
+        },
+
+        // ===== TEMPLATE FEATURES =====
+
+        /**
+         * Apply a selected template to the New Task form.
+         * Fetches the next counter for auto-increment and fills fields.
+         */
+        applyTemplate: async () => {
+            const sel = document.getElementById('nt-template');
+            if (!sel || !sel.value) return;
+            const tplId = parseInt(sel.value);
+            const tpl = templates.find(t => t.id === tplId);
+            if (!tpl) return;
+
+            // Get next counter from server
+            let nextCounter = 1;
+            try {
+                const resp = await apiFetch(`/tasks/templates/${tplId}/next-counter`);
+                nextCounter = resp.nextCounter || 1;
+            } catch (e) { /* fallback to 1 */ }
+
+            // Build the title: replace trailing number or append #N
+            let title = tpl.titlePattern;
+            const trailingNum = title.match(/(\d+)\s*$/);
+            if (trailingNum) {
+                title = title.replace(/\d+\s*$/, nextCounter);
+            } else if (title.includes('{#}')) {
+                title = title.replace('{#}', nextCounter);
+            } else {
+                title = `${title} #${nextCounter}`;
+            }
+
+            document.getElementById('nt-title').value = title;
+            document.getElementById('nt-desc').value = tpl.description || '';
+            const descCount = document.getElementById('nt-desc-count');
+            if (descCount) descCount.textContent = (tpl.description || '').length;
+
+            // Set repeat toggle
+            const repeatChk = document.getElementById('nt-repeating');
+            if (repeatChk) repeatChk.checked = tpl.isRepeating;
+            const limitWrap = document.getElementById('nt-repeat-limit-wrap');
+            if (limitWrap) limitWrap.style.display = tpl.isRepeating ? 'flex' : 'none';
+            const limitInput = document.getElementById('nt-repeat-limit');
+            if (limitInput) limitInput.value = tpl.repeatLimit || '';
+
+            // Set assignee if template has a default
+            if (tpl.assigneeName && tpl.assigneeType) {
+                if (tpl.assigneeType === 'user') {
+                    const u = users.find(u => u.name === tpl.assigneeName);
+                    if (u) {
+                        window.TaskBoard.pickAssignee(
+                            encodeURIComponent(`user:${u.email}`),
+                            encodeURIComponent(u.name)
+                        );
+                    }
+                } else if (tpl.assigneeType === 'group') {
+                    const g = groups.find(g => g.name === tpl.assigneeName);
+                    if (g) {
+                        window.TaskBoard.pickAssignee(
+                            encodeURIComponent(`group:${g.id}`),
+                            encodeURIComponent(g.name)
+                        );
+                    }
+                }
+            }
+        },
+
+        // ===== TEMPLATE MANAGEMENT =====
+
+        openManageTemplates: async () => {
+            openModal('templatesModal');
+            await window.TaskBoard.renderTemplateList();
+        },
+
+        renderTemplateList: async () => {
+            const listEl = document.getElementById('tpl-list');
+            if (!listEl) return;
+
+            // Refresh templates
+            try {
+                const resp = await apiFetch('/tasks/templates');
+                templates = resp.templates || [];
+                populateTemplateSelect();
+            } catch (e) { /* use cached */ }
+
+            if (templates.length === 0) {
+                listEl.innerHTML = '<div class="tb-empty">No templates yet. Create one to speed up task creation.</div>';
+                return;
+            }
+
+            listEl.innerHTML = templates.map(t => `
+                <div class="tpl-item">
+                    <div class="tpl-item-info">
+                        <div class="tpl-item-title">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            ${escapeHtml(t.titlePattern)}
+                            ${t.isRepeating ? '<span class="repeat-badge" title="Auto-repeating"><i class="fa-solid fa-repeat"></i></span>' : ''}
+                        </div>
+                        <div class="tpl-item-meta">
+                            ${t.assigneeName ? '<i class="fa-solid fa-user"></i> ' + escapeHtml(t.assigneeName) + ' · ' : ''}Used ${t.useCount} time${t.useCount !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    <div class="tpl-item-actions">
+                        <button class="ribbon-btn ghost" title="Edit" onclick="TaskBoard.openEditTemplate(${t.id})"><i class="fa-solid fa-pen"></i></button>
+                        <button class="ribbon-btn ghost act-delete" title="Delete" onclick="TaskBoard.confirmDeleteTemplate(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        },
+
+        openCreateTemplate: () => {
+            document.getElementById('tpl-form-title').textContent = 'Create Template';
+            document.getElementById('tpl-id').value = '';
+            document.getElementById('tpl-title-pattern').value = '';
+            document.getElementById('tpl-desc').value = '';
+            document.getElementById('tpl-assignee').value = '';
+            document.getElementById('tpl-repeating').checked = true;
+            const tplLimitWrap = document.getElementById('tpl-repeat-limit-wrap');
+            if (tplLimitWrap) tplLimitWrap.style.display = 'flex';
+            const tplLimitInput = document.getElementById('tpl-repeat-limit');
+            if (tplLimitInput) tplLimitInput.value = '';
+            openModal('tplFormModal');
+        },
+
+        openEditTemplate: (id) => {
+            const tpl = templates.find(t => t.id === id);
+            if (!tpl) return;
+            document.getElementById('tpl-form-title').textContent = 'Edit Template';
+            document.getElementById('tpl-id').value = id;
+            document.getElementById('tpl-title-pattern').value = tpl.titlePattern;
+            document.getElementById('tpl-desc').value = tpl.description || '';
+            document.getElementById('tpl-repeating').checked = tpl.isRepeating;
+            const tplLimitWrap = document.getElementById('tpl-repeat-limit-wrap');
+            if (tplLimitWrap) tplLimitWrap.style.display = tpl.isRepeating ? 'flex' : 'none';
+            const tplLimitInput = document.getElementById('tpl-repeat-limit');
+            if (tplLimitInput) tplLimitInput.value = tpl.repeatLimit || '';
+
+            // Set assignee
+            const tplAss = document.getElementById('tpl-assignee');
+            if (tplAss && tpl.assigneeName) {
+                if (tpl.assigneeType === 'user') {
+                    const u = users.find(u => u.name === tpl.assigneeName);
+                    if (u) tplAss.value = `user:${u.email}`;
+                } else if (tpl.assigneeType === 'group') {
+                    const g = groups.find(g => g.name === tpl.assigneeName);
+                    if (g) tplAss.value = `group:${g.id}`;
+                }
+            } else if (tplAss) {
+                tplAss.value = '';
+            }
+
+            openModal('tplFormModal');
+        },
+
+        saveTemplate: async () => {
+            const id = document.getElementById('tpl-id').value;
+            const titlePattern = document.getElementById('tpl-title-pattern').value.trim();
+            const description = document.getElementById('tpl-desc').value.trim();
+            const assigneeVal = document.getElementById('tpl-assignee').value;
+            const isRepeating = document.getElementById('tpl-repeating').checked;
+            const repeatLimitVal = document.getElementById('tpl-repeat-limit')?.value;
+
+            if (!titlePattern) {
+                PAMS.toast("Title pattern is required.", "warning");
+                return;
+            }
+
+            const body = { titlePattern, description, isRepeating };
+            if (isRepeating && repeatLimitVal && parseInt(repeatLimitVal) >= 2) body.repeatLimit = parseInt(repeatLimitVal);
+            if (assigneeVal) {
+                const [type, key] = assigneeVal.split(':');
+                if (type === 'user') body.assigneeEmail = key; else body.groupId = parseInt(key);
+            }
+
+            try {
+                if (id) {
+                    await apiFetch(`/tasks/templates/${id}`, 'PUT', body);
+                    PAMS.toast('Template updated.', 'success');
+                } else {
+                    await apiFetch('/tasks/templates', 'POST', body);
+                    PAMS.toast('Template created.', 'success');
+                }
+                closeModal('tplFormModal');
+                await window.TaskBoard.renderTemplateList();
+            } catch (err) {
+                PAMS.toast(err.message, 'error');
+            }
+        },
+
+        confirmDeleteTemplate: (id) => {
+            deletingTplId = id;
+            const tpl = templates.find(t => t.id === id);
+            const nameEl = document.getElementById('delete-tpl-name');
+            if (nameEl) nameEl.textContent = tpl?.titlePattern || '';
+            openModal('deleteTplModal');
+        },
+
+        doDeleteTemplate: async () => {
+            if (!deletingTplId) return;
+            try {
+                await apiFetch(`/tasks/templates/${deletingTplId}`, 'DELETE');
+                closeModal('deleteTplModal');
+                deletingTplId = null;
+                PAMS.toast('Template deleted.', 'success');
+                await window.TaskBoard.renderTemplateList();
+            } catch (err) {
+                PAMS.toast(err.message, 'error');
+            }
         }
     };
 
