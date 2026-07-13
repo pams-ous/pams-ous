@@ -82,6 +82,31 @@ CREATE TABLE `Employees_Groups` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
+-- Table structure for table `Task_Templates`
+--
+
+DROP TABLE IF EXISTS `Task_Templates`;
+CREATE TABLE `Task_Templates` (
+  `template_id` int NOT NULL AUTO_INCREMENT,
+  `title_pattern` varchar(200) NOT NULL,
+  `description` text DEFAULT NULL,
+  `default_assignee_user` varchar(36) DEFAULT NULL,
+  `default_assignee_group` int DEFAULT NULL,
+  `is_repeating` tinyint(1) NOT NULL DEFAULT 0,
+  `repeat_limit` int DEFAULT NULL,
+  `use_count` int NOT NULL DEFAULT 0,
+  `created_by` varchar(36) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`template_id`),
+  KEY `fk_tpl_assignee_user` (`default_assignee_user`),
+  KEY `fk_tpl_assignee_group` (`default_assignee_group`),
+  KEY `fk_tpl_created_by` (`created_by`),
+  CONSTRAINT `fk_tpl_assignee_user` FOREIGN KEY (`default_assignee_user`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_tpl_assignee_group` FOREIGN KEY (`default_assignee_group`) REFERENCES `Job_Groups` (`group_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_tpl_created_by` FOREIGN KEY (`created_by`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
 -- Table structure for table `Tasks`
 --
 DROP TABLE IF EXISTS `Tasks`;
@@ -93,15 +118,21 @@ CREATE TABLE `Tasks` (
   `assigned_to_user` varchar(36) DEFAULT NULL,
   `assigned_to_group` int DEFAULT NULL,
   `status` enum('pending','in progress','completed','cancelled') NOT NULL DEFAULT 'pending',
+  `is_repeating` tinyint(1) NOT NULL DEFAULT 0,
+  `repeat_counter` int DEFAULT NULL,
+  `template_id` int DEFAULT NULL,
+  `repeat_limit` int DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`task_id`),
   KEY `tasks-employees_idx` (`assigned_by`),
   KEY `tasks-employees_employee_idx` (`assigned_to_user`),
   KEY `tasks-employees_groups_idx` (`assigned_to_group`),
+  KEY `fk_task_template` (`template_id`),
   CONSTRAINT `tasks-employees_admin` FOREIGN KEY (`assigned_by`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `tasks-employees_employee` FOREIGN KEY (`assigned_to_user`) REFERENCES `Employees` (`employee_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `tasks-employees_groups_link` FOREIGN KEY (`assigned_to_group`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `tasks-employees_groups_link` FOREIGN KEY (`assigned_to_group`) REFERENCES `Job_Groups` (`group_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_task_template` FOREIGN KEY (`template_id`) REFERENCES `Task_Templates` (`template_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -165,9 +196,6 @@ CREATE TABLE `Report_Entries` (
   CONSTRAINT `report_entries-task_updates_link` FOREIGN KEY (`task_update_id`) REFERENCES `Task_Updates` (`update_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Turn checks back on
-SET FOREIGN_KEY_CHECKS = 1;
-
 -- Table structure for table `Notifications`
 --
 DROP TABLE IF EXISTS `Notifications`;
@@ -202,3 +230,6 @@ CREATE TABLE `User_Notifications` (
   CONSTRAINT `fk_un_notification` FOREIGN KEY (`notification_id`) REFERENCES `Notifications` (`notification_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   UNIQUE KEY `uq_user_notif` (`user_id`, `notification_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Turn checks back on
+SET FOREIGN_KEY_CHECKS = 1;
