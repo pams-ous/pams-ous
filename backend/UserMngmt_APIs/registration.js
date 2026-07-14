@@ -213,6 +213,74 @@ async function registerRegistrationHandlers(socket, db, io) {
 }
 
 async function initRegistrationRoutes(app, db) {
+    // REST API: Self-service registration (no OTP)
+    app.post('/api/auth/register', async (req, res) => {
+        const { employeeCode, firstName, middleName, lastName, suffix, email, password, confirmPassword, designationId } = req.body;
+
+        if (!email || !password || !confirmPassword || !firstName || !lastName) {
+            return res.status(400).json({ success: false, message: "Please fill in all required fields." });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "Passwords do not match." });
+        }
+
+        const policy = validatePassword(password);
+        if (!policy.valid) {
+            return res.status(400).json({ success: false, message: policy.message });
+        }
+
+        try {
+            const exists = await ifEmployeeExists(db, email, employeeCode);
+            if (exists) {
+                return res.status(400).json({ success: false, message: "User records already exist!" });
+            }
+
+            const passwordHash = await hash_password(password);
+            const uuid = crypto.randomUUID();
+
+            const systemRole = [1, 2, 3].includes(Number(designationId)) ? 'Admin' : 'Admin. Staff';
+
+            let approvalStatus = 'APPROVED';
+            if (systemRole === 'Admin') {
+                const [adminCountRow] = await db.query("SELECT COUNT(*) as count FROM Employees WHERE designation = 'Admin'");
+                const adminCount = adminCountRow[0]?.count || 0;
+                approvalStatus = adminCount === 0 ? 'APPROVED' : 'PENDING';
+            }
+
+            await db.query(
+                'INSERT INTO Employees (employee_id, employee_code, first_name, last_name, middle_name, suffix, email, job_title, designation, password, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [uuid, employeeCode || null, firstName, lastName, middleName || '', suffix || '', email, designationId, systemRole, passwordHash, approvalStatus]
+            );
+
+            await recordNotification(db, {
+                kind: "user_registered",
+                title: "New User Registered",
+                body: `A new account has been created for ${email}`,
+                relatedUrl: uuid
+            }, req.app.get('io'));
+
+            if (approvalStatus === 'PENDING') {
+                await recordNotification(db, {
+                    kind: "user_approval",
+                    title: systemRole,
+                    body: email,
+                    relatedUrl: uuid
+                }, req.app.get('io'));
+            }
+
+            res.json({
+                success: true,
+                message: approvalStatus === 'PENDING'
+                    ? "Account created! It is now pending admin approval."
+                    : "Account created successfully! You can now sign in."
+            });
+        } catch (err) {
+            console.error("Registration error:", err);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    });
+
     // REST API: Add Direct User (Admin managed)
     app.post('/api/users', authenticateToken, authorizeRole(['ADMIN']), async (req, res) => {
         const { code, firstName, lastName, middleName, suffix, email, role, password, designationId } = req.body;

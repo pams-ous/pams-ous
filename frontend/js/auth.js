@@ -212,57 +212,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const setupMethodToggle = (form) => {
-        const toggle = form.querySelector('.method-toggle');
-        if (!toggle) return;
-
-        const buttons = Array.from(toggle.querySelectorAll('button[data-method]'));
-        const submitLabel = form.querySelector('[data-submit-label]');
-        const submitLabelDefault = submitLabel ? submitLabel.innerHTML : null;
-
-        const applyMode = (mode) => {
-            form.dataset.authMode = mode;
-            buttons.forEach((b) => {
-                const active = b.dataset.method === mode;
-                b.classList.toggle('active', active);
-                b.setAttribute('aria-selected', active ? 'true' : 'false');
-            });
-
-            form.querySelectorAll('[data-method-only]').forEach((el) => {
-                const visible = el.dataset.methodOnly === mode;
-                el.classList.toggle('hidden', !visible);
-                el.querySelectorAll('input,select,textarea').forEach((inp) => {
-                    if (visible) {
-                        if (inp.dataset.wasRequired === 'true') inp.required = true;
-                    } else {
-                        if (inp.required) {
-                            inp.dataset.wasRequired = 'true';
-                            inp.required = false;
-                        }
-                    }
-                });
-            });
-
-            if (submitLabel) {
-                submitLabel.innerHTML = mode === 'otp'
-                    ? '<i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Send Code'
-                    : submitLabelDefault;
-            }
-        };
-
-        buttons.forEach((b) => {
-            b.addEventListener('click', () => applyMode(b.dataset.method));
-        });
-
-        applyMode(form.dataset.authMode || 'password');
-    };
-
     const setupFormHandler = (formId, endpoint, type) => {
         const form = document.getElementById(formId);
         if (!form) return;
 
         const isSignup = formId === 'signupForm';
-        if (!isSignup) setupMethodToggle(form);
 
         if (isSignup) {
             const desSel = form.querySelector('select[name="designationIds"]');
@@ -293,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = Object.fromEntries(formData.entries());
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
-            const authMode = form.dataset.authMode || 'password';
 
             if (isSignup) {
                 if (data.password !== data.confirmPassword) {
@@ -310,27 +263,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (!isSignup && authMode === 'otp') {
-                if (!data.email) {
-                    PAMS.toast('Please enter your email to receive a code.', 'warning');
-                    return;
-                }
-            }
-
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             try {
                 if (isSignup) {
                     const regPayload = {
-                        tempEmpCode: data.employeeCode,
+                        employeeCode: data.employeeCode,
                         firstName: data.firstName,
                         middleName: data.middleName,
                         lastName: data.lastName,
                         suffix: data.suffix,
                         email: data.email,
-                        tempPassword: data.password,
-                        tempConfPassword: data.confirmPassword,
+                        password: data.password,
+                        confirmPassword: data.confirmPassword,
                         designationId: data.designationIds ? data.designationIds[0] : null
                     };
 
@@ -340,30 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         regPayload.role = 'MEMBER';
                     }
 
-                    await window.PAMSOtp.runRegistrationOtp({
-                        formData: regPayload
-                    });
-                    PAMS.toast('Registration successful! You can now sign in.', 'success');
+                    const result = await performAuthRequest(endpoint, regPayload);
+                    PAMS.toast(result.message || 'Registration successful! You can now sign in.', 'success');
                     document.getElementById('showLogin').click();
-                    return;
-                }
-
-                if (authMode === 'otp') {
-                    const otpResult = await window.PAMSOtp.runLoginOtp({ email: data.email });
-                    const user = {
-                        id: 1,
-                        email: otpResult.email,
-                        role: otpResult.role,
-                        firstName: (otpResult.empName || '').split(' ')[0] || 'User',
-                        lastName: (otpResult.empName || '').split(' ').slice(1).join(' ') || ''
-                    };
-
-                    setSession(otpResult.token, user);
-                    PAMS.showLoader('Sign-In Successful', 'Preparing your dashboard...');
-                    setTimeout(() => {
-                        PAMS.hideLoader();
-                        redirectAfterLogin(user);
-                    }, 1200);
                     return;
                 }
 
@@ -382,10 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     PAMS.toast(`Error: ${result.message}`, 'error');
                 }
             } catch (error) {
-                if (error && error.message === 'cancelled') {
-                } else {
-                    PAMS.toast(`Error: ${error.message || error}`, 'error');
-                }
+                PAMS.toast(`Error: ${error.message || error}`, 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
