@@ -12,6 +12,8 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '.', '.env')
 const dns = require('dns'); // force connection to use IPv4 to connect to smtp.gmail.com
 dns.setDefaultResultOrder('ipv4first');
 
+require('./logger');
+
 const http = require('http');
 const path = require('path');
 const mysql = require('mysql2/promise');

@@ -7,7 +7,6 @@ const readline = require('readline');
 
 const BACKEND_DIR = path.join(__dirname, '..', 'backend');
 const serverPath = path.join(BACKEND_DIR, 'server.js');
-const LOGS_DIR = path.join(__dirname, 'logs');
 
 function loadEnv() {
   const envPath = path.join(BACKEND_DIR, '.env');
@@ -40,7 +39,6 @@ let ngrokRunning = false;
 let ngrokUrlNotified = false;
 let ngrokWaitingNotified = false;
 let logLines = [];
-let logStream = null;
 const MAX_LOG_LINES = 50;
 let dirty = true;
 let confirmQuit = false;
@@ -262,30 +260,11 @@ function addLog(text, source) {
   logLines.push({ text, source, ts });
   if (logLines.length > MAX_LOG_LINES) logLines.shift();
   dirty = true;
-  if (logStream) {
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const fileTs = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    const sourceLabel = source === 'server' ? 'SERVER' : source === 'ngrok' ? 'NGROK' : 'SYSTEM';
-    logStream.write(`[${fileTs}] [${sourceLabel}] ${text}\n`);
-  }
 }
 
 function clearLog() {
   logLines = [];
   dirty = true;
-}
-
-function clearLogFiles() {
-  if (!fs.existsSync(LOGS_DIR)) return 0;
-  const files = fs.readdirSync(LOGS_DIR);
-  let deleted = 0;
-  files.forEach(file => {
-    if (file.endsWith('.log')) {
-      try { fs.unlinkSync(path.join(LOGS_DIR, file)); deleted++; } catch (e) { /* ignore */ }
-    }
-  });
-  return deleted;
 }
 
 function broadcast(data) {
@@ -299,34 +278,6 @@ function broadcast(data) {
     ngrokUrl = data.ngrokUrl || '';
     dirty = true;
   }
-}
-
-function initLogFile() {
-  if (!fs.existsSync(LOGS_DIR)) {
-    fs.mkdirSync(LOGS_DIR, { recursive: true });
-  }
-  try {
-    const files = fs.readdirSync(LOGS_DIR);
-    const now = Date.now();
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    files.forEach(file => {
-      if (file.endsWith('.log')) {
-        const filePath = path.join(LOGS_DIR, file);
-        const stat = fs.statSync(filePath);
-        if (now - stat.mtimeMs > sevenDays) {
-          fs.unlinkSync(filePath);
-        }
-      }
-    });
-  } catch (e) { /* ignore */ }
-  const pad = (n) => String(n).padStart(2, '0');
-  const d = new Date();
-  const timestamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
-  const logPath = path.join(LOGS_DIR, `pams-tui-${timestamp}.log`);
-  logStream = fs.createWriteStream(logPath, { flags: 'a' });
-  const header = `--- PAMS TUI Launcher session started at ${new Date().toISOString()} ---`;
-  logStream.write(header + '\n');
-  broadcast({ type: 'log', text: `Logging to logs/pams-tui-${timestamp}.log`, source: 'system' });
 }
 
 function setupProcessLogging(proc, source) {
@@ -458,11 +409,6 @@ function closeTerminal() {
 
 function cleanup() {
   showCursor();
-  if (logStream) {
-    logStream.write(`--- Session ended at ${new Date().toISOString()} ---\n`);
-    logStream.end();
-    logStream = null;
-  }
   if (serverProc) { try { serverProc.kill('SIGKILL'); } catch (e) {} serverProc = null; }
   if (ngrokProc) { try { ngrokProc.kill('SIGKILL'); } catch (e) {} ngrokProc = null; }
 }
@@ -494,7 +440,6 @@ process.stdin.setEncoding('utf-8');
 
 hideCursor();
 clearScreen();
-initLogFile();
 
 broadcast({ type: 'log', text: 'TUI Launcher ready. Press [1] to start all services.', source: 'system' });
 dirty = true;
@@ -522,8 +467,7 @@ process.stdin.on('data', (key) => {
     }
   } else if (key === 'l' || key === 'L') {
     clearLog();
-    const n = clearLogFiles();
-    showToast(n > 0 ? `Logs cleared (${n} file${n !== 1 ? 's' : ''} removed)` : 'Logs cleared');
+    showToast('Display log cleared');
   } else if (key === 'q' || key === '\x03') { // q or Ctrl+C
     if (confirmQuit) {
       cleanup();
