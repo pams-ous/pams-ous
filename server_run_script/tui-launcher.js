@@ -40,6 +40,9 @@ let ngrokUrlNotified = false;
 let ngrokWaitingNotified = false;
 let logLines = [];
 const MAX_LOG_LINES = 50;
+let logFd = null;
+let logFilePath = '';
+const LOGS_DIR = path.join(__dirname, 'logs');
 let dirty = true;
 let confirmQuit = false;
 let needsClear = false;
@@ -259,12 +262,63 @@ function addLog(text, source) {
   const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   logLines.push({ text, source, ts });
   if (logLines.length > MAX_LOG_LINES) logLines.shift();
+  writeLogToFile(text, source);
   dirty = true;
 }
 
 function clearLog() {
   logLines = [];
   dirty = true;
+}
+
+function deleteLogFiles() {
+  if (fs.existsSync(LOGS_DIR)) {
+    const files = fs.readdirSync(LOGS_DIR);
+    files.forEach(f => {
+      if (f.endsWith('.log')) fs.unlinkSync(path.join(LOGS_DIR, f));
+    });
+  }
+}
+
+function initLogFile() {
+  if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
+  const now = new Date();
+  const ts = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + '_' +
+    String(now.getHours()).padStart(2, '0') + '-' +
+    String(now.getMinutes()).padStart(2, '0') + '-' +
+    String(now.getSeconds()).padStart(2, '0') + '-' +
+    String(now.getMilliseconds()).padStart(3, '0');
+  logFilePath = path.join(LOGS_DIR, 'pams-tui-' + ts + '.log');
+  logFd = fs.openSync(logFilePath, 'a');
+  const header = '--- PAMS TUI Launcher session started at ' + now.toISOString() + ' ---\n';
+  fs.writeSync(logFd, header);
+  addLog('Logging to logs/' + path.basename(logFilePath), 'system');
+}
+
+function closeLogFile() {
+  if (logFd) {
+    const footer = '--- Session ended at ' + new Date().toISOString() + ' ---\n';
+    try { fs.writeSync(logFd, footer); } catch (e) {}
+    try { fs.closeSync(logFd); } catch (e) {}
+    logFd = null;
+    logFilePath = '';
+  }
+}
+
+function writeLogToFile(text, source) {
+  if (!logFd) return;
+  const now = new Date();
+  const ts = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0') + ':' +
+    String(now.getSeconds()).padStart(2, '0');
+  const src = source === 'server' ? 'SERVER' : source === 'ngrok' ? 'NGROK' : 'SYSTEM';
+  const line = '[' + ts + '] [' + src + '] ' + text + '\n';
+  try { fs.writeSync(logFd, line); } catch (e) {}
 }
 
 function broadcast(data) {
@@ -347,6 +401,8 @@ function stopNgrok() {
 
 function startAll() {
   clearLog();
+  closeLogFile();
+  initLogFile();
   broadcast({ type: 'log', text: 'Starting all services...', source: 'system' });
   startServer();
   startNgrok();
@@ -359,6 +415,8 @@ function stopAll() {
 
 function restartAll() {
   clearLog();
+  closeLogFile();
+  initLogFile();
   broadcast({ type: 'log', text: 'Restarting all services...', source: 'system' });
   stopServer();
   stopNgrok();
@@ -411,6 +469,7 @@ function cleanup() {
   showCursor();
   if (serverProc) { try { serverProc.kill('SIGKILL'); } catch (e) {} serverProc = null; }
   if (ngrokProc) { try { ngrokProc.kill('SIGKILL'); } catch (e) {} ngrokProc = null; }
+  closeLogFile();
 }
 
 function copyToClipboard(text) {
@@ -467,7 +526,8 @@ process.stdin.on('data', (key) => {
     }
   } else if (key === 'l' || key === 'L') {
     clearLog();
-    showToast('Display log cleared');
+    deleteLogFiles();
+    showToast('Display and log files cleared');
   } else if (key === 'q' || key === '\x03') { // q or Ctrl+C
     if (confirmQuit) {
       cleanup();
